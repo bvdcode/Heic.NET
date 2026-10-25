@@ -21,7 +21,7 @@ namespace Heic.Net.Hevc
             bool completed = false;
             try
             {
-                CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height);
+                using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height);
                 SaoFilter sao = new SaoFilter(slice);
                 int ctbSize = 1 << sequence.Log2Ctb;
                 int columns = (sequence.Width + ctbSize - 1) / ctbSize;

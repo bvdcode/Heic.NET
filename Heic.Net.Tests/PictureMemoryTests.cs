@@ -54,7 +54,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void BlockMapsKeepPredictionAndTransformCoordinatesIndependent()
         {
-            CodingBlockMap blocks = new CodingBlockMap(16, 16);
+            using CodingBlockMap blocks = new CodingBlockMap(16, 16);
             blocks.SetCodingUnit(0, 0, 16, 0, false);
             blocks.SetMode(0, 0, 8, 26);
             blocks.SetMode(8, 0, 8, 10);

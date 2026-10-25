@@ -12,7 +12,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void QuantizersPreserveSignedValuesAndUnwrittenNeighbours()
         {
-            CodingBlockMap blocks = new CodingBlockMap(20, 16);
+            using CodingBlockMap blocks = new CodingBlockMap(20, 16);
             for (int qp = -48; qp <= 51; qp++)
             {
                 blocks.SetQp(4, 4, 12, 8, qp);
@@ -43,7 +43,7 @@ namespace Heic.Net.Tests
         [InlineData(127)]
         public void StorageLimitsRemainDistinctFromUnavailable(int qp)
         {
-            CodingBlockMap blocks = new CodingBlockMap(8, 4);
+            using CodingBlockMap blocks = new CodingBlockMap(8, 4);
             blocks.SetQp(0, 0, 4, 4, qp);
             Assert.Equal(qp, blocks.Qp(3, 3));
             Assert.Equal(int.MinValue, blocks.Qp(4, 3));
@@ -57,7 +57,7 @@ namespace Heic.Net.Tests
         [InlineData(int.MaxValue)]
         public void UnrepresentableQuantizersCannotOverwriteExistingCells(int qp)
         {
-            CodingBlockMap blocks = new CodingBlockMap(8, 8);
+            using CodingBlockMap blocks = new CodingBlockMap(8, 8);
             blocks.SetQp(0, 0, 8, 8, 37);
             Assert.Throws<ArgumentOutOfRangeException>(() => blocks.SetQp(0, 0, 8, 8, qp));
             for (int y = 0; y < 8; y++)
