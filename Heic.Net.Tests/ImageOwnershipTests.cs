@@ -8,7 +8,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void CopyDoesNotShareCallerStorage()
         {
-            RgbaImage image = new RgbaImage(1, 1, new byte[] { 1, 2, 3, 255 });
+            RgbaImage image = new RgbaImage(1, 1, new byte[] { 1, 2, 3, 255 }, new ImageColorInformation(1, 1));
             byte[] copy = new byte[4];
             image.CopyTo(copy);
             copy[0] = 99;
@@ -19,7 +19,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void InvalidDimensionsAreRejected()
         {
-            Assert.Throws<ArgumentException>(() => new RgbaImage(2, 1, new byte[4]));
+            Assert.Throws<ArgumentException>(() => new RgbaImage(2, 1, new byte[4], new ImageColorInformation(1, 1)));
             Assert.Throws<ArgumentOutOfRangeException>(() => new HeicDecodeOptions(maxPixels: 0));
         }
     }

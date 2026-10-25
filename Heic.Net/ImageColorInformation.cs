@@ -1,0 +1,24 @@
+namespace Heic.Net
+{
+    /// <summary>
+    /// Identifies the primaries and transfer function of the returned RGB signal using CICP codes.
+    /// </summary>
+    /// <param name="colorPrimaries">The signalled colour primaries code; 2 means unspecified.</param>
+    /// <param name="transferCharacteristics">The signalled transfer characteristics code; 2 means unspecified.</param>
+    /// <remarks>
+    /// RGB values preserve the encoded primaries and transfer function. No gamut conversion,
+    /// ICC processing or tone mapping is applied; the bytes are not implicitly sRGB.
+    /// </remarks>
+    public class ImageColorInformation(int colorPrimaries, int transferCharacteristics)
+    {
+        /// <summary>
+        /// Gets the CICP colour primaries code.
+        /// </summary>
+        public int ColorPrimaries { get; } = colorPrimaries;
+
+        /// <summary>
+        /// Gets the CICP transfer characteristics code.
+        /// </summary>
+        public int TransferCharacteristics { get; } = transferCharacteristics;
+    }
+}

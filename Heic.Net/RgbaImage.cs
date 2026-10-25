@@ -9,7 +9,7 @@ namespace Heic.Net
     {
         private readonly byte[] pixels;
 
-        internal RgbaImage(int width, int height, byte[] pixels)
+        internal RgbaImage(int width, int height, byte[] pixels, ImageColorInformation colorInformation)
         {
             if (width <= 0 || height <= 0 || pixels.Length != checked(width * height * 4))
             {
@@ -19,7 +19,13 @@ namespace Heic.Net
             Width = width;
             Height = height;
             this.pixels = pixels;
+            ColorInformation = colorInformation;
         }
+
+        /// <summary>
+        /// Gets the primaries and transfer function retained by the RGB bytes.
+        /// </summary>
+        public ImageColorInformation ColorInformation { get; }
 
         /// <summary>
         /// Gets the visible image width in pixels.
