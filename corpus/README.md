@@ -2,7 +2,7 @@
 
 The codec fixtures contain one 64×48 IDR picture each: 8-bit 4:2:0, 10-bit 4:2:0,
 and 8-bit monochrome. `pattern-*` disables deblocking; `deblock-*` enables it.
-SAO and wavefront coding are disabled in these fixtures.
+`sao-*` enables both deblocking and SAO. Wavefront coding is disabled in all fixtures.
 
 The source pattern is original and covered by the repository license. For zero-based
 coordinates, its 8-bit planes are:

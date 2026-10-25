@@ -29,10 +29,7 @@ namespace Heic.Net.Hevc
 
         public DecodedPicture Decode()
         {
-            if (slice.SaoLuma || slice.SaoChroma)
-            {
-                throw new UnsupportedHeicFeatureException("HEVC sample adaptive offset filtering");
-            }
+            SaoFilter sao = new SaoFilter(slice, reader);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding);
             using BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization);
             int ctbSize = 1 << sequence.Log2Ctb;
@@ -40,6 +37,7 @@ namespace Heic.Net.Hevc
             {
                 for (int x = 0; x < sequence.Width; x += ctbSize)
                 {
+                    sao.ReadCtb(x / ctbSize, y / ctbSize);
                     CodingTree(x, y, sequence.Log2Ctb, 0, reconstruction);
                     bool last = x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
                     if (reader.Termination() != last)
@@ -53,6 +51,7 @@ namespace Heic.Net.Hevc
             {
                 DeblockingFilter.Apply(picture, slice, blocks);
             }
+            sao.Apply(picture, blocks);
             return picture;
         }
 
