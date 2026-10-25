@@ -33,10 +33,6 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC sample adaptive offset filtering");
             }
-            if (!slice.DeblockingDisabled)
-            {
-                throw new UnsupportedHeicFeatureException("HEVC deblocking filtering");
-            }
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding);
             using BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization);
             int ctbSize = 1 << sequence.Log2Ctb;
@@ -53,6 +49,10 @@ namespace Heic.Net.Hevc
                 }
             }
 
+            if (!slice.DeblockingDisabled)
+            {
+                DeblockingFilter.Apply(picture, slice, blocks);
+            }
             return picture;
         }
 

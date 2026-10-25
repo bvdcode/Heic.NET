@@ -5,7 +5,6 @@ namespace Heic.Net.Hevc
 {
     internal class QuantizationGroup(IntraSliceHeader slice, IntraCabacReader reader, CodingBlockMap blocks)
     {
-        private static readonly byte[] ChromaQp = { 29, 30, 31, 32, 33, 33, 34, 34, 35, 35, 36, 36, 37, 37 };
         private int previousQp = slice.Qp;
         private int currentQp = slice.Qp;
         private bool deltaCoded;
@@ -71,15 +70,7 @@ namespace Heic.Net.Hevc
             }
 
             int qp = Math.Min(57, Math.Max(-depthOffset, currentQp + colourOffset));
-            if (qp >= 30 && qp <= 43)
-            {
-                qp = ChromaQp[qp - 30];
-            }
-            else if (qp > 43)
-            {
-                qp -= 6;
-            }
-            return qp + depthOffset;
+            return QuantizationMath.Chroma(qp) + depthOffset;
         }
 
         public void CompleteCodingUnit(int x, int y, int size)

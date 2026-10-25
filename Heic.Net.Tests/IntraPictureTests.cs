@@ -13,6 +13,8 @@ namespace Heic.Net.Tests
         [InlineData("pattern-8bit.hevc", "20E2086F7C99B58ED66DCA87E9890E8A97A063B2137EA7528B48B09D47C3A67E")]
         [InlineData("pattern-10bit.hevc", "575B3365D65A121FEC8C20972239A0CA8734B239D84F4544D7BF9CBD47F360E8")]
         [InlineData("pattern-mono.hevc", "6783EC165DE90288B02FB0D231A99E677C0E0B725F12B38A8D8EF68E14F5F588")]
+        [InlineData("deblock-8bit.hevc", "8631CBB87015332AE5523547DFF33DF421B46718BDABF11188117B92AE5A7981")]
+        [InlineData("deblock-10bit.hevc", "715994A6D11DA7B5A78B1203FD992837492B232719AF9810607781A8531CFFCE")]
         public void PatternPictureMatchesIndependentNativePlaneHash(string file, string expectedHash)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
