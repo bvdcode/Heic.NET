@@ -7,7 +7,7 @@ using System.IO;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Decodes one independent IDR picture using a fresh worker and picture-owned planes.
+    /// Decodes one independent IDR picture using a fresh worker and exclusive plane rentals.
     /// </summary>
     internal class IntraPictureDecoder
     {
@@ -32,30 +32,42 @@ namespace Heic.Net.Hevc
 
         public DecodedPicture Decode()
         {
-            SaoFilter sao = new SaoFilter(slice, reader);
-            ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding);
-            using BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization);
-            int ctbSize = 1 << sequence.Log2Ctb;
-            for (int y = 0; y < sequence.Height; y += ctbSize)
+            bool completed = false;
+            try
             {
-                for (int x = 0; x < sequence.Width; x += ctbSize)
+                SaoFilter sao = new SaoFilter(slice, reader);
+                ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding);
+                using BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization);
+                int ctbSize = 1 << sequence.Log2Ctb;
+                for (int y = 0; y < sequence.Height; y += ctbSize)
                 {
-                    sao.ReadCtb(x / ctbSize, y / ctbSize);
-                    CodingTree(x, y, sequence.Log2Ctb, 0, reconstruction);
-                    bool last = x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
-                    if (reader.Termination() != last)
+                    for (int x = 0; x < sequence.Width; x += ctbSize)
                     {
-                        throw new InvalidDataException("Unexpected HEVC slice termination.");
+                        sao.ReadCtb(x / ctbSize, y / ctbSize);
+                        CodingTree(x, y, sequence.Log2Ctb, 0, reconstruction);
+                        bool last = x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
+                        if (reader.Termination() != last)
+                        {
+                            throw new InvalidDataException("Unexpected HEVC slice termination.");
+                        }
                     }
                 }
-            }
 
-            if (!slice.DeblockingDisabled)
-            {
-                DeblockingFilter.Apply(picture, slice, blocks);
+                if (!slice.DeblockingDisabled)
+                {
+                    DeblockingFilter.Apply(picture, slice, blocks);
+                }
+                sao.Apply(picture, blocks);
+                completed = true;
+                return picture;
             }
-            sao.Apply(picture, blocks);
-            return picture;
+            finally
+            {
+                if (!completed)
+                {
+                    picture.Dispose();
+                }
+            }
         }
 
         private void CodingTree(int x, int y, int log2Size, int depth, BlockReconstructor reconstruction)

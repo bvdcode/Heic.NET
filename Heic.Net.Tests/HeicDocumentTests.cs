@@ -36,6 +36,20 @@ namespace Heic.Net.Tests
         }
 
         [Fact]
+        public void ReturnedPixelsSurviveDifferentSubsequentPictures()
+        {
+            string corpus = Path.Combine(AppContext.BaseDirectory, "corpus");
+            HeicDocument first = HeicDocument.Load(File.ReadAllBytes(Path.Combine(corpus, "basic-8bit.heic")));
+            RgbaImage image = first.DecodePrimary();
+            byte[] pixels = image.Pixels.ToArray();
+            foreach (string file in new[] { "basic-10bit.heic", "monochrome.heic", "grid-alpha.heic", "sao.heic" })
+            {
+                HeicDocument.Load(File.ReadAllBytes(Path.Combine(corpus, file))).DecodePrimary();
+                Assert.True(image.Pixels.Span.SequenceEqual(pixels));
+            }
+        }
+
+        [Fact]
         public void GridCyclesAndDerivationDepthAreRejected()
         {
             byte[] grid = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "grid.heic"));

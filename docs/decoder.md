@@ -31,10 +31,12 @@ wait for all active workers before returning the original exception type.
 | Document | One encoded-file copy; frozen item, property and NAL metadata | Shared read-only between calls; independent of the original input buffer or stream |
 | One decode call | Immutable ancestor paths; concatenated item data when an item has several extents | Ancestors shared read-only by tile branches; item buffers remain call-local |
 | One HEVC worker | CABAC contexts, block modes/depths/QPs, coefficient/prediction/residual scratch | Reused between blocks of this picture only |
-| One reconstructed picture | Y/Cb/Cr `SamplePlane` arrays and availability maps | Owned arrays; never rented and never exposed as RGBA storage |
+| One reconstructed picture | Y/Cb/Cr `SamplePlane` arrays and availability maps | Exclusive pool rentals, cleared before use and returned after rendering or failure; views remain within the picture lifetime |
 | Temporary worker rentals | `TransformWorkspace` intermediate array; SAO two-row buffer | Returned through `Dispose` or `finally`; no returned image retains them |
 | Returned `RgbaImage` | Tightly packed RGBA8 and copied ICC profile | Caller-owned lifetime; subsequent calls do not overwrite it |
 
+Reconstructed planes are never used as RGBA storage. Rendering borrows component
+rows once per output row; returned RGBA arrays remain independent of the plane pool.
 Loading a stream borrows a bounded copy buffer and leaves the stream open. Grid
 composition keeps the canvas and at most one tile per active worker; it does not
 cache every decoded tile. Parallel calls multiply working memory. A 16320×12240 RGBA8 result alone

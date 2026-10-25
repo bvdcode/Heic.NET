@@ -31,7 +31,7 @@ namespace Heic.Net.Heif
             if (item.Type == HeifBox.Code("hvc1"))
             {
                 DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
-                DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
+                using DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
                 ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
                 result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha);
             }

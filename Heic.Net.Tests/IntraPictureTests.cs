@@ -46,18 +46,21 @@ namespace Heic.Net.Tests
             }
 
             Assert.NotNull(decoded);
-            List<byte> samples = new List<byte>();
-            AddPlane(samples, decoded.Luma, decoded.Sequence.BitDepth);
-            if (decoded.Cb is not null)
+            using (decoded)
             {
-                AddPlane(samples, decoded.Cb, decoded.Sequence.BitDepth);
+                List<byte> samples = new List<byte>();
+                AddPlane(samples, decoded.Luma, decoded.Sequence.BitDepth);
+                if (decoded.Cb is not null)
+                {
+                    AddPlane(samples, decoded.Cb, decoded.Sequence.BitDepth);
+                }
+                if (decoded.Cr is not null)
+                {
+                    AddPlane(samples, decoded.Cr, decoded.Sequence.BitDepth);
+                }
+                string hash = Convert.ToHexString(SHA256.HashData(samples.ToArray()));
+                Assert.Equal(expectedHash, hash);
             }
-            if (decoded.Cr is not null)
-            {
-                AddPlane(samples, decoded.Cr, decoded.Sequence.BitDepth);
-            }
-            string hash = Convert.ToHexString(SHA256.HashData(samples.ToArray()));
-            Assert.Equal(expectedHash, hash);
         }
 
         private static void AddPlane(List<byte> samples, SamplePlane plane, int depth)

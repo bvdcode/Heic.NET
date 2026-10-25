@@ -1,18 +1,33 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System;
+
 namespace Heic.Net.Hevc
 {
-    internal class DecodedPicture
+    internal class DecodedPicture : IDisposable
     {
         public DecodedPicture(SequenceParameters sequence)
         {
             Sequence = sequence;
             Luma = new SamplePlane(sequence.Width, sequence.Height);
-            if (sequence.ChromaFormat == 1)
+            bool initialized = false;
+            try
             {
-                Cb = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
-                Cr = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
+                if (sequence.ChromaFormat == 1)
+                {
+                    Cb = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
+                    Cr = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
+                }
+
+                initialized = true;
+            }
+            finally
+            {
+                if (!initialized)
+                {
+                    Dispose();
+                }
             }
         }
 
@@ -20,5 +35,12 @@ namespace Heic.Net.Hevc
         public SamplePlane Luma { get; }
         public SamplePlane? Cb { get; }
         public SamplePlane? Cr { get; }
+
+        public void Dispose()
+        {
+            Luma.Dispose();
+            Cb?.Dispose();
+            Cr?.Dispose();
+        }
     }
 }

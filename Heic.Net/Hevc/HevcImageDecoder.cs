@@ -23,15 +23,33 @@ namespace Heic.Net.Hevc
             Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
             Dictionary<int, PictureParameters> pictures = new Dictionary<int, PictureParameters>();
             DecodedPicture? result = null;
-            foreach (NalPayload unit in configuration.Units)
+            bool completed = false;
+            try
             {
-                Read(unit);
+                foreach (NalPayload unit in configuration.Units)
+                {
+                    Read(unit);
+                }
+                foreach (NalPayload unit in NalPayload.ReadLengthPrefixed(data, configuration.LengthSize))
+                {
+                    Read(unit);
+                }
+
+                if (result is null)
+                {
+                    throw new InvalidDataException("HEVC image contains no IDR picture.");
+                }
+
+                completed = true;
+                return result;
             }
-            foreach (NalPayload unit in NalPayload.ReadLengthPrefixed(data, configuration.LengthSize))
+            finally
             {
-                Read(unit);
+                if (!completed)
+                {
+                    result?.Dispose();
+                }
             }
-            return result ?? throw new InvalidDataException("HEVC image contains no IDR picture.");
 
             void Read(NalPayload unit)
             {

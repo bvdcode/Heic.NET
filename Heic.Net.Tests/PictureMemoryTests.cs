@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System;
 using Heic.Net.Hevc;
 using Xunit;
 
@@ -11,7 +12,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void PlanePublishesOnlyCompleteReconstructedBlocks()
         {
-            SamplePlane plane = new SamplePlane(8, 8);
+            using SamplePlane plane = new SamplePlane(8, 8);
             int[] prediction = new int[16];
             int[] residual = new int[16];
             prediction[0] = 255;
@@ -28,6 +29,26 @@ namespace Heic.Net.Tests
             prediction[0] = 0;
             residual[0] = 0;
             Assert.Equal(255, plane.Neighbour(0, 0));
+        }
+
+        [Fact]
+        public void ReturnedPlanesRejectReadsAndNewRentalsAreClear()
+        {
+            SamplePlane plane = new SamplePlane(12, 12);
+            plane.Store(0, 0, 4, new int[16], new int[16], 10);
+            plane.Row(0).Fill(511);
+            Assert.Equal(511, plane.Neighbour(0, 0));
+            Assert.Equal(144, plane.Samples.Length);
+            plane.Dispose();
+            plane.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => plane.Row(0).Length);
+            Assert.Throws<ObjectDisposedException>(() => plane.Samples.Length);
+            Assert.Throws<ObjectDisposedException>(() => plane.Neighbour(0, 0));
+
+            using SamplePlane next = new SamplePlane(12, 12);
+            Assert.Equal(144, next.Samples.Length);
+            Assert.Equal(new ushort[144], next.Samples.ToArray());
+            Assert.Equal(-1, next.Neighbour(0, 0));
         }
 
         [Fact]
