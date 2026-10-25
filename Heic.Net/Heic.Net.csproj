@@ -5,7 +5,30 @@
     <RootNamespace>Heic.Net</RootNamespace>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
+  <PropertyGroup>
+    <PackageId>Heic.NET</PackageId>
+    <Version>0.1.0</Version>
+    <Title>Heic.NET</Title>
+    <Authors>Vadim Belov</Authors>
+    <Company>bvdcode</Company>
+    <Copyright>Copyright (c) 2026 Vadim Belov</Copyright>
+    <Description>A managed HEIC still-image decoder for .NET Standard 2.1 with no native runtime dependencies. Supports HEIF grids, image transformations, and owned RGBA8 output.</Description>
+    <PackageTags>heic;heif;hevc;image;decoder;managed;cross-platform</PackageTags>
+    <PackageProjectUrl>https://github.com/bvdcode/Heic.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/bvdcode/Heic.NET</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Heic.Net.Tests" />
+    <None Include="../README.md" Pack="true" PackagePath="/" />
+    <None Include="../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../assets/icon.png" Pack="true" PackagePath="/" />
   </ItemGroup>
 </Project>

@@ -1,10 +1,24 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/bvdcode/Heic.NET/main/assets/icon.png" alt="Heic.NET" width="144" height="144" />
+</p>
+
 # Heic.NET
+
+[![Build](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml/badge.svg)](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml)
+[![NuGet](https://img.shields.io/nuget/v/Heic.NET.svg)](https://www.nuget.org/packages/Heic.NET)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/bvdcode/Heic.NET/blob/main/LICENSE)
 
 A managed HEIC still image decoder targeting **.NET Standard 2.1**.
 
-The basic implementation decodes single-layer HEVC IDR images, HEIF grids and
-identity images to owned RGBA8 pixels. It supports 8/10-bit monochrome and 4:2:0,
+The decoder supports single-layer HEVC IDR images, HEIF grids and
+identity images with owned RGBA8 output. It supports 8/10-bit monochrome and 4:2:0,
 rotation, mirroring, integral clean-aperture cropping and straight auxiliary alpha.
+
+Install the package:
+
+```sh
+dotnet add package Heic.NET
+```
 
 ```csharp
 using Heic.Net;
@@ -45,5 +59,8 @@ One-command cold/warm comparison, with every repetition saved as JSON:
 dotnet run --project Heic.Net.Benchmarks -c Release -- --input corpus/20260201_164721.heic --repetitions 5
 ```
 
-See the [decoder map](docs/decoder.md), [support boundary](docs/support.md),
-[measurement protocol](docs/benchmark.md) and [test images](corpus/README.md).
+See the [decoder map](https://github.com/bvdcode/Heic.NET/blob/main/docs/decoder.md), [support boundary](https://github.com/bvdcode/Heic.NET/blob/main/docs/support.md),
+[measurement protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md) and [test images](https://github.com/bvdcode/Heic.NET/blob/main/corpus/README.md).
+
+Packages are versioned with GitVersion and published automatically from `main` after
+Linux, Windows and macOS checks pass. See [publishing](https://github.com/bvdcode/Heic.NET/blob/main/docs/publishing.md).
