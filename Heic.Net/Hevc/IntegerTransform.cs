@@ -2,6 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace Heic.Net.Hevc
 {
@@ -21,6 +23,11 @@ namespace Heic.Net.Hevc
             55, -84, 74, -29
         };
 
+        private static readonly int[] Cosine4 = CreateCosine(4);
+        private static readonly int[] Cosine8 = CreateCosine(8);
+        private static readonly int[] Cosine16 = CreateCosine(16);
+        private static readonly int[] Cosine32 = CreateCosine(32);
+
         /// <summary>
         /// Applies the HEVC inverse integer transform to one square coefficient block.
         /// </summary>
@@ -34,7 +41,7 @@ namespace Heic.Net.Hevc
         /// The first, vertical pass adds 64, shifts arithmetically by seven bits and clips
         /// to signed 16-bit. The horizontal pass adds half the divisor and shifts by
         /// 20 - bitDepth. No input or output includes picture padding. Accumulators are
-        /// 64-bit; unchecked integer overflow is never part of the transform contract.
+        /// bounded by 32 * 90 * 32768, so signed 32-bit lanes cannot overflow.
         /// Input and destination may overlap because the first pass reads all coefficients.
         /// </remarks>
         public static void Inverse(ReadOnlySpan<int> coefficients, Span<int> residual, int size,
@@ -51,61 +58,119 @@ namespace Heic.Net.Hevc
                 throw new ArgumentException("Transform buffers are shorter than the block.");
             }
 
+            int activeWidth = 0;
+            int activeHeight = 0;
             for (int i = 0; i < count; i++)
             {
-                if (coefficients[i] < short.MinValue || coefficients[i] > short.MaxValue)
+                int value = coefficients[i];
+                if (value < short.MinValue || value > short.MaxValue)
                 {
                     throw new ArgumentOutOfRangeException(nameof(coefficients));
+                }
+
+                if (value != 0)
+                {
+                    activeWidth = Math.Max(activeWidth, i % size + 1);
+                    activeHeight = i / size + 1;
                 }
             }
 
             Span<int> intermediate = workspace.Intermediate.Slice(0, count);
-            bool sine = size == 4 && intraLuma;
-            for (int y = 0; y < size; y++)
+            intermediate.Clear();
+            ReadOnlySpan<int> matrix = Matrix(size, size == 4 && intraLuma);
+            Span<int> column = stackalloc int[32];
+            Span<int> sums = stackalloc int[32];
+            for (int x = 0; x < activeWidth; x++)
             {
-                for (int x = 0; x < size; x++)
+                for (int frequency = 0; frequency < activeHeight; frequency++)
                 {
-                    long sum = 0;
-                    for (int frequency = 0; frequency < size; frequency++)
-                    {
-                        int value = coefficients[frequency * size + x];
-                        if (value != 0)
-                        {
-                            sum += (long)Basis(frequency, y, size, sine) * value;
-                        }
-                    }
+                    column[frequency] = coefficients[frequency * size + x];
+                }
 
-                    intermediate[y * size + x] = (int)Math.Max(short.MinValue, Math.Min(short.MaxValue, (sum + 64) >> 7));
+                Multiply(column.Slice(0, activeHeight), sums.Slice(0, size), matrix, size);
+                for (int y = 0; y < size; y++)
+                {
+                    intermediate[y * size + x] = Math.Max(short.MinValue, Math.Min(short.MaxValue, (sums[y] + 64) >> 7));
                 }
             }
 
             int shift = 20 - bitDepth;
-            long offset = 1L << (shift - 1);
+            int offset = 1 << (shift - 1);
             for (int y = 0; y < size; y++)
             {
+                Multiply(intermediate.Slice(y * size, activeWidth), sums.Slice(0, size), matrix, size);
                 for (int x = 0; x < size; x++)
                 {
-                    long sum = 0;
-                    for (int frequency = 0; frequency < size; frequency++)
-                    {
-                        int value = intermediate[y * size + frequency];
-                        if (value != 0)
-                        {
-                            sum += (long)Basis(frequency, x, size, sine) * value;
-                        }
-                    }
-
-                    residual[y * size + x] = checked((int)((sum + offset) >> shift));
+                    residual[y * size + x] = (sums[x] + offset) >> shift;
                 }
             }
         }
 
-        private static int Basis(int frequency, int position, int size, bool sine)
+        private static void Multiply(ReadOnlySpan<int> input, Span<int> sums, ReadOnlySpan<int> matrix, int size)
+        {
+            sums.Clear();
+            for (int frequency = 0; frequency < input.Length; frequency++)
+            {
+                int value = input[frequency];
+                if (value == 0)
+                {
+                    continue;
+                }
+
+                ReadOnlySpan<int> basis = matrix.Slice(frequency * size, size);
+                Vector<int> factor = new Vector<int>(value);
+                Span<Vector<int>> vectorSums = MemoryMarshal.Cast<int, Vector<int>>(sums);
+                ReadOnlySpan<Vector<int>> vectorBasis = MemoryMarshal.Cast<int, Vector<int>>(basis);
+                for (int vector = 0; vector < vectorSums.Length; vector++)
+                {
+                    vectorSums[vector] += vectorBasis[vector] * factor;
+                }
+
+                for (int position = vectorSums.Length * Vector<int>.Count; position < size; position++)
+                {
+                    sums[position] += basis[position] * value;
+                }
+            }
+        }
+
+        private static ReadOnlySpan<int> Matrix(int size, bool sine)
         {
             if (sine)
             {
-                return Sine4[frequency * 4 + position];
+                return Sine4;
             }
+
+            switch (size)
+            {
+                case 4:
+                    return Cosine4;
+                case 8:
+                    return Cosine8;
+                case 16:
+                    return Cosine16;
+                case 32:
+                    return Cosine32;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(size));
+            }
+        }
+
+        private static int[] CreateCosine(int size)
+        {
+            int[] matrix = new int[size * size];
+            for (int frequency = 0; frequency < size; frequency++)
+            {
+                for (int position = 0; position < size; position++)
+                {
+                    matrix[frequency * size + position] = Basis(frequency, position, size);
+                }
+            }
+
+            return matrix;
+        }
+
+        private static int Basis(int frequency, int position, int size)
+        {
             if (frequency == 0)
             {
                 return 64;

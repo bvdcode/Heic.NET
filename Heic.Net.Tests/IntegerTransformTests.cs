@@ -24,12 +24,23 @@ namespace Heic.Net.Tests
         {
             Random random = new Random(173);
             using TransformWorkspace workspace = new TransformWorkspace();
-            for (int sample = 0; sample < 12; sample++)
+            for (int sample = 0; sample < 20; sample++)
             {
                 int[] coefficients = new int[size * size];
                 for (int i = 0; i < coefficients.Length; i++)
                 {
-                    coefficients[i] = sample == 0 ? 0 : random.Next(short.MinValue, short.MaxValue + 1);
+                    coefficients[i] = sample switch
+                    {
+                        0 => 0,
+                        1 => short.MinValue,
+                        2 => short.MaxValue,
+                        3 => (i & 1) == 0 ? short.MinValue : short.MaxValue,
+                        4 => i == 0 ? short.MinValue : 0,
+                        5 => i == coefficients.Length - 1 ? short.MaxValue : 0,
+                        6 => i < size ? random.Next(short.MinValue, short.MaxValue + 1) : 0,
+                        7 => i % size == size - 1 ? random.Next(short.MinValue, short.MaxValue + 1) : 0,
+                        _ => random.Next(short.MinValue, short.MaxValue + 1)
+                    };
                 }
 
                 int[] result = new int[coefficients.Length];
