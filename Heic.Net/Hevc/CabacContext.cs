@@ -9,7 +9,10 @@ namespace Heic.Net.Hevc
     {
         public CabacContext(byte state, bool mostProbableSymbol)
         {
-            if (state > 63) { throw new ArgumentOutOfRangeException(nameof(state)); }
+            if (state > 63)
+            {
+                throw new ArgumentOutOfRangeException(nameof(state));
+            }
             State = state;
             MostProbableSymbol = mostProbableSymbol;
         }

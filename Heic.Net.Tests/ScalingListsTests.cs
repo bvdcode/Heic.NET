@@ -19,10 +19,19 @@ namespace Heic.Net.Tests
                     writer.Flag(matrixId == 0);
                     if (matrixId == 0)
                     {
-                        if (sizeId > 1) { writer.Se(15); }
-                        for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++) { writer.Se(1); }
+                        if (sizeId > 1)
+                        {
+                            writer.Se(15);
+                        }
+                        for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
+                        {
+                            writer.Se(1);
+                        }
                     }
-                    else { writer.Ue(matrixId == step ? 1u : 0u); }
+                    else
+                    {
+                        writer.Ue(matrixId == step ? 1u : 0u);
+                    }
                 }
             }
 

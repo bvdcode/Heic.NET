@@ -66,7 +66,10 @@ namespace Heic.Net.Hevc
                     for (int frequency = 0; frequency < size; frequency++)
                     {
                         int value = coefficients[frequency * size + x];
-                        if (value != 0) { sum += (long)Basis(frequency, y, size, sine) * value; }
+                        if (value != 0)
+                        {
+                            sum += (long)Basis(frequency, y, size, sine) * value;
+                        }
                     }
 
                     intermediate[y * size + x] = (int)Math.Max(short.MinValue, Math.Min(short.MaxValue, (sum + 64) >> 7));
@@ -83,7 +86,10 @@ namespace Heic.Net.Hevc
                     for (int frequency = 0; frequency < size; frequency++)
                     {
                         int value = intermediate[y * size + frequency];
-                        if (value != 0) { sum += (long)Basis(frequency, x, size, sine) * value; }
+                        if (value != 0)
+                        {
+                            sum += (long)Basis(frequency, x, size, sine) * value;
+                        }
                     }
 
                     residual[y * size + x] = checked((int)((sum + offset) >> shift));
@@ -93,10 +99,19 @@ namespace Heic.Net.Hevc
 
         private static int Basis(int frequency, int position, int size, bool sine)
         {
-            if (sine) { return Sine4[frequency * 4 + position]; }
-            if (frequency == 0) { return 64; }
+            if (sine)
+            {
+                return Sine4[frequency * 4 + position];
+            }
+            if (frequency == 0)
+            {
+                return 64;
+            }
             int angle = ((2 * position + 1) * frequency * (32 / size)) & 127;
-            if (angle > 64) { angle = 128 - angle; }
+            if (angle > 64)
+            {
+                angle = 128 - angle;
+            }
             return angle > 32 ? -CosineMagnitudes[64 - angle] : CosineMagnitudes[angle];
         }
     }

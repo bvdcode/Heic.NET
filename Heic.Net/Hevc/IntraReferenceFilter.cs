@@ -12,14 +12,25 @@ namespace Heic.Net.Hevc
             int threshold;
             switch (size)
             {
-                case 4: return;
-                case 8: threshold = 7; break;
-                case 16: threshold = 1; break;
-                case 32: threshold = 0; break;
-                default: throw new ArgumentOutOfRangeException(nameof(size));
+                case 4:
+                    return;
+                case 8:
+                    threshold = 7;
+                    break;
+                case 16:
+                    threshold = 1;
+                    break;
+                case 32:
+                    threshold = 0;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            if (mode == 1 || Math.Min(Math.Abs(mode - 26), Math.Abs(mode - 10)) <= threshold) { return; }
+            if (mode == 1 || Math.Min(Math.Abs(mode - 26), Math.Abs(mode - 10)) <= threshold)
+            {
+                return;
+            }
             int end = 2 * size;
             int corner = top[0];
             bool linear = strongSmoothing && size == 32 &&

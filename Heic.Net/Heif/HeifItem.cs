@@ -25,9 +25,14 @@ namespace Heic.Net.Heif
             ReadOnlyMemory<byte> source;
             switch (ConstructionMethod)
             {
-                case 0: source = file; break;
-                case 1: source = itemData; break;
-                default: throw new UnsupportedHeicFeatureException("item construction method " + ConstructionMethod);
+                case 0:
+                    source = file;
+                    break;
+                case 1:
+                    source = itemData;
+                    break;
+                default:
+                    throw new UnsupportedHeicFeatureException("item construction method " + ConstructionMethod);
             }
 
             int total = 0;

@@ -13,7 +13,10 @@ namespace Heic.Net.Tests
         {
             for (int i = count - 1; i >= 0; i--)
             {
-                if ((bitCount & 7) == 0) { bytes.Add(0); }
+                if ((bitCount & 7) == 0)
+                {
+                    bytes.Add(0);
+                }
                 bytes[bitCount >> 3] |= (byte)(((uint)value >> i & 1) << (7 - (bitCount & 7)));
                 bitCount++;
             }
@@ -34,7 +37,10 @@ namespace Heic.Net.Tests
         public void TrailingBits()
         {
             Flag(true);
-            while ((bitCount & 7) != 0) { Flag(false); }
+            while ((bitCount & 7) != 0)
+            {
+                Flag(false);
+            }
         }
 
         public byte[] ToArray() => bytes.ToArray();

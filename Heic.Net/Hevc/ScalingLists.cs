@@ -35,11 +35,17 @@ namespace Heic.Net.Hevc
         private ScalingLists(bool enabled)
         {
             this.enabled = enabled;
-            if (!enabled) { return; }
+            if (!enabled)
+            {
+                return;
+            }
             for (int sizeId = 0; sizeId < 4; sizeId++)
             {
                 int step = sizeId == 3 ? 3 : 1;
-                for (int matrixId = 0; matrixId < 6; matrixId += step) { SetDefault(sizeId, matrixId); }
+                for (int matrixId = 0; matrixId < 6; matrixId += step)
+                {
+                    SetDefault(sizeId, matrixId);
+                }
             }
         }
 
@@ -55,9 +61,15 @@ namespace Heic.Net.Hevc
                 throw new ArgumentOutOfRangeException(nameof(log2Size));
             }
 
-            if (!enabled) { return 16; }
+            if (!enabled)
+            {
+                return 16;
+            }
             int index = (log2Size - 2) * 6 + matrixId;
-            if (log2Size > 3 && x == 0 && y == 0) { return dc[index]; }
+            if (log2Size > 3 && x == 0 && y == 0)
+            {
+                return dc[index];
+            }
             int shift = Math.Max(0, log2Size - 3);
             int width = log2Size == 2 ? 4 : 8;
             return matrices[index][(y >> shift) * width + (x >> shift)];
@@ -75,7 +87,10 @@ namespace Heic.Net.Hevc
                     if (!reader.ReadFlag())
                     {
                         uint delta = reader.ReadUev();
-                        if (delta > (uint)(matrixId / step)) { throw new InvalidDataException("Invalid scaling matrix prediction delta."); }
+                        if (delta > (uint)(matrixId / step))
+                        {
+                            throw new InvalidDataException("Invalid scaling matrix prediction delta.");
+                        }
                         if (delta != 0)
                         {
                             int previous = index - (int)delta * step;
@@ -83,7 +98,10 @@ namespace Heic.Net.Hevc
                             lists.dc[index] = lists.dc[previous];
                         }
                     }
-                    else { lists.ReadExplicit(reader, sizeId, index); }
+                    else
+                    {
+                        lists.ReadExplicit(reader, sizeId, index);
+                    }
                 }
             }
 
@@ -111,7 +129,10 @@ namespace Heic.Net.Hevc
             if (sizeId > 1)
             {
                 int dcMinus8 = reader.ReadSev();
-                if (dcMinus8 < -7 || dcMinus8 > 247) { throw new InvalidDataException("Invalid scaling matrix DC value."); }
+                if (dcMinus8 < -7 || dcMinus8 > 247)
+                {
+                    throw new InvalidDataException("Invalid scaling matrix DC value.");
+                }
                 next = dcMinus8 + 8;
                 dc[index] = (byte)next;
             }
@@ -122,7 +143,10 @@ namespace Heic.Net.Hevc
             for (int i = 0; i < values.Length; i++)
             {
                 int delta = reader.ReadSev();
-                if (delta < -128 || delta > 127) { throw new InvalidDataException("Invalid scaling matrix coefficient delta."); }
+                if (delta < -128 || delta > 127)
+                {
+                    throw new InvalidDataException("Invalid scaling matrix coefficient delta.");
+                }
                 next = (next + delta + 256) % 256;
                 values[scan[i]] = (byte)next;
             }

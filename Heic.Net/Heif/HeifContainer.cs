@@ -23,13 +23,19 @@ namespace Heic.Net.Heif
                 HeifBox box = HeifBox.Read(reader, 0);
                 if (box.Type == HeifBox.Code("ftyp"))
                 {
-                    if (fileType) { throw new InvalidDataException("Duplicate file type box."); }
+                    if (fileType)
+                    {
+                        throw new InvalidDataException("Duplicate file type box.");
+                    }
                     ReadFileType(box);
                     fileType = true;
                 }
                 else if (box.Type == HeifBox.Code("meta"))
                 {
-                    if (meta) { throw new InvalidDataException("Duplicate metadata box."); }
+                    if (meta)
+                    {
+                        throw new InvalidDataException("Duplicate metadata box.");
+                    }
                     ReadMeta(box);
                     meta = true;
                 }
@@ -51,7 +57,10 @@ namespace Heic.Net.Heif
         {
             if (!items.TryGetValue(id, out HeifItem? item))
             {
-                if (items.Count >= limits.MaxItems) { throw new InvalidDataException("Item limit exceeded."); }
+                if (items.Count >= limits.MaxItems)
+                {
+                    throw new InvalidDataException("Item limit exceeded.");
+                }
                 item = new HeifItem(id);
                 items.Add(id, item);
             }
@@ -71,18 +80,27 @@ namespace Heic.Net.Heif
                 supported |= brand == HeifBox.Code("heic") || brand == HeifBox.Code("heix");
             }
 
-            if (!supported) { throw new UnsupportedHeicFeatureException("file brands without HEVC images"); }
+            if (!supported)
+            {
+                throw new UnsupportedHeicFeatureException("file brands without HEVC images");
+            }
         }
 
         private void ReadMeta(HeifBox box)
         {
             ByteReader reader = new ByteReader(box.Payload);
-            if (reader.U32() != 0) { throw new UnsupportedHeicFeatureException("metadata box version or flags"); }
+            if (reader.U32() != 0)
+            {
+                throw new UnsupportedHeicFeatureException("metadata box version or flags");
+            }
             HashSet<uint> seen = new HashSet<uint>();
             while (reader.Remaining > 0)
             {
                 HeifBox child = HeifBox.Read(reader, box.Offset);
-                if (!seen.Add(child.Type)) { throw new InvalidDataException("Duplicate metadata child box."); }
+                if (!seen.Add(child.Type))
+                {
+                    throw new InvalidDataException("Duplicate metadata child box.");
+                }
                 string type = TypeName(child.Type);
                 switch (type)
                 {
@@ -91,12 +109,23 @@ namespace Heic.Net.Heif
                         byte version = Version(primary, 1);
                         PrimaryItemId = version == 0 ? primary.U16() : primary.U32();
                         break;
-                    case "iinf": ReadInformation(child); break;
-                    case "iloc": ReadLocations(child); break;
-                    case "iprp": ReadProperties(child); break;
-                    case "iref": ReadReferences(child); break;
-                    case "idat": ItemData = child.Payload; break;
-                    case "ipro": throw new UnsupportedHeicFeatureException("protected items");
+                    case "iinf":
+                        ReadInformation(child);
+                        break;
+                    case "iloc":
+                        ReadLocations(child);
+                        break;
+                    case "iprp":
+                        ReadProperties(child);
+                        break;
+                    case "iref":
+                        ReadReferences(child);
+                        break;
+                    case "idat":
+                        ItemData = child.Payload;
+                        break;
+                    case "ipro":
+                        throw new UnsupportedHeicFeatureException("protected items");
                 }
             }
         }

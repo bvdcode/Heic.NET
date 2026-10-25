@@ -25,9 +25,12 @@ namespace Heic.Net.Hevc
         {
             switch (size)
             {
-                case 4: return Diagonal4;
-                case 8: return Diagonal8;
-                default: throw new ArgumentOutOfRangeException(nameof(size));
+                case 4:
+                    return Diagonal4;
+                case 8:
+                    return Diagonal8;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(size));
             }
         }
 
@@ -62,7 +65,10 @@ namespace Heic.Net.Hevc
 
         private static int[] CreateOrder(int size, int scan)
         {
-            if (scan == 0) { return CreateDiagonal(size); }
+            if (scan == 0)
+            {
+                return CreateDiagonal(size);
+            }
             int[] result = new int[size * size];
             for (int i = 0; i < result.Length; i++)
             {

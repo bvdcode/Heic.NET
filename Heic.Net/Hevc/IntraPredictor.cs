@@ -24,23 +24,41 @@ namespace Heic.Net.Hevc
             int size, int mode, int bitDepth, bool luma, bool strongSmoothing)
         {
             IntraReferenceSamples.Validate(top, left, size, bitDepth);
-            if (mode < 0 || mode > 34) { throw new ArgumentOutOfRangeException(nameof(mode)); }
-            if (destination.Length < size * size) { throw new ArgumentException("Prediction destination is too short.", nameof(destination)); }
+            if (mode < 0 || mode > 34)
+            {
+                throw new ArgumentOutOfRangeException(nameof(mode));
+            }
+            if (destination.Length < size * size)
+            {
+                throw new ArgumentException("Prediction destination is too short.", nameof(destination));
+            }
             for (int i = 0; i <= 2 * size; i++)
             {
-                if (top[i] < 0 || left[i] < 0) { throw new ArgumentException("Intra reference substitution is required."); }
+                if (top[i] < 0 || left[i] < 0)
+                {
+                    throw new ArgumentException("Intra reference substitution is required.");
+                }
             }
 
             Span<int> filteredTop = stackalloc int[65];
             Span<int> filteredLeft = stackalloc int[65];
             top.Slice(0, 2 * size + 1).CopyTo(filteredTop);
             left.Slice(0, 2 * size + 1).CopyTo(filteredLeft);
-            if (luma) { IntraReferenceFilter.Apply(filteredTop, filteredLeft, size, mode, bitDepth, strongSmoothing); }
+            if (luma)
+            {
+                IntraReferenceFilter.Apply(filteredTop, filteredLeft, size, mode, bitDepth, strongSmoothing);
+            }
             switch (mode)
             {
-                case 0: Planar(filteredTop, filteredLeft, destination, size); break;
-                case 1: Dc(filteredTop, filteredLeft, destination, size, luma); break;
-                default: Angular(filteredTop, filteredLeft, destination, size, mode, bitDepth, luma); break;
+                case 0:
+                    Planar(filteredTop, filteredLeft, destination, size);
+                    break;
+                case 1:
+                    Dc(filteredTop, filteredLeft, destination, size, luma);
+                    break;
+                default:
+                    Angular(filteredTop, filteredLeft, destination, size, mode, bitDepth, luma);
+                    break;
             }
         }
 
@@ -60,7 +78,10 @@ namespace Heic.Net.Hevc
         private static void Dc(ReadOnlySpan<int> top, ReadOnlySpan<int> left, Span<int> output, int size, bool luma)
         {
             int sum = size;
-            for (int i = 1; i <= size; i++) { sum += top[i] + left[i]; }
+            for (int i = 1; i <= size; i++)
+            {
+                sum += top[i] + left[i];
+            }
             int dc = sum / (2 * size);
             output.Slice(0, size * size).Fill(dc);
             if (luma && size < 32)
@@ -124,15 +145,24 @@ namespace Heic.Net.Hevc
         {
             switch (angle)
             {
-                case 2: return 4096;
-                case 5: return 1638;
-                case 9: return 910;
-                case 13: return 630;
-                case 17: return 482;
-                case 21: return 390;
-                case 26: return 315;
-                case 32: return 256;
-                default: throw new ArgumentOutOfRangeException(nameof(angle));
+                case 2:
+                    return 4096;
+                case 5:
+                    return 1638;
+                case 9:
+                    return 910;
+                case 13:
+                    return 630;
+                case 17:
+                    return 482;
+                case 21:
+                    return 390;
+                case 26:
+                    return 315;
+                case 32:
+                    return 256;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(angle));
             }
         }
     }

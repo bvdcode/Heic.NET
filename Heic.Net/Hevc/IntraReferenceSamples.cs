@@ -17,19 +17,34 @@ namespace Heic.Net.Hevc
             Validate(top, left, size, bitDepth);
             int length = 2 * size;
             Span<int> scan = stackalloc int[129];
-            for (int i = 0; i <= length; i++) { scan[i] = left[length - i]; }
+            for (int i = 0; i <= length; i++)
+            {
+                scan[i] = left[length - i];
+            }
             top.Slice(1, length).CopyTo(scan.Slice(length + 1));
 
             int first = 0;
-            while (first <= 2 * length && scan[first] == -1) { first++; }
+            while (first <= 2 * length && scan[first] == -1)
+            {
+                first++;
+            }
             int previous = first > 2 * length ? 1 << (bitDepth - 1) : scan[first];
             for (int i = 0; i <= 2 * length; i++)
             {
-                if (scan[i] == -1) { scan[i] = previous; }
-                else { previous = scan[i]; }
+                if (scan[i] == -1)
+                {
+                    scan[i] = previous;
+                }
+                else
+                {
+                    previous = scan[i];
+                }
             }
 
-            for (int i = 0; i <= length; i++) { left[i] = scan[length - i]; }
+            for (int i = 0; i <= length; i++)
+            {
+                left[i] = scan[length - i];
+            }
             top[0] = left[0];
             scan.Slice(length + 1, length).CopyTo(top.Slice(1));
         }
@@ -41,13 +56,19 @@ namespace Heic.Net.Hevc
                 throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            if (bitDepth != 8 && bitDepth != 10) { throw new ArgumentOutOfRangeException(nameof(bitDepth)); }
+            if (bitDepth != 8 && bitDepth != 10)
+            {
+                throw new ArgumentOutOfRangeException(nameof(bitDepth));
+            }
             if (top.Length < 2 * size + 1 || left.Length < 2 * size + 1)
             {
                 throw new ArgumentException("Intra reference spans must include the corner and twice the block size.");
             }
 
-            if (top[0] != left[0]) { throw new ArgumentException("The intra reference corner must be shared."); }
+            if (top[0] != left[0])
+            {
+                throw new ArgumentException("The intra reference corner must be shared.");
+            }
             for (int i = 0; i <= 2 * size; i++)
             {
                 if (top[i] < -1 || top[i] >= 1 << bitDepth || left[i] < -1 || left[i] >= 1 << bitDepth)

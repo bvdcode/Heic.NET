@@ -20,7 +20,10 @@ namespace Heic.Net.Hevc
         {
             get
             {
-                if (disposed) { throw new ObjectDisposedException(nameof(TransformWorkspace)); }
+                if (disposed)
+                {
+                    throw new ObjectDisposedException(nameof(TransformWorkspace));
+                }
                 return intermediate.AsSpan(0, MaximumBlockSamples);
             }
         }

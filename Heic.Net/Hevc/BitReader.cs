@@ -19,8 +19,14 @@ namespace Heic.Net.Hevc
 
         public int Read(int count)
         {
-            if (count < 0 || count > 32) { throw new ArgumentOutOfRangeException(nameof(count)); }
-            if (count > BitsRemaining) { throw new InvalidDataException("Truncated HEVC bitstream."); }
+            if (count < 0 || count > 32)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
+            if (count > BitsRemaining)
+            {
+                throw new InvalidDataException("Truncated HEVC bitstream.");
+            }
             uint result = 0;
             int remaining = count;
             while (remaining > 0)
@@ -48,7 +54,10 @@ namespace Heic.Net.Hevc
             int leading = 0;
             while (!ReadFlag())
             {
-                if (++leading > 30) { throw new InvalidDataException("Exp-Golomb value exceeds supported range."); }
+                if (++leading > 30)
+                {
+                    throw new InvalidDataException("Exp-Golomb value exceeds supported range.");
+                }
             }
 
             return ((1u << leading) - 1u) + (uint)Read(leading);
@@ -62,15 +71,24 @@ namespace Heic.Net.Hevc
 
         public void SkipBits(int count)
         {
-            if (count < 0 || count > BitsRemaining) { throw new InvalidDataException("Bit skip exceeds RBSP."); }
+            if (count < 0 || count > BitsRemaining)
+            {
+                throw new InvalidDataException("Bit skip exceeds RBSP.");
+            }
             position += count;
         }
 
         public bool HasMoreRbspData(ulong endPosition)
         {
             int bits = checked((int)endPosition - position);
-            if (bits <= 0) { return false; }
-            if (bits > 8) { return true; }
+            if (bits <= 0)
+            {
+                return false;
+            }
+            if (bits > 8)
+            {
+                return true;
+            }
             return Peek(bits) != (1 << (bits - 1));
         }
     }

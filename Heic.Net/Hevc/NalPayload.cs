@@ -9,14 +9,20 @@ namespace Heic.Net.Hevc
     {
         public NalPayload(ReadOnlyMemory<byte> encoded)
         {
-            if (encoded.Length < 2) { throw new InvalidDataException("Truncated NAL header."); }
+            if (encoded.Length < 2)
+            {
+                throw new InvalidDataException("Truncated NAL header.");
+            }
             int header = (encoded.Span[0] << 8) | encoded.Span[1];
             if ((header & 0x8000) != 0 || (header & 7) == 0)
             {
                 throw new InvalidDataException("Invalid NAL header.");
             }
 
-            if (((header >> 3) & 63) != 0) { throw new UnsupportedHeicFeatureException("multilayer HEVC"); }
+            if (((header >> 3) & 63) != 0)
+            {
+                throw new UnsupportedHeicFeatureException("multilayer HEVC");
+            }
             Type = (header >> 9) & 63;
             byte[] rbsp = new byte[encoded.Length];
             int target = 0;
@@ -47,13 +53,19 @@ namespace Heic.Net.Hevc
 
         public static IReadOnlyList<NalPayload> ReadLengthPrefixed(ReadOnlyMemory<byte> data, int lengthSize)
         {
-            if (lengthSize < 1 || lengthSize > 4) { throw new InvalidDataException("Invalid NAL length field size."); }
+            if (lengthSize < 1 || lengthSize > 4)
+            {
+                throw new InvalidDataException("Invalid NAL length field size.");
+            }
             ByteReader reader = new ByteReader(data);
             List<NalPayload> units = new List<NalPayload>();
             while (reader.Remaining > 0)
             {
                 ulong length = reader.UInt(lengthSize);
-                if (length > (ulong)reader.Remaining) { throw new InvalidDataException("NAL length exceeds image item."); }
+                if (length > (ulong)reader.Remaining)
+                {
+                    throw new InvalidDataException("NAL length exceeds image item.");
+                }
                 units.Add(new NalPayload(reader.Bytes(checked((int)length))));
             }
 

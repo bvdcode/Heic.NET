@@ -15,7 +15,10 @@ namespace Heic.Net.Tests
         {
             int[] horizontal = (int[])top.Clone();
             int[] vertical = (int[])left.Clone();
-            if (luma) { Filter(horizontal, vertical, size, mode, depth, strong); }
+            if (luma)
+            {
+                Filter(horizontal, vertical, size, mode, depth, strong);
+            }
             int dc = (int)Math.Floor((horizontal.Skip(1).Take(size).Sum() + vertical.Skip(1).Take(size).Sum()) / (2.0 * size) + 0.5);
             int[] result = new int[size * size];
             for (int y = 0; y < size; y++)
@@ -34,9 +37,18 @@ namespace Heic.Net.Tests
                             value = dc;
                             if (luma && size < 32)
                             {
-                                if (x == 0 && y == 0) { value = (vertical[1] + 2 * dc + horizontal[1]) / 4.0; }
-                                else if (y == 0) { value = (horizontal[x + 1] + 3 * dc) / 4.0; }
-                                else if (x == 0) { value = (vertical[y + 1] + 3 * dc) / 4.0; }
+                                if (x == 0 && y == 0)
+                                {
+                                    value = (vertical[1] + 2 * dc + horizontal[1]) / 4.0;
+                                }
+                                else if (y == 0)
+                                {
+                                    value = (horizontal[x + 1] + 3 * dc) / 4.0;
+                                }
+                                else if (x == 0)
+                                {
+                                    value = (vertical[y + 1] + 3 * dc) / 4.0;
+                                }
                             }
 
                             break;
@@ -72,8 +84,18 @@ namespace Heic.Net.Tests
 
         public static void Filter(int[] top, int[] left, int size, int mode, int depth, bool strong)
         {
-            int threshold = size switch { 4 => int.MaxValue, 8 => 7, 16 => 1, 32 => 0, _ => throw new ArgumentOutOfRangeException(nameof(size)) };
-            if (mode == 1 || Math.Min(Math.Abs(mode - 10), Math.Abs(mode - 26)) <= threshold) { return; }
+            int threshold = size switch
+            {
+                4 => int.MaxValue,
+                8 => 7,
+                16 => 1,
+                32 => 0,
+                _ => throw new ArgumentOutOfRangeException(nameof(size))
+            };
+            if (mode == 1 || Math.Min(Math.Abs(mode - 10), Math.Abs(mode - 26)) <= threshold)
+            {
+                return;
+            }
             int length = 2 * size;
             if (strong && size == 32 && Math.Abs(top[0] + top[length] - 2 * top[size]) < Math.Pow(2, depth - 5) &&
                 Math.Abs(left[0] + left[length] - 2 * left[size]) < Math.Pow(2, depth - 5))
@@ -91,15 +113,24 @@ namespace Heic.Net.Tests
                 for (int i = 1; i < border.Length - 1; i++)
                 {
                     int value = (int)Math.Floor((border[i - 1] + 2 * border[i] + border[i + 1]) / 4.0 + 0.5);
-                    if (i <= length) { left[length - i] = value; }
-                    if (i >= length) { top[i - length] = value; }
+                    if (i <= length)
+                    {
+                        left[length - i] = value;
+                    }
+                    if (i >= length)
+                    {
+                        top[i - length] = value;
+                    }
                 }
             }
         }
 
         private static int At(int[] main, int[] side, int index, int angle)
         {
-            if (index >= 0) { return main[index]; }
+            if (index >= 0)
+            {
+                return main[index];
+            }
             double inverse = Math.Round(8192.0 / Math.Abs(angle), MidpointRounding.AwayFromZero);
             return side[(int)Math.Floor(-index * inverse / 256.0 + 0.5)];
         }

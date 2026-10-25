@@ -20,10 +20,16 @@ namespace Heic.Net.Hevc
 
         public CabacDecoder(BitReader reader)
         {
-            if (!reader.ByteAligned()) { throw new InvalidDataException("CABAC must start on a byte boundary."); }
+            if (!reader.ByteAligned())
+            {
+                throw new InvalidDataException("CABAC must start on a byte boundary.");
+            }
             this.reader = reader;
             offset = reader.Read(9);
-            if (offset >= range) { throw new InvalidDataException("Invalid initial CABAC offset."); }
+            if (offset >= range)
+            {
+                throw new InvalidDataException("Invalid initial CABAC offset.");
+            }
         }
 
         internal int Range => range;
@@ -57,15 +63,24 @@ namespace Heic.Net.Hevc
             EnsureActive();
             offset = (offset << 1) | reader.Read(1);
             bool value = offset >= range;
-            if (value) { offset -= range; }
+            if (value)
+            {
+                offset -= range;
+            }
             return value;
         }
 
         public uint ReadBypassBits(int count)
         {
-            if (count < 0 || count > 32) { throw new ArgumentOutOfRangeException(nameof(count)); }
+            if (count < 0 || count > 32)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count));
+            }
             uint value = 0;
-            for (int i = 0; i < count; i++) { value = (value << 1) | (ReadBypass() ? 1u : 0u); }
+            for (int i = 0; i < count; i++)
+            {
+                value = (value << 1) | (ReadBypass() ? 1u : 0u);
+            }
             return value;
         }
 
@@ -91,12 +106,18 @@ namespace Heic.Net.Hevc
                 offset = (offset << 1) | reader.Read(1);
             }
 
-            if (offset >= range) { throw new InvalidDataException("CABAC offset exceeds the normalized range."); }
+            if (offset >= range)
+            {
+                throw new InvalidDataException("CABAC offset exceeds the normalized range.");
+            }
         }
 
         private void EnsureActive()
         {
-            if (terminated) { throw new InvalidOperationException("The CABAC slice is already terminated."); }
+            if (terminated)
+            {
+                throw new InvalidOperationException("The CABAC slice is already terminated.");
+            }
         }
     }
 }

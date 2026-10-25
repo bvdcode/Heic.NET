@@ -12,12 +12,18 @@ namespace Heic.Net.Heif
             ByteReader reader = new ByteReader(box.Payload);
             byte version = Version(reader, 1);
             uint count = version == 0 ? reader.U16() : reader.U32();
-            if (count > limits.MaxItems) { throw new InvalidDataException("Item limit exceeded."); }
+            if (count > limits.MaxItems)
+            {
+                throw new InvalidDataException("Item limit exceeded.");
+            }
             HashSet<uint> ids = new HashSet<uint>();
             for (uint i = 0; i < count; i++)
             {
                 HeifBox entry = HeifBox.Read(reader, box.Offset);
-                if (entry.Type != HeifBox.Code("infe")) { throw new InvalidDataException("Expected item information entry."); }
+                if (entry.Type != HeifBox.Code("infe"))
+                {
+                    throw new InvalidDataException("Expected item information entry.");
+                }
                 ByteReader info = new ByteReader(entry.Payload);
                 byte entryVersion = info.U8();
                 info.UInt(3);
@@ -27,12 +33,21 @@ namespace Heic.Net.Heif
                 }
 
                 uint id = entryVersion == 2 ? info.U16() : info.U32();
-                if (!ids.Add(id)) { throw new InvalidDataException("Duplicate item information."); }
-                if (info.U16() != 0) { throw new UnsupportedHeicFeatureException("protected item"); }
+                if (!ids.Add(id))
+                {
+                    throw new InvalidDataException("Duplicate item information.");
+                }
+                if (info.U16() != 0)
+                {
+                    throw new UnsupportedHeicFeatureException("protected item");
+                }
                 Item(id).Type = info.U32();
             }
 
-            if (reader.Remaining != 0) { throw new InvalidDataException("Unexpected item information data."); }
+            if (reader.Remaining != 0)
+            {
+                throw new InvalidDataException("Unexpected item information data.");
+            }
         }
 
         private void ReadLocations(HeifBox box)
@@ -46,18 +61,30 @@ namespace Heic.Net.Heif
             int baseSize = baseSizes >> 4;
             int indexSize = version == 0 ? 0 : baseSizes & 15;
             uint count = version < 2 ? reader.U16() : reader.U32();
-            if (count > limits.MaxItems) { throw new InvalidDataException("Item limit exceeded."); }
+            if (count > limits.MaxItems)
+            {
+                throw new InvalidDataException("Item limit exceeded.");
+            }
             HashSet<uint> ids = new HashSet<uint>();
             for (uint i = 0; i < count; i++)
             {
                 uint id = version < 2 ? reader.U16() : reader.U32();
-                if (!ids.Add(id)) { throw new InvalidDataException("Duplicate item location."); }
+                if (!ids.Add(id))
+                {
+                    throw new InvalidDataException("Duplicate item location.");
+                }
                 HeifItem item = Item(id);
                 item.ConstructionMethod = version == 0 ? 0 : reader.U16() & 15;
-                if (reader.U16() != 0) { throw new UnsupportedHeicFeatureException("external item data"); }
+                if (reader.U16() != 0)
+                {
+                    throw new UnsupportedHeicFeatureException("external item data");
+                }
                 item.BaseOffset = reader.UInt(baseSize);
                 int extentCount = reader.U16();
-                if (extentCount == 0) { throw new InvalidDataException("Item has no data extents."); }
+                if (extentCount == 0)
+                {
+                    throw new InvalidDataException("Item has no data extents.");
+                }
                 for (int j = 0; j < extentCount; j++)
                 {
                     reader.UInt(indexSize);
@@ -65,7 +92,10 @@ namespace Heic.Net.Heif
                 }
             }
 
-            if (reader.Remaining != 0) { throw new InvalidDataException("Unexpected item location data."); }
+            if (reader.Remaining != 0)
+            {
+                throw new InvalidDataException("Unexpected item location data.");
+            }
         }
 
         private void ReadProperties(HeifBox box)
@@ -76,11 +106,17 @@ namespace Heic.Net.Heif
                 HeifBox child = HeifBox.Read(reader, box.Offset);
                 if (child.Type == HeifBox.Code("ipco"))
                 {
-                    if (properties.Count != 0) { throw new InvalidDataException("Duplicate property container."); }
+                    if (properties.Count != 0)
+                    {
+                        throw new InvalidDataException("Duplicate property container.");
+                    }
                     ByteReader list = new ByteReader(child.Payload);
                     while (list.Remaining > 0)
                     {
-                        if (properties.Count >= limits.MaxItems * 16L) { throw new InvalidDataException("Property limit exceeded."); }
+                        if (properties.Count >= limits.MaxItems * 16L)
+                        {
+                            throw new InvalidDataException("Property limit exceeded.");
+                        }
                         properties.Add(HeifBox.Read(list, child.Offset));
                     }
                 }
@@ -96,9 +132,15 @@ namespace Heic.Net.Heif
             ByteReader reader = new ByteReader(box.Payload);
             byte version = reader.U8();
             ulong flags = reader.UInt(3);
-            if (version > 1 || flags > 1) { throw new UnsupportedHeicFeatureException("property association version or flags"); }
+            if (version > 1 || flags > 1)
+            {
+                throw new UnsupportedHeicFeatureException("property association version or flags");
+            }
             uint count = reader.U32();
-            if (count > limits.MaxItems) { throw new InvalidDataException("Item limit exceeded."); }
+            if (count > limits.MaxItems)
+            {
+                throw new InvalidDataException("Item limit exceeded.");
+            }
             for (uint i = 0; i < count; i++)
             {
                 HeifItem item = Item(version == 0 ? reader.U16() : reader.U32());
@@ -126,7 +168,10 @@ namespace Heic.Net.Heif
                 uint from = version == 0 ? data.U16() : data.U32();
                 int count = data.U16();
                 uint[] to = new uint[count];
-                for (int i = 0; i < count; i++) { to[i] = version == 0 ? data.U16() : data.U32(); }
+                for (int i = 0; i < count; i++)
+                {
+                    to[i] = version == 0 ? data.U16() : data.U32();
+                }
                 if (!Item(from).References.TryAdd(reference.Type, to))
                 {
                     throw new InvalidDataException("Duplicate item reference type.");
