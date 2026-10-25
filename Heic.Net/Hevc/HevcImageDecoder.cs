@@ -4,6 +4,14 @@ using System.IO;
 
 namespace Heic.Net.Hevc
 {
+    /// <summary>
+    /// Reconstructs one single-layer IDR image from configuration and item NAL units.
+    /// </summary>
+    /// <remarks>
+    /// Single-layer Annex A decoding may discard VPS NAL units under H.265 clause 7.4.3.1.
+    /// Reconstruction parameters come from the active SPS and PPS; multilayer NAL headers
+    /// and unsupported slice types are rejected before reconstruction.
+    /// </remarks>
     internal static class HevcImageDecoder
     {
         public static DecodedPicture Decode(DecoderConfiguration configuration, ReadOnlyMemory<byte> data,

@@ -68,6 +68,31 @@ namespace Heic.Net.Tests
             Assert.Throws<InvalidDataException>(() => PictureParameters.Read(nal, new Dictionary<int, SequenceParameters>()));
         }
 
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void UnsupportedEntropyPartitioningIsRejected(bool tiles, bool wavefront)
+        {
+            TestBitWriter bits = new TestBitWriter();
+            bits.Ue(0);
+            bits.Ue(0);
+            bits.Write(0, 5);
+            bits.Flag(true);
+            bits.Flag(false);
+            bits.Ue(0);
+            bits.Ue(0);
+            bits.Se(0);
+            bits.Write(0, 3);
+            bits.Se(0);
+            bits.Se(0);
+            bits.Write(0, 4);
+            bits.Flag(tiles);
+            bits.Flag(wavefront);
+            NalPayload nal = new NalPayload(HeifTestFile.Join(new byte[] { 0x44, 1 }, bits.ToArray()));
+            Assert.Throws<UnsupportedHeicFeatureException>(() => PictureParameters.Read(nal,
+                new Dictionary<int, SequenceParameters> { [0] = ReadSequence(Sps8) }));
+        }
+
         [Fact]
         public void IntraSliceStartsCabacAfterValidatedByteAlignment()
         {

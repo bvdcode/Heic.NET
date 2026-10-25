@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Heic.Net.Heif;
 using Xunit;
 
 namespace Heic.Net.Tests
@@ -47,6 +48,28 @@ namespace Heic.Net.Tests
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "20260223_110514.heic"));
             Assert.Throws<InvalidDataException>(() => HeicDocument.Load(encoded));
+        }
+
+        [Fact]
+        public void UnknownPropertiesHonorTheirEssentialFlag()
+        {
+            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "rotate-90.heic"));
+            HeifContainer container = new HeifContainerReader(HeicDecodeOptions.Default).Read(encoded);
+            foreach (HeifBox property in container.Properties)
+            {
+                if (property.Type == HeifBox.Code("irot"))
+                {
+                    HeifTestFile.Text("zzzz").CopyTo(encoded.AsSpan(property.Offset - 4, 4));
+                }
+            }
+
+            Assert.Throws<UnsupportedHeicFeatureException>(() => HeicDocument.Load(encoded));
+            int associations = encoded.AsSpan().IndexOf(HeifTestFile.Text("ipma"));
+            const int LastAssociationOffset = 19;
+            encoded[associations + LastAssociationOffset] &= 127;
+            RgbaImage image = HeicDocument.Load(encoded).DecodePrimary();
+            Assert.Equal(64, image.Width);
+            Assert.Equal(48, image.Height);
         }
 
         [Fact]

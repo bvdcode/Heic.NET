@@ -7,6 +7,7 @@ namespace Heic.Net.Hevc
 {
     internal class DecoderConfiguration
     {
+        private const int MaxConfigurationUnits = 256;
         private DecoderConfiguration(int lengthSize, IReadOnlyList<NalPayload> units)
         {
             LengthSize = lengthSize;
@@ -42,7 +43,7 @@ namespace Heic.Net.Hevc
                     {
                         throw new InvalidDataException("HEVC configuration NAL type mismatch.");
                     }
-                    if (units.Count >= 256)
+                    if (units.Count >= MaxConfigurationUnits)
                     {
                         throw new InvalidDataException("HEVC configuration parameter set limit exceeded.");
                     }
