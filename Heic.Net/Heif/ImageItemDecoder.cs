@@ -55,6 +55,11 @@ namespace Heic.Net.Heif
                 result = GridImageDecoder.Decode(container, item, properties,
                     (target, tileBuffers) => Decode(target, alpha, color, icc, alphaInformation, path, false, tileBuffers), parallel, buffers, orientation);
             }
+            else if (item.Type == HeifBox.Code("iovl"))
+            {
+                result = OverlayImageDecoder.Decode(container, item, properties,
+                    (target, inputBuffers) => Decode(target, alpha, color, icc, alphaInformation, path, parallel, inputBuffers), buffers);
+            }
             else if (item.Type == HeifBox.Code("iden"))
             {
                 if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count != 1)

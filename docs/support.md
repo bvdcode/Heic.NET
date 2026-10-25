@@ -3,7 +3,7 @@
 | Area | Implemented boundary |
 | --- | --- |
 | Container | `heic`/`heix` brands; primary image; 16/32-bit item IDs; bounded file/idat extents; multiple extents; property associations and references |
-| Image items | `hvc1`, `grid`, `iden`; right/bottom grid cropping; recursive derivation with depth and cycle checks |
+| Image items | `hvc1`, `grid`, `iden`, `iovl`; ordered overlay layers with signed offsets and straight-alpha composition; right/bottom grid cropping; recursive derivation with depth and cycle checks |
 | Geometry | All quarter-turn rotations; both mirror axes; exact integral `clap` rectangles, in association order |
 | Alpha | Monochrome auxiliary alpha, including alpha grids and matching transformations; HEVC and MPEG alpha type identifiers; HEVC auxiliary SEI ranges, increment and clipping |
 | HEVC pictures | Single layer; one independent I-slice IDR picture, NAL types 19/20, per coded image item; WPP row substreams |
@@ -16,11 +16,13 @@
 Unsupported tools throw `UnsupportedHeicFeatureException` with a `Feature` value.
 Examples include inter prediction, CRA/BLA pictures, multiple slices, HEVC tiles,
 multilayer coding, PCM, field sequences,
-4:2:2/4:4:4, other sample depths, active range-extension tools, image overlays,
+4:2:2/4:4:4, other sample depths, active range-extension tools,
 fractional clean apertures, external/protected items and premultiplied alpha.
 HEIF grids are supported; HEVC tiles inside one coded picture are a separate tool.
 Tracks, animation playback, EXIF/XMP interpretation and depth-map rendering are absent.
 Pixel-aspect metadata does not rescale the returned sample grid.
+Overlay inputs must share colour information. Coloured canvas fills require sRGB
+or unspecified input colour information; conversion between profiles is absent.
 
 Unknown essential image properties are rejected. Nonessential unknown properties
 are skipped under the container rules. Descriptive `pixi` values do not override

@@ -93,9 +93,7 @@ namespace Heic.Net.Heif
             void CopyTile(int index, RgbaImage tile)
             {
                 if (tile.Width != tileWidth || tile.Height != tileHeight ||
-                    tile.ColorInformation.ColorPrimaries != color.ColorPrimaries ||
-                    tile.ColorInformation.TransferCharacteristics != color.TransferCharacteristics ||
-                    !tile.ColorInformation.IccProfile.Span.SequenceEqual(color.IccProfile.Span))
+                    !color.Matches(tile.ColorInformation))
                 {
                     throw new InvalidDataException("Grid tiles have inconsistent dimensions or colour information.");
                 }

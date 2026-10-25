@@ -32,7 +32,8 @@ namespace Heic.Net
             Dictionary<uint, ImageProperties> images = new Dictionary<uint, ImageProperties>();
             foreach (HeifItem item in container.Items.Values)
             {
-                if (item.Type == HeifBox.Code("hvc1") || item.Type == HeifBox.Code("grid") || item.Type == HeifBox.Code("iden"))
+                if (item.Type == HeifBox.Code("hvc1") || item.Type == HeifBox.Code("grid") || item.Type == HeifBox.Code("iden") ||
+                    item.Type == HeifBox.Code("iovl"))
                 {
                     images.Add(item.Id, ImageProperties.Read(container, item, options));
                 }
