@@ -70,12 +70,11 @@ namespace Heic.Net.Hevc
                 int count = 0;
                 bool inferDc = group != 0 && group != last / 16;
                 int upper = group == last / 16 ? last % 16 : 15;
+                ReadOnlySpan<byte> contexts = CoefficientContexts.SignificantGroup(gx, gy, log2Size, scanIndex, component, codedGroups);
                 for (int n = upper; n >= 0; n--)
                 {
-                    int offset = scan[group * 16 + n];
                     bool significant = group * 16 + n == last || n == 0 && inferDc ||
-                        reader.Read(CabacElement.SignificantCoefficient, CoefficientContexts.Significant(offset % size, offset / size,
-                            log2Size, scanIndex, component, codedGroups));
+                        reader.Read(CabacElement.SignificantCoefficient, contexts[n]);
                     if (significant)
                     {
                         positions[count++] = n;
