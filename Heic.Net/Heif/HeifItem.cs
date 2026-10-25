@@ -1,26 +1,30 @@
-using Heic.Net.Binary;
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace Heic.Net.Heif
 {
     /// <summary>
-    /// Stores item metadata assembled while parsing a HEIF document.
+    /// Owns immutable item metadata; encoded extents remain views of document storage.
     /// </summary>
     /// <remarks>
-    /// Descriptors stay internal and must not be mutated after document loading completes.
+    /// A single extent is borrowed without allocation. Multiple extents are concatenated into
+    /// decode-call storage, bounded before allocating; neither path mutates document bytes.
     /// </remarks>
-    internal class HeifItem(uint id)
+    internal class HeifItem(uint id, uint type, bool hidden, int constructionMethod, ulong baseOffset,
+        IReadOnlyList<ItemExtent> extents, IReadOnlyList<PropertyAssociation> associations,
+        IReadOnlyDictionary<uint, IReadOnlyList<uint>> references)
     {
         public uint Id { get; } = id;
-        public uint Type { get; set; }
-        public int ConstructionMethod { get; set; }
-        public ulong BaseOffset { get; set; }
-        public List<ItemExtent> Extents { get; } = new List<ItemExtent>();
-        public List<PropertyAssociation> Associations { get; } = new List<PropertyAssociation>();
-        public Dictionary<uint, uint[]> References { get; } = new Dictionary<uint, uint[]>();
+        public uint Type { get; } = type;
+        public bool Hidden { get; } = hidden;
+        public int ConstructionMethod { get; } = constructionMethod;
+        public ulong BaseOffset { get; } = baseOffset;
+        public IReadOnlyList<ItemExtent> Extents { get; } = extents;
+        public IReadOnlyList<PropertyAssociation> Associations { get; } = associations;
+        public IReadOnlyDictionary<uint, IReadOnlyList<uint>> References { get; } = references;
 
-        public ReadOnlyMemory<byte> ReadData(ReadOnlyMemory<byte> file, ReadOnlyMemory<byte> itemData)
+        public ReadOnlyMemory<byte> ReadData(ReadOnlyMemory<byte> file, ReadOnlyMemory<byte> itemData, int maxBytes)
         {
             ReadOnlyMemory<byte> source;
             switch (ConstructionMethod)
@@ -35,11 +39,19 @@ namespace Heic.Net.Heif
                     throw new UnsupportedHeicFeatureException("item construction method " + ConstructionMethod);
             }
 
+            if (Extents.Count == 0)
+            {
+                throw new InvalidDataException("Item has no data extents.");
+            }
             int total = 0;
             foreach (ItemExtent extent in Extents)
             {
                 ValidateExtent(source.Length, extent);
-                total = checked(total + (int)extent.Length);
+                if (extent.Length > (ulong)(maxBytes - total))
+                {
+                    throw new InvalidDataException("Item byte limit exceeded.");
+                }
+                total += (int)extent.Length;
             }
 
             if (Extents.Count == 1)
@@ -63,7 +75,7 @@ namespace Heic.Net.Heif
             if (BaseOffset > (ulong)length || extent.Offset > (ulong)length - BaseOffset ||
                 extent.Length > (ulong)length - BaseOffset - extent.Offset)
             {
-                throw new System.IO.InvalidDataException("Item extent exceeds its data source.");
+                throw new InvalidDataException("Item extent exceeds its data source.");
             }
         }
     }

@@ -5,7 +5,7 @@ using System.IO;
 
 namespace Heic.Net.Heif
 {
-    internal partial class HeifContainer
+    internal partial class HeifContainerReader
     {
         private void ReadInformation(HeifBox box)
         {
@@ -26,7 +26,11 @@ namespace Heic.Net.Heif
                 }
                 ByteReader info = new ByteReader(entry.Payload);
                 byte entryVersion = info.U8();
-                info.UInt(3);
+                ulong flags = info.UInt(3);
+                if (flags > 1)
+                {
+                    throw new UnsupportedHeicFeatureException("item information flags");
+                }
                 if (entryVersion != 2 && entryVersion != 3)
                 {
                     throw new UnsupportedHeicFeatureException("item information version");
@@ -41,7 +45,9 @@ namespace Heic.Net.Heif
                 {
                     throw new UnsupportedHeicFeatureException("protected item");
                 }
-                Item(id).Type = info.U32();
+                HeifItemBuilder item = Item(id);
+                item.Type = info.U32();
+                item.Hidden = flags == 1;
             }
 
             if (reader.Remaining != 0)
@@ -73,8 +79,13 @@ namespace Heic.Net.Heif
                 {
                     throw new InvalidDataException("Duplicate item location.");
                 }
-                HeifItem item = Item(id);
-                item.ConstructionMethod = version == 0 ? 0 : reader.U16() & 15;
+                HeifItemBuilder item = Item(id);
+                int method = version == 0 ? 0 : reader.U16();
+                if ((method & ~15) != 0)
+                {
+                    throw new InvalidDataException("Nonzero item location reserved bits.");
+                }
+                item.ConstructionMethod = method;
                 if (reader.U16() != 0)
                 {
                     throw new UnsupportedHeicFeatureException("external item data");
@@ -101,15 +112,18 @@ namespace Heic.Net.Heif
         private void ReadProperties(HeifBox box)
         {
             ByteReader reader = new ByteReader(box.Payload);
+            bool propertyContainer = false;
+            bool associations = false;
             while (reader.Remaining > 0)
             {
                 HeifBox child = HeifBox.Read(reader, box.Offset);
                 if (child.Type == HeifBox.Code("ipco"))
                 {
-                    if (properties.Count != 0)
+                    if (propertyContainer)
                     {
                         throw new InvalidDataException("Duplicate property container.");
                     }
+                    propertyContainer = true;
                     ByteReader list = new ByteReader(child.Payload);
                     while (list.Remaining > 0)
                     {
@@ -122,6 +136,11 @@ namespace Heic.Net.Heif
                 }
                 else if (child.Type == HeifBox.Code("ipma"))
                 {
+                    if (associations)
+                    {
+                        throw new UnsupportedHeicFeatureException("multiple property association boxes");
+                    }
+                    associations = true;
                     ReadAssociations(child);
                 }
             }
@@ -141,9 +160,15 @@ namespace Heic.Net.Heif
             {
                 throw new InvalidDataException("Item limit exceeded.");
             }
+            HashSet<uint> ids = new HashSet<uint>();
             for (uint i = 0; i < count; i++)
             {
-                HeifItem item = Item(version == 0 ? reader.U16() : reader.U32());
+                uint id = version == 0 ? reader.U16() : reader.U32();
+                if (!ids.Add(id))
+                {
+                    throw new InvalidDataException("Duplicate item property association entry.");
+                }
+                HeifItemBuilder item = Item(id);
                 int associations = reader.U8();
                 for (int j = 0; j < associations; j++)
                 {
@@ -154,6 +179,11 @@ namespace Heic.Net.Heif
                         item.Associations.Add(new PropertyAssociation((value & mask) - 1, (value & (mask + 1)) != 0));
                     }
                 }
+            }
+
+            if (reader.Remaining != 0)
+            {
+                throw new InvalidDataException("Unexpected property association data.");
             }
         }
 
@@ -167,10 +197,18 @@ namespace Heic.Net.Heif
                 ByteReader data = new ByteReader(reference.Payload);
                 uint from = version == 0 ? data.U16() : data.U32();
                 int count = data.U16();
+                if (count > limits.MaxItems)
+                {
+                    throw new InvalidDataException("Reference limit exceeded.");
+                }
                 uint[] to = new uint[count];
                 for (int i = 0; i < count; i++)
                 {
                     to[i] = version == 0 ? data.U16() : data.U32();
+                }
+                if (data.Remaining != 0)
+                {
+                    throw new InvalidDataException("Unexpected item reference data.");
                 }
                 if (!Item(from).References.TryAdd(reference.Type, to))
                 {
