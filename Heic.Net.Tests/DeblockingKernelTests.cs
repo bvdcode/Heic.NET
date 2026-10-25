@@ -103,6 +103,33 @@ namespace Heic.Net.Tests
         [Theory]
         [InlineData(8)]
         [InlineData(10)]
+        public void ZeroThresholdsPreserveEverySample(int depth)
+        {
+            Random random = new Random(71822);
+            for (int repetition = 0; repetition < 200; repetition++)
+            {
+                int[] original = new int[32];
+                for (int i = 0; i < original.Length; i++)
+                {
+                    original[i] = repetition < 100 ? random.Next(1 << depth) : (1 << depth) / 2 + (i % 8 < 4 ? 0 : 1);
+                }
+
+                int[] zeroBeta = (int[])original.Clone();
+                int[] zeroTc = (int[])original.Clone();
+                DeblockingKernel.Luma(zeroBeta, 0, 20, depth, true, true);
+                DeblockingKernel.Luma(zeroTc, 64, 0, depth, true, true);
+                Assert.Equal(original, zeroBeta);
+                Assert.Equal(original, zeroTc);
+
+                int[] chroma = original.AsSpan(0, 4).ToArray();
+                DeblockingKernel.Chroma(chroma, 0, depth, true, true);
+                Assert.Equal(original.AsSpan(0, 4).ToArray(), chroma);
+            }
+        }
+
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
         public void ChromaMatchesScalarRationalOracle(int depth)
         {
             Random random = new Random(352);

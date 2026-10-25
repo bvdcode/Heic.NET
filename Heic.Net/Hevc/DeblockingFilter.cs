@@ -43,21 +43,65 @@ namespace Heic.Net.Hevc
             int depth = slice.Picture.Sequence.BitDepth;
             int beta = DeblockingThresholds.Beta(qp + slice.BetaOffset, depth);
             int tc = DeblockingThresholds.Tc(qp + 2 + slice.TcOffset, depth);
+            if (beta == 0 || tc == 0)
+            {
+                return;
+            }
+
             Span<int> samples = stackalloc int[32];
-            for (int k = 0; k < 4; k++)
+            ReadLumaEdge(plane, samples, x, y, vertical);
+            DeblockingKernel.Luma(samples, beta, tc, depth, !blocks.Bypass(px, py), !blocks.Bypass(x, y));
+            WriteLumaEdge(plane, samples, x, y, vertical);
+        }
+
+        private static void ReadLumaEdge(SamplePlane plane, Span<int> samples, int x, int y, bool vertical)
+        {
+            if (vertical)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    ReadOnlySpan<ushort> row = plane.Row(y + k).Slice(x - 4, 8);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        samples[k * 8 + i] = row[i];
+                    }
+                }
+            }
+            else
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    samples[k * 8 + i] = plane.Row(y + (vertical ? k : i - 4))[x + (vertical ? i - 4 : k)];
+                    ReadOnlySpan<ushort> row = plane.Row(y + i - 4).Slice(x, 4);
+                    for (int k = 0; k < 4; k++)
+                    {
+                        samples[k * 8 + i] = row[k];
+                    }
                 }
             }
+        }
 
-            DeblockingKernel.Luma(samples, beta, tc, depth, !blocks.Bypass(px, py), !blocks.Bypass(x, y));
-            for (int k = 0; k < 4; k++)
+        private static void WriteLumaEdge(SamplePlane plane, ReadOnlySpan<int> samples, int x, int y, bool vertical)
+        {
+            if (vertical)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    Span<ushort> row = plane.Row(y + k).Slice(x - 3, 6);
+                    for (int i = 0; i < 6; i++)
+                    {
+                        row[i] = (ushort)samples[k * 8 + i + 1];
+                    }
+                }
+            }
+            else
             {
                 for (int i = 1; i <= 6; i++)
                 {
-                    plane.Row(y + (vertical ? k : i - 4))[x + (vertical ? i - 4 : k)] = (ushort)samples[k * 8 + i];
+                    Span<ushort> row = plane.Row(y + i - 4).Slice(x, 4);
+                    for (int k = 0; k < 4; k++)
+                    {
+                        row[k] = (ushort)samples[k * 8 + i];
+                    }
                 }
             }
         }
@@ -82,6 +126,10 @@ namespace Heic.Net.Hevc
                     int py = vertical ? y * 2 : y * 2 - 1;
                     int qp = ((blocks.Qp(x * 2, y * 2) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
                     int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp) + 2 + slice.TcOffset, depth);
+                    if (tc == 0)
+                    {
+                        continue;
+                    }
                     for (int k = 0; k < 4; k++)
                     {
                         for (int i = 0; i < 4; i++)
