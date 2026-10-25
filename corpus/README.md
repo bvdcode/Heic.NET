@@ -83,3 +83,13 @@ QP 24, one frame thread, SAO and deblocking. The `wpp-` files use WPP and
 flat scaling lists; the `scaling-` file disables WPP and enables default scaling
 lists. All NAL units use four-byte Annex B delimiters. Complete YUV references
 come from FFmpeg 6.1 with `-apply_cropping 0 -pix_fmt +`.
+
+## Horizontal chroma subsampling regression streams
+
+The four `chroma422` streams use the same original component pattern as the
+4:4:4 fixtures, with a 202×145 visible image and half-width, full-height chroma.
+The coded planes are 208×152 luma and 104×152 chroma, covering independent
+horizontal and vertical conformance-window units. The 8/10-bit `wpp-` streams
+use WPP and flat lists; `scaling-chroma422-10bit.hevc` enables default lists
+without WPP. `lossless-chroma422-8bit.hevc` enables transquant bypass without
+WPP. The encoder and reference-decoder settings otherwise match the 4:4:4 cases.

@@ -7,6 +7,12 @@ namespace Heic.Net.Hevc
 {
     internal class IntraModeDecoder(IntraCabacReader reader, CodingBlockMap blocks, int log2Ctb)
     {
+        private static readonly byte[] HorizontalSubsamplingModes =
+        {
+            0, 1, 2, 2, 2, 2, 3, 5, 7, 8, 10, 12, 13, 15, 17, 18, 19, 20,
+            21, 22, 23, 23, 24, 24, 25, 25, 26, 27, 27, 28, 28, 29, 29, 30, 31
+        };
+
         public void ReadLuma(int x, int y, int size, bool split)
         {
             int count = split ? 4 : 1;
@@ -57,11 +63,11 @@ namespace Heic.Net.Hevc
             }
         }
 
-        public int ReadChroma(int lumaMode)
+        public int ReadChroma(int lumaMode, int chromaFormat)
         {
             if (!reader.Read(CabacElement.ChromaMode))
             {
-                return lumaMode;
+                return ChromaMode(lumaMode, chromaFormat);
             }
             int mode;
             switch (reader.Bits(2))
@@ -82,7 +88,21 @@ namespace Heic.Net.Hevc
                     throw new InvalidOperationException("Invalid chroma mode index.");
             }
 
-            return mode == lumaMode ? 34 : mode;
+            return ChromaMode(mode == lumaMode ? 34 : mode, chromaFormat);
+        }
+
+        private static int ChromaMode(int mode, int chromaFormat)
+        {
+            switch (chromaFormat)
+            {
+                case 1:
+                case 3:
+                    return mode;
+                case 2:
+                    return HorizontalSubsamplingModes[mode];
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(chromaFormat));
+            }
         }
 
         private static void Candidates(int left, int top, Span<int> candidates)

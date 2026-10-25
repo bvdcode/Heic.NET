@@ -11,7 +11,7 @@
 A managed HEIC still image decoder targeting **.NET Standard 2.1**.
 
 The decoder supports single-layer HEVC IDR images, HEIF grids and
-identity images with owned RGBA8 output. It supports 8/10-bit monochrome, 4:2:0 and 4:4:4,
+identity images with owned RGBA8 output. It supports 8/10-bit monochrome, 4:2:0, 4:2:2 and 4:4:4,
 rotation, mirroring, integral clean-aperture cropping and straight auxiliary alpha.
 
 Install the package:

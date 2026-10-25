@@ -30,6 +30,10 @@ namespace Heic.Net.Tests
         [InlineData("wpp-chroma444-8bit.hevc", "BEAE032F216681E1C9CB02781469A87D9451D581F8E3D99C2267B98017C70E4E")]
         [InlineData("wpp-chroma444-10bit.hevc", "A09D742EABF77A8A58E08C778DA179755C64AE6972FC9139BADEEE8506EB9673")]
         [InlineData("scaling-chroma444-8bit.hevc", "C0D037339123BCFD3AABC26E5B0775606A0A1E548C57A1AC026E1EB210583115")]
+        [InlineData("wpp-chroma422-8bit.hevc", "88270A4CE534FEAFEF6A9E58A5F49ADA84A0BDFB4AC15BF147CECEC98585AE4A")]
+        [InlineData("wpp-chroma422-10bit.hevc", "5DCEE90EBD21E858C1C5EB2E7EED03D8F41087DCE0C953A5D9CA3BCD71C4A73F")]
+        [InlineData("lossless-chroma422-8bit.hevc", "800C040790C936DDC6C6112B8992CD419BD8A88F8BCD1C1534697573772328BD")]
+        [InlineData("scaling-chroma422-10bit.hevc", "971855F82CCA40AF17A12EDDE955F62E18CA118033C3408AFC873E254B7D801F")]
         public void PatternPictureMatchesIndependentNativePlaneHash(string file, string expectedHash)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
@@ -72,6 +76,30 @@ namespace Heic.Net.Tests
                 string hash = Convert.ToHexString(SHA256.HashData(samples.ToArray()));
                 Assert.Equal(expectedHash, hash);
             }
+        }
+
+        [Theory]
+        [InlineData("wpp-chroma422-8bit.hevc")]
+        [InlineData("wpp-chroma422-10bit.hevc")]
+        [InlineData("lossless-chroma422-8bit.hevc")]
+        [InlineData("scaling-chroma422-10bit.hevc")]
+        public void HorizontalSubsamplingRetainsOddVisibleHeight(string file)
+        {
+            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
+            NalPayload nal = Assert.Single(ReadAnnexB(encoded), value => value.Type == 33);
+            SequenceParameters sequence = SequenceParameters.Read(nal, HeicDecodeOptions.Default);
+            Assert.Equal(2, sequence.ChromaFormat);
+            Assert.Equal(208, sequence.Width);
+            Assert.Equal(152, sequence.Height);
+            Assert.Equal(202, sequence.VisibleWidth);
+            Assert.Equal(145, sequence.VisibleHeight);
+            using DecodedPicture picture = new DecodedPicture(sequence);
+            Assert.NotNull(picture.Cb);
+            Assert.NotNull(picture.Cr);
+            Assert.Equal(104, picture.Cb.Width);
+            Assert.Equal(152, picture.Cb.Height);
+            Assert.Equal(104, picture.Cr.Width);
+            Assert.Equal(152, picture.Cr.Height);
         }
 
         private static void AddPlane(List<byte> samples, SamplePlane plane, int depth)

@@ -7,7 +7,7 @@
 | Geometry | All quarter-turn rotations; both mirror axes; exact integral `clap` rectangles, in association order |
 | Alpha | Monochrome auxiliary alpha, including alpha grids and matching transformations; HEVC and MPEG alpha type identifiers; HEVC auxiliary SEI ranges, increment and clipping |
 | HEVC pictures | Single layer; one independent I-slice IDR picture, NAL types 19/20, per coded image item; WPP row substreams |
-| Samples | 8 or 10 bits, equal component depths; monochrome, 4:2:0 or 4:4:4 |
+| Samples | 8 or 10 bits, equal component depths; monochrome, 4:2:0, 4:2:2 or 4:4:4 |
 | Reconstruction | CABAC, all 35 intra modes, grouped residual coding, sign hiding, QP deltas, scaling lists, DCT 4/8/16/32, intra luma DST4, transform skip and transquant bypass |
 | Filtering | Intra deblocking and SAO band/edge offsets, including CTB merges |
 | Colour | NCLX or HEVC VUI matrices 1, 5, 6, 9; BT.601 for unspecified matrix 2; full/limited range; chroma replication at the coded sampling ratio; RGBA8 |
@@ -16,7 +16,7 @@
 Unsupported tools throw `UnsupportedHeicFeatureException` with a `Feature` value.
 Examples include inter prediction, CRA/BLA pictures, multiple slices, HEVC tiles,
 multilayer coding, PCM, field sequences,
-4:2:2, separate colour planes, other sample depths, active range-extension tools,
+separate colour planes, other sample depths, active range-extension tools,
 fractional clean apertures, external/protected items and premultiplied alpha.
 HEIF grids are supported; HEVC tiles inside one coded picture are a separate tool.
 Tracks, animation playback, EXIF/XMP interpretation and depth-map rendering are absent.
@@ -39,7 +39,8 @@ The tests cover complete 8/10-bit and monochrome pictures, default scaling lists
 geometry, alpha and grid composition, plus two original camera files up to 200 MP.
 WPP reconstruction has independent complete-plane references for 8/10-bit and
 monochrome pictures, including partial CTU rows and mixed quantization groups.
-Explicit custom scaling lists, transform skip and bypass have kernel coverage;
+Full-image 4:2:2 references include 8/10 bits, WPP, scaling lists, lossless bypass
+and odd visible heights. Explicit custom scaling lists and transform skip have kernel coverage;
 the complete-image corpus does not yet cover every combination of those tools.
 CABAC slice termination is checked; the decoder is not a complete bitstream
 conformance validator, and trailing zero-word/padding validation remains incomplete.

@@ -65,10 +65,6 @@ namespace Heic.Net.Hevc
             SequenceParameters sps = new SequenceParameters { Profile = HevcSyntax.ProfileTierLevel(reader, subLayers) };
             sps.Id = HevcSyntax.Ue(reader, 15, "sps_seq_parameter_set_id");
             sps.ChromaFormat = HevcSyntax.Ue(reader, 3, "chroma_format_idc");
-            if (sps.ChromaFormat == 2)
-            {
-                throw new UnsupportedHeicFeatureException("HEVC 4:2:2 chroma");
-            }
             if (sps.ChromaFormat == 3 && reader.ReadFlag())
             {
                 throw new UnsupportedHeicFeatureException("separate HEVC colour planes");

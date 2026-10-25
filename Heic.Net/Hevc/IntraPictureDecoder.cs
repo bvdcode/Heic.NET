@@ -119,16 +119,30 @@ namespace Heic.Net.Hevc
                 {
                     int px = x + (part & 1) * (size / 2);
                     int py = y + (part >> 1) * (size / 2);
-                    chromaModes[part] = sequence.ChromaFormat == 0 ? 0 : modes.ReadChroma(blocks.Mode(px, py));
+                    chromaModes[part] = sequence.ChromaFormat == 0 ? 0 : modes.ReadChroma(blocks.Mode(px, py), sequence.ChromaFormat);
                 }
-                TransformTree(x, y, x, y, log2Size, 0, 0, intraSplit, chromaModes.Slice(0, modeCount), false, false, bypass,
+                TransformTree(x, y, x, y, log2Size, 0, 0, intraSplit, chromaModes.Slice(0, modeCount), 0, 0, bypass,
                     sequence.MaxTransformDepthIntra + (intraSplit ? 1 : 0), reconstruction);
                 quantization.CompleteCodingUnit(x, y, size);
             }
         }
 
+        private int ReadChromaFlags(int parentFlags, int depth, bool twoBlocks)
+        {
+            if (depth != 0 && (parentFlags & 1) == 0)
+            {
+                return 0;
+            }
+            int flags = reader.Read(CabacElement.ChromaCbf, depth) ? 1 : 0;
+            if (twoBlocks && reader.Read(CabacElement.ChromaCbf, depth))
+            {
+                flags |= 2;
+            }
+            return flags;
+        }
+
         private void TransformTree(int x, int y, int baseX, int baseY, int log2Size, int depth, int index,
-            bool intraSplit, ReadOnlySpan<int> chromaModes, bool parentCb, bool parentCr, bool bypass, int maxDepth, BlockReconstructor reconstruction)
+            bool intraSplit, ReadOnlySpan<int> chromaModes, int parentCb, int parentCr, bool bypass, int maxDepth, BlockReconstructor reconstruction)
         {
             bool split = log2Size > sequence.Log2MaxTransform || intraSplit && depth == 0;
             if (!split && log2Size > sequence.Log2MinTransform && depth < maxDepth)
@@ -136,12 +150,13 @@ namespace Heic.Net.Hevc
                 split = reader.Read(CabacElement.SplitTransform, 5 - log2Size);
             }
 
-            bool cb = parentCb;
-            bool cr = parentCr;
+            int cb = parentCb;
+            int cr = parentCr;
             if (sequence.ChromaFormat != 0 && (log2Size > 2 || sequence.ChromaFormat == 3))
             {
-                cb = (depth == 0 || parentCb) && reader.Read(CabacElement.ChromaCbf, depth);
-                cr = (depth == 0 || parentCr) && reader.Read(CabacElement.ChromaCbf, depth);
+                bool twoBlocks = sequence.ChromaFormat == 2 && (!split || log2Size == 3);
+                cb = ReadChromaFlags(parentCb, depth, twoBlocks);
+                cr = ReadChromaFlags(parentCr, depth, twoBlocks);
             }
 
             if (split)
@@ -157,7 +172,7 @@ namespace Heic.Net.Hevc
             else
             {
                 bool luma = reader.Read(CabacElement.LumaCbf, depth == 0 ? 1 : 0);
-                if (luma || cb || cr)
+                if (luma || cb != 0 || cr != 0)
                 {
                     quantization.ReadDelta();
                 }
@@ -170,8 +185,16 @@ namespace Heic.Net.Hevc
                     int chromaY = (sharedChroma ? baseY : y) / sequence.SubHeightC;
                     int log2Chroma = Math.Max(2, log2Size - (sequence.ChromaFormat == 3 ? 0 : 1));
                     int chromaMode = chromaModes[0];
-                    reconstruction.Reconstruct(chromaX, chromaY, log2Chroma, 1, chromaMode, cb, bypass);
-                    reconstruction.Reconstruct(chromaX, chromaY, log2Chroma, 2, chromaMode, cr, bypass);
+                    int blockCount = sequence.ChromaFormat == 2 ? 2 : 1;
+                    for (int component = 1; component <= 2; component++)
+                    {
+                        int flags = component == 1 ? cb : cr;
+                        for (int block = 0; block < blockCount; block++)
+                        {
+                            reconstruction.Reconstruct(chromaX, chromaY + (block << log2Chroma), log2Chroma,
+                                component, chromaMode, (flags & (1 << block)) != 0, bypass);
+                        }
+                    }
                 }
             }
         }
