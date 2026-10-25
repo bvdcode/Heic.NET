@@ -20,29 +20,14 @@ namespace Heic.Net.Heif
     {
         public static RgbaImage Apply(RgbaImage image, HeifBox property, PixelBufferScope buffers)
         {
+            if (property.Type == HeifBox.Code("irot") || property.Type == HeifBox.Code("imir"))
+            {
+                return Orient(image, ImageOrientation.Read(image.Width, image.Height, property), buffers);
+            }
+
             ByteReader reader = new ByteReader(property.Payload);
             RgbaImage result;
-            if (property.Type == HeifBox.Code("irot"))
-            {
-                int turns = reader.U8();
-                if (turns > 3)
-                {
-                    throw new InvalidDataException("Nonzero image rotation reserved bits.");
-                }
-
-                result = Orient(image, turns, null, buffers);
-            }
-            else if (property.Type == HeifBox.Code("imir"))
-            {
-                int axis = reader.U8();
-                if (axis > 1)
-                {
-                    throw new InvalidDataException("Nonzero image mirror reserved bits.");
-                }
-
-                result = Orient(image, 0, axis, buffers);
-            }
-            else if (property.Type == HeifBox.Code("clap"))
+            if (property.Type == HeifBox.Code("clap"))
             {
                 int width = Dimension(reader, image.Width);
                 int height = Dimension(reader, image.Height);
@@ -70,56 +55,14 @@ namespace Heic.Net.Heif
 
         public static RgbaImage Orient(RgbaImage source, int turns, int? mirrorAxis, PixelBufferScope buffers)
         {
-            int width = (turns & 1) == 0 ? source.Width : source.Height;
-            int height = (turns & 1) == 0 ? source.Height : source.Width;
-            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
-            for (int y = 0; y < source.Height; y++)
-            {
-                for (int x = 0; x < source.Width; x++)
-                {
-                    int tx;
-                    int ty;
-                    switch (turns)
-                    {
-                        case 0:
-                            tx = x;
-                            ty = y;
-                            break;
-                        case 1:
-                            tx = y;
-                            ty = source.Width - 1 - x;
-                            break;
-                        case 2:
-                            tx = source.Width - 1 - x;
-                            ty = source.Height - 1 - y;
-                            break;
-                        case 3:
-                            tx = source.Height - 1 - y;
-                            ty = x;
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(turns));
-                    }
+            return Orient(source, ImageOrientation.Create(source.Width, source.Height, turns, mirrorAxis), buffers);
+        }
 
-                    switch (mirrorAxis)
-                    {
-                        case null:
-                            break;
-                        case 0:
-                            ty = height - 1 - ty;
-                            break;
-                        case 1:
-                            tx = width - 1 - tx;
-                            break;
-                        default:
-                            throw new ArgumentOutOfRangeException(nameof(mirrorAxis));
-                    }
-
-                    source.Pixels.Span.Slice((y * source.Width + x) * 4, 4).CopyTo(pixels.Span.Slice((ty * width + tx) * 4, 4));
-                }
-            }
-
-            return new RgbaImage(width, height, pixels, source.ColorInformation);
+        private static RgbaImage Orient(RgbaImage source, ImageOrientation orientation, PixelBufferScope buffers)
+        {
+            Memory<byte> pixels = buffers.Allocate(checked(orientation.Width * orientation.Height * 4));
+            orientation.CopyTile(source, pixels.Span, 0, 0, source.Width, source.Height);
+            return new RgbaImage(orientation.Width, orientation.Height, pixels, source.ColorInformation);
         }
 
         private static RgbaImage Crop(RgbaImage source, int left, int top, int width, int height, PixelBufferScope buffers)

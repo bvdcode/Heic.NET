@@ -12,7 +12,7 @@ namespace Heic.Net.Heif
     internal static class GridImageDecoder
     {
         public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties,
-            Func<uint, PixelBufferScope, RgbaImage> decode, bool parallel, PixelBufferScope buffers)
+            Func<uint, PixelBufferScope, RgbaImage> decode, bool parallel, PixelBufferScope buffers, ImageOrientation orientation)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));
             if (reader.U8() != 0)
@@ -88,7 +88,7 @@ namespace Heic.Net.Heif
                 Task.WhenAll(workers).GetAwaiter().GetResult();
             }
 
-            return new RgbaImage(properties.Width, properties.Height, pixels, color);
+            return new RgbaImage(orientation.Width, orientation.Height, pixels, color);
 
             void CopyTile(int index, RgbaImage tile)
             {
@@ -104,11 +104,7 @@ namespace Heic.Net.Heif
                 int top = index / columns * tileHeight;
                 int copyWidth = Math.Min(tileWidth, properties.Width - left);
                 int copyHeight = Math.Min(tileHeight, properties.Height - top);
-                for (int y = 0; y < copyHeight; y++)
-                {
-                    tile.Pixels.Span.Slice(y * tile.Stride, copyWidth * 4).CopyTo(
-                        pixels.Span.Slice(((top + y) * properties.Width + left) * 4, copyWidth * 4));
-                }
+                orientation.CopyTile(tile, pixels.Span, left, top, copyWidth, copyHeight);
             }
         }
     }

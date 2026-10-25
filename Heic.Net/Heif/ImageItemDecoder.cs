@@ -31,6 +31,9 @@ namespace Heic.Net.Heif
 
             ColorEncoding? color = properties.Color ?? inheritedColor;
             ReadOnlyMemory<byte> icc = properties.IccProfile.IsEmpty ? inheritedIcc : properties.IccProfile;
+            int expectedWidth = properties.Width;
+            int expectedHeight = properties.Height;
+            int transformedProperties = 0;
             RgbaImage result;
             if (item.Type == HeifBox.Code("hvc1"))
             {
@@ -41,8 +44,12 @@ namespace Heic.Net.Heif
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
+                ImageOrientation orientation = ImageOrientation.ReadPrefix(properties.Width, properties.Height, properties.Transforms);
+                expectedWidth = orientation.Width;
+                expectedHeight = orientation.Height;
+                transformedProperties = orientation.PropertyCount;
                 result = GridImageDecoder.Decode(container, item, properties,
-                    (target, tileBuffers) => Decode(target, alpha, color, icc, path, false, tileBuffers), parallel, buffers);
+                    (target, tileBuffers) => Decode(target, alpha, color, icc, path, false, tileBuffers), parallel, buffers, orientation);
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
@@ -58,14 +65,14 @@ namespace Heic.Net.Heif
                 throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            if (result.Width != properties.Width || result.Height != properties.Height)
+            if (result.Width != expectedWidth || result.Height != expectedHeight)
             {
                 throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
 
-            foreach (HeifBox transform in properties.Transforms)
+            for (int index = transformedProperties; index < properties.Transforms.Count; index++)
             {
-                result = ImageTransforms.Apply(result, transform, buffers);
+                result = ImageTransforms.Apply(result, properties.Transforms[index], buffers);
             }
 
             if (!alpha)

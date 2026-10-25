@@ -12,7 +12,7 @@
 | Recover coefficient positions, magnitudes and signs | `CoefficientScan`, `CoefficientContexts`, `ResidualDecoder`, `ScalingLists` | `ResidualDecoderTests`, `ScalingListsTests`: grouped scans, Rice levels, sign hiding, explicit lists |
 | Predict and reconstruct blocks | `IntraPictureDecoder`, `IntraModeDecoder`, `BlockReconstructor`, `IntraPredictor`, `IntegerTransform`, `QuantizationGroup` | `IntraPredictorTests`: independent coordinate oracle; `IntegerTransformTests`: dense matrix oracle; `IntraPictureTests`: complete native YUV hashes |
 | Filter reconstructed planes | `DeblockingFilter`, `DeblockingKernel`, `SaoFilter`, `SaoKernel` | `DeblockingKernelTests`, `SaoKernelTests`: independent kernels and whole-picture hashes |
-| Convert, compose and orient | `PictureRenderer`, `ColorConversion`, `GridImageDecoder`, `ImageTransforms` | `ColorConversionTests`: floating-point reference; `ImageTransformsTests`: labelled pixels; `CorpusTests`: full RGBA hashes |
+| Convert, compose and orient | `PictureRenderer`, `ColorConversion`, `GridImageDecoder`, `ImageTransforms`, `ImageOrientation` | `ColorConversionTests`: floating-point reference; `ImageTransformsTests`: labelled pixels; `CorpusTests`: full RGBA hashes |
 
 HEVC coding units and transform units are traversed in recursive Z order; coding
 tree blocks are visited in raster order. Each block publishes reconstructed samples
@@ -21,6 +21,9 @@ then horizontally. SAO sees the original deblocked neighbours, including when ro
 are updated in place. Derived grids decode independent tiles with at most `Environment.ProcessorCount`
 workers and crop their right and bottom edges to the declared canvas. Nested grids
 inside a worker remain sequential; worker sets do not multiply with nesting.
+Leading grid rotations and reflections are composed into one integer coordinate map;
+tiles are placed directly into the oriented canvas. A clean-aperture property ends
+that prefix, and remaining properties retain their association order.
 The first tile establishes geometry before the remaining tiles start. Failures
 wait for all active workers before returning the original exception type.
 
