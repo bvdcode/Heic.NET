@@ -20,7 +20,10 @@ namespace Heic.Net.Heif
         public ColorEncoding? Color { get; private set; }
         public ReadOnlyMemory<byte> IccProfile { get; private set; }
         public ReadOnlyMemory<byte> PixelDepths { get; private set; }
+        public bool PixelDepthsEssential { get; private set; }
         public string? AuxiliaryType { get; private set; }
+        public ReadOnlyMemory<byte> AuxiliarySubtype { get; private set; }
+        public AlphaChannelInformation? AlphaInformation { get; private set; }
         public IReadOnlyList<HeifBox> Transforms => transforms;
 
         public static ImageProperties Read(HeifContainer container, HeifItem item, HeicDecodeOptions options)
@@ -42,6 +45,13 @@ namespace Heic.Net.Heif
             if (result.Width == 0 || result.Height == 0)
             {
                 throw new InvalidDataException("Image spatial extents are missing.");
+            }
+
+            if (result.AuxiliaryType == "urn:mpeg:hevc:2015:auxid:1" && !result.AuxiliarySubtype.IsEmpty)
+            {
+                DecoderConfiguration configuration = result.Configuration ??
+                    throw new InvalidDataException("HEVC auxiliary configuration is missing.");
+                result.AlphaInformation = HevcAuxiliaryInformation.Read(result.AuxiliarySubtype, configuration.LengthSize);
             }
 
             return result;
@@ -75,6 +85,7 @@ namespace Heic.Net.Heif
             {
                 FullBox(reader);
                 PixelDepths = reader.Bytes(reader.U8());
+                PixelDepthsEssential = essential;
             }
             else if (box.Type == HeifBox.Code("auxC"))
             {
@@ -87,9 +98,10 @@ namespace Heic.Net.Heif
                 }
 
                 AuxiliaryType = Encoding.UTF8.GetString(bytes.Span.Slice(0, end));
-                if (IsAlpha(AuxiliaryType) && end + 1 != bytes.Length)
+                AuxiliarySubtype = bytes.Slice(end + 1);
+                if (AuxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha" && !AuxiliarySubtype.IsEmpty)
                 {
-                    throw new UnsupportedHeicFeatureException("alpha auxiliary subtypes");
+                    throw new UnsupportedHeicFeatureException("MPEG alpha auxiliary subtype");
                 }
             }
             else if (box.Type == HeifBox.Code("irot") || box.Type == HeifBox.Code("imir") || box.Type == HeifBox.Code("clap"))

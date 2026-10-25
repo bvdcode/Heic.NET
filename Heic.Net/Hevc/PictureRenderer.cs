@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.IO;
 using Heic.Net.Heif;
 
 namespace Heic.Net.Hevc
@@ -11,14 +12,18 @@ namespace Heic.Net.Hevc
     /// </summary>
     /// <remarks>
     /// Chroma sample (x/2,y/2) supplies each 2x2 luma block; no smoothing is applied.
-    /// Alpha auxiliary samples are normalized over their full integer range independently
-    /// of video colour-range flags. Output arrays never alias reconstructed picture planes.
+    /// Alpha auxiliary samples use their SEI range and clipping operations when present,
+    /// otherwise their full integer range, independently of video colour-range flags. Output arrays never alias reconstructed picture planes.
     /// </remarks>
     internal static class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers)
+        public static RgbaImage Render(DecodedPicture picture, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
         {
             SequenceParameters sequence = picture.Sequence;
+            if (alpha && alphaInformation is not null && alphaInformation.BitDepth != sequence.BitDepth)
+            {
+                throw new InvalidDataException("Alpha information depth disagrees with the HEVC sequence.");
+            }
             int width = sequence.VisibleWidth;
             int height = sequence.VisibleHeight;
             Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
@@ -39,7 +44,9 @@ namespace Heic.Net.Hevc
                 {
                     for (int x = 0; x < width; x++)
                     {
-                        byte value = (byte)((luma[x] * 255 + maximum / 2) / maximum);
+                        byte value = alphaInformation is null
+                            ? (byte)((luma[x] * 255 + maximum / 2) / maximum)
+                            : alphaInformation.Convert(luma[x]);
                         WriteGray(value, row.Slice(x * 4, 4));
                     }
                 }

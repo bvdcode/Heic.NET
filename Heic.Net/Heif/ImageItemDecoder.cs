@@ -16,11 +16,11 @@ namespace Heic.Net.Heif
         public RgbaImage Decode(uint id)
         {
             using PixelBufferScope buffers = new PixelBufferScope(false);
-            return Decode(id, false, null, ReadOnlyMemory<byte>.Empty, null, true, buffers);
+            return Decode(id, false, null, ReadOnlyMemory<byte>.Empty, null, null, true, buffers);
         }
 
         private RgbaImage Decode(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc,
-            ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers)
+            AlphaChannelInformation? inheritedAlpha, ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers)
         {
             ImageDecodePath path = new ImageDecodePath(id, ancestors, options.MaxDerivationDepth);
             HeifItem item = container.Items[id];
@@ -31,6 +31,7 @@ namespace Heic.Net.Heif
 
             ColorEncoding? color = properties.Color ?? inheritedColor;
             ReadOnlyMemory<byte> icc = properties.IccProfile.IsEmpty ? inheritedIcc : properties.IccProfile;
+            AlphaChannelInformation? alphaInformation = properties.AlphaInformation ?? inheritedAlpha;
             int expectedWidth = properties.Width;
             int expectedHeight = properties.Height;
             int transformedProperties = 0;
@@ -39,8 +40,11 @@ namespace Heic.Net.Heif
             {
                 DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
                 using DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
-                ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
-                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers);
+                if (properties.PixelDepthsEssential)
+                {
+                    ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
+                }
+                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
@@ -49,7 +53,7 @@ namespace Heic.Net.Heif
                 expectedHeight = orientation.Height;
                 transformedProperties = orientation.PropertyCount;
                 result = GridImageDecoder.Decode(container, item, properties,
-                    (target, tileBuffers) => Decode(target, alpha, color, icc, path, false, tileBuffers), parallel, buffers, orientation);
+                    (target, tileBuffers) => Decode(target, alpha, color, icc, alphaInformation, path, false, tileBuffers), parallel, buffers, orientation);
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
@@ -58,7 +62,7 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Identity image must reference exactly one input.");
                 }
 
-                result = Decode(inputs[0], alpha, color, icc, path, parallel, buffers);
+                result = Decode(inputs[0], alpha, color, icc, alphaInformation, path, parallel, buffers);
             }
             else
             {
@@ -121,7 +125,7 @@ namespace Heic.Net.Heif
             }
 
             using PixelBufferScope alphaBuffers = new PixelBufferScope(true);
-            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, path, parallel, alphaBuffers);
+            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, null, path, parallel, alphaBuffers);
             if (alpha.Width != color.Width || alpha.Height != color.Height)
             {
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");
