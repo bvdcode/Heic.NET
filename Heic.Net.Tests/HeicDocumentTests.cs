@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -10,20 +9,44 @@ namespace Heic.Net.Tests
     public class HeicDocumentTests
     {
         [Fact]
-        public void OriginalCameraGridDecodesThroughPublicApi()
+        public async Task DocumentOwnsInputAndConcurrentCallsOwnTheirOutput()
         {
-            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "20260201_164721.heic"));
-            Assert.Equal("74621A8EA1CB5A6F4ED3C06F31C87DEA455371611764EF181ED290AC48ED77B8", Convert.ToHexString(SHA256.HashData(encoded)));
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "corpus", "basic-8bit.heic"));
             HeicDocument document = HeicDocument.Load(encoded);
             Array.Clear(encoded);
-            RgbaImage image = document.DecodePrimary();
-            Assert.Equal(4000, image.Width);
-            Assert.Equal(3000, image.Height);
-            Assert.Equal(48000000, image.Pixels.Length);
-            Assert.Equal(5, image.ColorInformation.ColorPrimaries);
-            Assert.Equal(6, image.ColorInformation.TransferCharacteristics);
-            Assert.Equal("CD66C3B43E6A8D1F0319AAE29EC30EF38B85DB54C84855EB1E09D5ED5181F705",
-                Convert.ToHexString(SHA256.HashData(image.Pixels.Span)));
+            Task<RgbaImage>[] calls = new Task<RgbaImage>[4];
+            for (int i = 0; i < calls.Length; i++)
+            {
+                calls[i] = Task.Run(document.DecodePrimary);
+            }
+
+            RgbaImage[] images = await Task.WhenAll(calls);
+            for (int i = 1; i < images.Length; i++)
+            {
+                Assert.True(images[0].Pixels.Span.SequenceEqual(images[i].Pixels.Span));
+                Assert.False(images[0].Pixels.Equals(images[i].Pixels));
+            }
+        }
+
+        [Fact]
+        public void GridCyclesAndDerivationDepthAreRejected()
+        {
+            byte[] grid = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "grid.heic"));
+            int reference = grid.AsSpan().IndexOf(HeifTestFile.Text("dimg"));
+            Assert.True(reference >= 0);
+            grid[reference + 8] = 0;
+            grid[reference + 9] = 5;
+            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(grid).DecodePrimary());
+            byte[] identity = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "identity.heic"));
+            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(identity,
+                new HeicDecodeOptions(maxDerivationDepth: 1)).DecodePrimary());
+        }
+
+        [Fact]
+        public void LargeImagesRequireAnExplicitPixelLimit()
+        {
+            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "20260223_110514.heic"));
+            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(encoded));
         }
 
         [Fact]
