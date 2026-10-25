@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Heic.Net/Heic.Net.csproj" />
+  <Project Path="Heic.Net.Tests/Heic.Net.Tests.csproj" />
+</Solution>

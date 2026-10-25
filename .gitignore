@@ -1,0 +1,8 @@
+/AGENTS.md
+/notes/
+/work/
+**/bin/
+**/obj/
+/artifacts/
+.vs/
+*.user
