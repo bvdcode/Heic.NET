@@ -10,7 +10,7 @@
 | Samples | 8 or 10 bits, equal component depths; monochrome or 4:2:0 |
 | Reconstruction | CABAC, all 35 intra modes, grouped residual coding, sign hiding, QP deltas, scaling lists, DCT 4/8/16/32, intra luma DST4, transform skip and transquant bypass |
 | Filtering | Intra deblocking and SAO band/edge offsets, including CTB merges |
-| Colour | Explicit NCLX or HEVC VUI matrices 1, 5, 6, 9; full/limited range; nearest 4:2:0 chroma replication; RGBA8 |
+| Colour | NCLX or HEVC VUI matrices 1, 5, 6, 9; BT.601 for unspecified matrix 2; full/limited range; nearest 4:2:0 chroma replication; RGBA8 |
 | Colour metadata | Retained primaries, transfer code and ICC bytes; gamut conversion, ICC application and HDR tone mapping are absent |
 
 Unsupported tools throw `UnsupportedHeicFeatureException` with a `Feature` value.
@@ -24,8 +24,9 @@ Pixel-aspect metadata does not rescale the returned sample grid.
 
 Unknown essential image properties are rejected. Nonessential unknown properties
 are skipped under the container rules. Descriptive `pixi` values do not override
-the channel count or depth from the coded picture; essential `pixi` must agree. An unspecified YCbCr matrix does not select
-an implicit colour model. Single-layer Annex A decoding may discard VPS metadata;
+the channel count or depth from the coded picture; essential `pixi` must agree. Unspecified YCbCr matrix code 2 uses BT.601 conversion, while retaining the
+signalled full/limited range and colour metadata. Reserved matrix codes remain
+unsupported. Single-layer Annex A decoding may discard VPS metadata;
 the active SPS/PPS controls reconstruction. HEVC auxiliary
 alpha SEI endpoints use the specified depth plus one bit. Legacy 8-bit endpoint
 records with valid payload alignment are also accepted when the standard syntax

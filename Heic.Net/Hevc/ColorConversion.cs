@@ -40,6 +40,7 @@ namespace Heic.Net.Hevc
                     kr = 0.2126;
                     kb = 0.0722;
                     break;
+                case 2:
                 case 5:
                 case 6:
                     kr = 0.299;

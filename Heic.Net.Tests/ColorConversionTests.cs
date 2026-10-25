@@ -15,6 +15,10 @@ namespace Heic.Net.Tests
         [InlineData(8, true, 6, 0.299, 0.114)]
         [InlineData(10, true, 6, 0.299, 0.114)]
         [InlineData(10, false, 9, 0.2627, 0.0593)]
+        [InlineData(8, false, 2, 0.299, 0.114)]
+        [InlineData(8, true, 2, 0.299, 0.114)]
+        [InlineData(10, false, 2, 0.299, 0.114)]
+        [InlineData(10, true, 2, 0.299, 0.114)]
         public void FixedPointConversionMatchesIndependentFloatingPoint(int depth, bool fullRange, int matrix,
             double kr, double kb)
         {
@@ -56,9 +60,9 @@ namespace Heic.Net.Tests
         }
 
         [Fact]
-        public void UnspecifiedMatrixDoesNotSelectAnImplicitColorModel()
+        public void ReservedMatrixDoesNotSelectAnImplicitColorModel()
         {
-            Assert.Throws<UnsupportedHeicFeatureException>(() => new ColorConversion(8, false, 2));
+            Assert.Throws<UnsupportedHeicFeatureException>(() => new ColorConversion(8, false, 3));
         }
 
         private static int Reference(double value) => (int)Math.Min(255, Math.Max(0, Math.Floor(value * 255 + 0.5)));
