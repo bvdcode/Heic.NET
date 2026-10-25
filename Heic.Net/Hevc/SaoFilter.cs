@@ -74,12 +74,15 @@ namespace Heic.Net.Hevc
             {
                 return;
             }
-            ApplyPlane(picture.Luma, blocks, 0);
-            if (picture.Cb is not null)
+            if (slice.SaoLuma)
+            {
+                ApplyPlane(picture.Luma, blocks, 0);
+            }
+            if (slice.SaoChroma && picture.Cb is not null)
             {
                 ApplyPlane(picture.Cb, blocks, 1);
             }
-            if (picture.Cr is not null)
+            if (slice.SaoChroma && picture.Cr is not null)
             {
                 ApplyPlane(picture.Cr, blocks, 2);
             }
@@ -100,28 +103,45 @@ namespace Heic.Net.Hevc
                     ReadOnlySpan<ushort> above = y == 0 ? ReadOnlySpan<ushort>.Empty : buffer.AsSpan(((y - 1) & 1) * plane.Width, plane.Width);
                     ReadOnlySpan<ushort> below = y + 1 == plane.Height ? ReadOnlySpan<ushort>.Empty : plane.Row(y + 1);
                     Span<ushort> output = plane.Row(y);
-                    for (int x = 0; x < plane.Width; x++)
+                    int parameterRow = y / ctb * columns * components + component;
+                    for (int start = 0, index = parameterRow; start < plane.Width; start += ctb, index += components)
                     {
-                        SaoParameters parameter = parameters[((y / ctb) * columns + x / ctb) * components + component];
-                        if (parameter.Type == 0 || blocks.Bypass(x * lumaScale, y * lumaScale))
+                        SaoParameters parameter = parameters[index];
+                        if (parameter.Type == 0)
                         {
                             continue;
                         }
+
+                        int end = Math.Min(start + ctb, plane.Width);
                         if (parameter.Type == 1)
                         {
-                            output[x] = (ushort)SaoKernel.Band(current[x], depth, parameter);
+                            for (int x = start; x < end; x++)
+                            {
+                                if (!blocks.Bypass(x * lumaScale, y * lumaScale))
+                                {
+                                    output[x] = (ushort)SaoKernel.Band(current[x], depth, parameter);
+                                }
+                            }
                         }
                         else
                         {
                             Direction(parameter.Edge, out int dx, out int dy);
-                            if (x + dx < 0 || x + dx >= plane.Width || x - dx < 0 || x - dx >= plane.Width ||
-                                y + dy < 0 || y + dy >= plane.Height || y - dy < 0 || y - dy >= plane.Height)
+                            if (y < Math.Abs(dy) || y >= plane.Height - Math.Abs(dy))
                             {
                                 continue;
                             }
-                            int first = Neighbour(above, current, below, x + dx, dy);
-                            int second = Neighbour(above, current, below, x - dx, -dy);
-                            output[x] = (ushort)SaoKernel.Edge(current[x], first, second, depth, parameter);
+
+                            ReadOnlySpan<ushort> first = NeighbourRow(above, current, below, dy);
+                            ReadOnlySpan<ushort> second = NeighbourRow(above, current, below, -dy);
+                            int firstX = Math.Max(start, Math.Abs(dx));
+                            int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
+                            for (int x = firstX; x < lastX; x++)
+                            {
+                                if (!blocks.Bypass(x * lumaScale, y * lumaScale))
+                                {
+                                    output[x] = (ushort)SaoKernel.Edge(current[x], first[x + dx], second[x - dx], depth, parameter);
+                                }
+                            }
                         }
                     }
                 }
@@ -132,16 +152,16 @@ namespace Heic.Net.Hevc
             }
         }
 
-        private static int Neighbour(ReadOnlySpan<ushort> above, ReadOnlySpan<ushort> current, ReadOnlySpan<ushort> below, int x, int dy)
+        private static ReadOnlySpan<ushort> NeighbourRow(ReadOnlySpan<ushort> above, ReadOnlySpan<ushort> current, ReadOnlySpan<ushort> below, int dy)
         {
             switch (dy)
             {
                 case -1:
-                    return above[x];
+                    return above;
                 case 0:
-                    return current[x];
+                    return current;
                 case 1:
-                    return below[x];
+                    return below;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(dy));
             }
