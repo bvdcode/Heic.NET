@@ -10,7 +10,7 @@
 | Read reconstruction parameters | `SequenceParameters`, `PictureParameters`, `IntraSliceHeader`, `VideoInformation` | `ParameterSetTests`: native parameter sets, truncation, slice alignment, explicit unsupported tools |
 | Decode CABAC bins | `CabacDecoder`, `CabacContext`, `IntraCabacReader` | `CabacDecoderTests`: decision vectors and an independent exact-interval arithmetic writer |
 | Recover coefficient positions, magnitudes and signs | `CoefficientScan`, `CoefficientContexts`, `ResidualDecoder`, `ScalingLists` | `ResidualDecoderTests`, `ScalingListsTests`: grouped scans, Rice levels, sign hiding, explicit lists |
-| Predict and reconstruct blocks | `IntraPictureDecoder`, `IntraModeDecoder`, `BlockReconstructor`, `IntraPredictor`, `IntegerTransform`, `QuantizationGroup` | `IntraPredictorTests`: independent coordinate oracle; `IntegerTransformTests`: dense matrix oracle; `IntraPictureTests`: complete native YUV hashes |
+| Predict and reconstruct blocks | `IntraPictureDecoder`, `IntraModeDecoder`, `BlockReconstructor`, `IntraPredictor`, `IntegerTransform`, `IntegerTransform4`, `QuantizationGroup` | `IntraPredictorTests`: independent coordinate oracle; `IntegerTransformTests`: dense matrix oracle; `IntraPictureTests`: complete native YUV hashes |
 | Filter reconstructed planes | `DeblockingFilter`, `DeblockingKernel`, `SaoFilter`, `SaoKernel` | `DeblockingKernelTests`, `SaoKernelTests`: independent kernels and whole-picture hashes |
 | Convert, compose and orient | `PictureRenderer`, `ColorConversion`, `GridImageDecoder`, `ImageTransforms`, `ImageOrientation` | `ColorConversionTests`: floating-point reference; `ImageTransformsTests`: labelled pixels; `CorpusTests`: full RGBA hashes |
 
@@ -57,6 +57,8 @@ contains 799,027,200 bytes; resource limits are admission limits, not a peak-RAM
   uses a 64-bit product, exact signed shifts and signed-16 clipping. The inverse
   transform performs vertical then horizontal passes; its first pass adds 64,
   shifts by 7 and clips to signed 16-bit. The second shifts by `20 - bitDepth`.
+  Four-sample DCT and DST blocks use factored integer equations; larger blocks
+  use shared basis tables and vector accumulation. Both paths preserve these rounding boundaries.
 - Negative angular coordinates use floor-style arithmetic shifts. Reference
   substitution, filtering and prediction use the normative integer rounding.
   No unchecked `int` overflow is required for reconstruction; explicitly unchecked

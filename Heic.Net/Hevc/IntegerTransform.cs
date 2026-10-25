@@ -15,15 +15,6 @@ namespace Heic.Net.Hevc
             64, 61, 57, 54, 50, 46, 43, 38, 36, 31, 25, 22, 18, 13, 9, 4, 0
         };
 
-        private static readonly int[] Sine4 =
-        {
-            29, 55, 74, 84,
-            74, 74, 0, -74,
-            84, -29, -74, 55,
-            55, -84, 74, -29
-        };
-
-        private static readonly int[] Cosine4 = CreateCosine(4);
         private static readonly int[] Cosine8 = CreateCosine(8);
         private static readonly int[] Cosine16 = CreateCosine(16);
         private static readonly int[] Cosine32 = CreateCosine(32);
@@ -58,6 +49,12 @@ namespace Heic.Net.Hevc
                 throw new ArgumentException("Transform buffers are shorter than the block.");
             }
 
+            if (size == 4)
+            {
+                IntegerTransform4.Inverse(coefficients, residual, bitDepth, intraLuma, workspace);
+                return;
+            }
+
             int activeWidth = 0;
             int activeHeight = 0;
             for (int i = 0; i < count; i++)
@@ -77,7 +74,7 @@ namespace Heic.Net.Hevc
 
             Span<int> intermediate = workspace.Intermediate.Slice(0, count);
             intermediate.Clear();
-            ReadOnlySpan<int> matrix = Matrix(size, size == 4 && intraLuma);
+            ReadOnlySpan<int> matrix = Matrix(size);
             Span<int> column = stackalloc int[32];
             Span<int> sums = stackalloc int[32];
             for (int x = 0; x < activeWidth; x++)
@@ -133,17 +130,10 @@ namespace Heic.Net.Hevc
             }
         }
 
-        private static ReadOnlySpan<int> Matrix(int size, bool sine)
+        private static ReadOnlySpan<int> Matrix(int size)
         {
-            if (sine)
-            {
-                return Sine4;
-            }
-
             switch (size)
             {
-                case 4:
-                    return Cosine4;
                 case 8:
                     return Cosine8;
                 case 16:

@@ -51,6 +51,36 @@ namespace Heic.Net.Tests
             }
         }
 
+        [Theory]
+        [InlineData(8, false)]
+        [InlineData(10, false)]
+        [InlineData(8, true)]
+        [InlineData(10, true)]
+        public void FourPointImpulsesPreserveRoundingAndDestinationBounds(int depth, bool sine)
+        {
+            const int Size = 4;
+            const int Count = Size * Size;
+            const int Guard = 123456789;
+            int[] levels = { -32768, -16385, -1025, -129, -128, -127, -65, -64, -63, -1,
+                0, 1, 63, 64, 65, 127, 128, 129, 1023, 1024, 16383, 32767 };
+            using TransformWorkspace workspace = new TransformWorkspace();
+            for (int position = 0; position < Count; position++)
+            {
+                foreach (int level in levels)
+                {
+                    int[] coefficients = new int[Count];
+                    coefficients[position] = level;
+                    int[] result = new int[Count + 8];
+                    Array.Fill(result, Guard);
+                    workspace.Intermediate.Fill(Guard);
+                    IntegerTransform.Inverse(coefficients, result, Size, depth, sine, workspace);
+                    Assert.Equal(TransformOracle.Apply(coefficients, Size, depth, sine), result.AsSpan(0, Count).ToArray());
+                    Assert.All(result.AsSpan(Count).ToArray(), value => Assert.Equal(Guard, value));
+                    Assert.All(workspace.Intermediate.Slice(Count).ToArray(), value => Assert.Equal(Guard, value));
+                }
+            }
+        }
+
         [Fact]
         public void DequantizationMatchesDecimalArithmeticAtLimits()
         {
