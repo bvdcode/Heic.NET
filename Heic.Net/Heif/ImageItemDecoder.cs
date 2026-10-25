@@ -9,86 +9,70 @@ using Heic.Net.Hevc;
 namespace Heic.Net.Heif
 {
     /// <summary>
-    /// Owns the recursion state of one decode call; document metadata is borrowed read-only.
+    /// Decodes image items with immutable ancestor paths and read-only document metadata.
     /// </summary>
     internal class ImageItemDecoder(HeifContainer container, IReadOnlyDictionary<uint, ImageProperties> metadata, HeicDecodeOptions options)
     {
-        private readonly HashSet<uint> path = new HashSet<uint>();
+        public RgbaImage Decode(uint id) => Decode(id, false, null, ReadOnlyMemory<byte>.Empty, null, true);
 
-        public RgbaImage Decode(uint id) => Decode(id, false, null, ReadOnlyMemory<byte>.Empty);
-
-        private RgbaImage Decode(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc)
+        private RgbaImage Decode(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc,
+            ImageDecodePath? ancestors, bool parallel)
         {
-            if (path.Count >= options.MaxDerivationDepth)
+            ImageDecodePath path = new ImageDecodePath(id, ancestors, options.MaxDerivationDepth);
+            HeifItem item = container.Items[id];
+            if (!metadata.TryGetValue(id, out ImageProperties? properties))
             {
-                throw new InvalidDataException("Derived image depth limit exceeded.");
+                throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            if (!path.Add(id))
+            ColorEncoding? color = properties.Color ?? inheritedColor;
+            ReadOnlyMemory<byte> icc = properties.IccProfile.IsEmpty ? inheritedIcc : properties.IccProfile;
+            RgbaImage result;
+            if (item.Type == HeifBox.Code("hvc1"))
             {
-                throw new InvalidDataException("Cyclic image derivation or auxiliary reference.");
+                DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
+                DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
+                ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
+                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha);
+            }
+            else if (item.Type == HeifBox.Code("grid"))
+            {
+                result = GridImageDecoder.Decode(container, item, properties,
+                    target => Decode(target, alpha, color, icc, path, false), parallel);
+            }
+            else if (item.Type == HeifBox.Code("iden"))
+            {
+                if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count != 1)
+                {
+                    throw new InvalidDataException("Identity image must reference exactly one input.");
+                }
+
+                result = Decode(inputs[0], alpha, color, icc, path, parallel);
+            }
+            else
+            {
+                throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            try
+            if (result.Width != properties.Width || result.Height != properties.Height)
             {
-                HeifItem item = container.Items[id];
-                if (!metadata.TryGetValue(id, out ImageProperties? properties))
-                {
-                    throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
-                }
-
-                ColorEncoding? color = properties.Color ?? inheritedColor;
-                ReadOnlyMemory<byte> icc = properties.IccProfile.IsEmpty ? inheritedIcc : properties.IccProfile;
-                RgbaImage result;
-                if (item.Type == HeifBox.Code("hvc1"))
-                {
-                    DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
-                    DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
-                    ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
-                    result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha);
-                }
-                else if (item.Type == HeifBox.Code("grid"))
-                {
-                    result = GridImageDecoder.Decode(container, item, properties, target => Decode(target, alpha, color, icc));
-                }
-                else if (item.Type == HeifBox.Code("iden"))
-                {
-                    if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count != 1)
-                    {
-                        throw new InvalidDataException("Identity image must reference exactly one input.");
-                    }
-
-                    result = Decode(inputs[0], alpha, color, icc);
-                }
-                else
-                {
-                    throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
-                }
-
-                if (result.Width != properties.Width || result.Height != properties.Height)
-                {
-                    throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
-                }
-
-                foreach (HeifBox transform in properties.Transforms)
-                {
-                    result = ImageTransforms.Apply(result, transform);
-                }
-
-                if (!alpha)
-                {
-                    result = ApplyAlpha(item, result);
-                }
-
-                return result;
+                throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
-            finally
+
+            foreach (HeifBox transform in properties.Transforms)
             {
-                path.Remove(id);
+                result = ImageTransforms.Apply(result, transform);
             }
+
+            if (!alpha)
+            {
+                result = ApplyAlpha(item, result, path, parallel);
+            }
+
+            return result;
         }
 
-        private RgbaImage ApplyAlpha(HeifItem item, RgbaImage color)
+        private RgbaImage ApplyAlpha(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel)
         {
             if (item.References.ContainsKey(HeifBox.Code("prem")))
             {
@@ -125,7 +109,7 @@ namespace Heic.Net.Heif
                 return color;
             }
 
-            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty);
+            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, path, parallel);
             if (alpha.Width != color.Width || alpha.Height != color.Height)
             {
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");

@@ -18,23 +18,26 @@ HEVC coding units and transform units are traversed in recursive Z order; coding
 tree blocks are visited in raster order. Each block publishes reconstructed samples
 before a later block can use them as intra references. Deblocking runs vertically,
 then horizontally. SAO sees the original deblocked neighbours, including when rows
-are updated in place. Derived grids decode one tile at a time and crop their right
-and bottom edges to the declared canvas.
+are updated in place. Derived grids decode independent tiles with at most `Environment.ProcessorCount`
+workers and crop their right and bottom edges to the declared canvas. Nested grids
+inside a worker remain sequential; worker sets do not multiply with nesting.
+The first tile establishes geometry before the remaining tiles start. Failures
+wait for all active workers before returning the original exception type.
 
 ## Memory ownership
 
 | Owner and lifetime | Storage | Reuse contract |
 | --- | --- | --- |
 | Document | One encoded-file copy; frozen item, property and NAL metadata | Shared read-only between calls; independent of the original input buffer or stream |
-| One decode call | Recursion path; concatenated item data when an item has several extents | Never shared with another decode call |
+| One decode call | Immutable ancestor paths; concatenated item data when an item has several extents | Ancestors shared read-only by tile branches; item buffers remain call-local |
 | One HEVC worker | CABAC contexts, block modes/depths/QPs, coefficient/prediction/residual scratch | Reused between blocks of this picture only |
 | One reconstructed picture | Y/Cb/Cr `SamplePlane` arrays and availability maps | Owned arrays; never rented and never exposed as RGBA storage |
 | Temporary worker rentals | `TransformWorkspace` intermediate array; SAO two-row buffer | Returned through `Dispose` or `finally`; no returned image retains them |
 | Returned `RgbaImage` | Tightly packed RGBA8 and copied ICC profile | Caller-owned lifetime; subsequent calls do not overwrite it |
 
 Loading a stream borrows a bounded copy buffer and leaves the stream open. Grid
-composition keeps the canvas and the current tile; it does not cache every decoded
-tile. Parallel calls multiply working memory. A 16320×12240 RGBA8 result alone
+composition keeps the canvas and at most one tile per active worker; it does not
+cache every decoded tile. Parallel calls multiply working memory. A 16320×12240 RGBA8 result alone
 contains 799,027,200 bytes; resource limits are admission limits, not a peak-RAM cap.
 
 ## Mathematical contracts

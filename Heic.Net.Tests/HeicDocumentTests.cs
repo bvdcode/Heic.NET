@@ -12,10 +12,13 @@ namespace Heic.Net.Tests
 {
     public class HeicDocumentTests
     {
-        [Fact]
-        public async Task DocumentOwnsInputAndConcurrentCallsOwnTheirOutput()
+        [Theory]
+        [InlineData("basic-8bit.heic")]
+        [InlineData("grid.heic")]
+        [InlineData("grid-alpha.heic")]
+        public async Task DocumentOwnsInputAndConcurrentCallsOwnTheirOutput(string file)
         {
-            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "corpus", "basic-8bit.heic"));
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "corpus", file));
             HeicDocument document = HeicDocument.Load(encoded);
             Array.Clear(encoded);
             Task<RgbaImage>[] calls = new Task<RgbaImage>[4];
@@ -44,6 +47,20 @@ namespace Heic.Net.Tests
             byte[] identity = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "identity.heic"));
             Assert.Throws<InvalidDataException>(() => HeicDocument.Load(identity,
                 new HeicDecodeOptions(maxDerivationDepth: 1)).DecodePrimary());
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(2)]
+        [InlineData(3)]
+        public void LaterGridBranchesPreserveCycleErrors(int tile)
+        {
+            byte[] grid = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "grid.heic"));
+            int reference = grid.AsSpan().IndexOf(HeifTestFile.Text("dimg"));
+            Assert.True(reference >= 0);
+            grid[reference + 8 + tile * 2] = 0;
+            grid[reference + 9 + tile * 2] = 5;
+            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(grid).DecodePrimary());
         }
 
         [Fact]

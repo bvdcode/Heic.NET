@@ -4,13 +4,15 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using Heic.Net.Binary;
 
 namespace Heic.Net.Heif
 {
     internal static class GridImageDecoder
     {
-        public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties, Func<uint, RgbaImage> decode)
+        public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties,
+            Func<uint, RgbaImage> decode, bool parallel)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));
             if (reader.U8() != 0)
@@ -38,26 +40,50 @@ namespace Heic.Net.Heif
                 throw new InvalidDataException("Grid input count disagrees with its rows and columns.");
             }
 
-            byte[] pixels = new byte[checked(properties.Width * properties.Height * 4)];
-            int tileWidth = 0;
-            int tileHeight = 0;
-            ImageColorInformation? color = null;
-            for (int index = 0; index < inputs.Count; index++)
+            RgbaImage first = decode(inputs[0]);
+            int tileWidth = first.Width;
+            int tileHeight = first.Height;
+            ImageColorInformation color = first.ColorInformation;
+            if ((long)tileWidth * columns < width || (long)tileWidth * (columns - 1) >= width ||
+                (long)tileHeight * rows < height || (long)tileHeight * (rows - 1) >= height)
             {
-                RgbaImage tile = decode(inputs[index]);
-                if (index == 0)
+                throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
+            }
+
+            byte[] pixels = new byte[checked(properties.Width * properties.Height * 4)];
+            CopyTile(0, first);
+            int workerCount = parallel ? Math.Min(Environment.ProcessorCount, inputs.Count - 1) : 1;
+            if (workerCount <= 1)
+            {
+                for (int index = 1; index < inputs.Count; index++)
                 {
-                    tileWidth = tile.Width;
-                    tileHeight = tile.Height;
-                    color = tile.ColorInformation;
-                    if ((long)tileWidth * columns < width || (long)tileWidth * (columns - 1) >= width ||
-                        (long)tileHeight * rows < height || (long)tileHeight * (rows - 1) >= height)
-                    {
-                        throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
-                    }
+                    CopyTile(index, decode(inputs[index]));
                 }
-                else if (tile.Width != tileWidth || tile.Height != tileHeight ||
-                    tile.ColorInformation.ColorPrimaries != color!.ColorPrimaries ||
+            }
+            else
+            {
+                Task[] workers = new Task[workerCount];
+                for (int worker = 0; worker < workers.Length; worker++)
+                {
+                    int firstIndex = worker + 1;
+                    workers[worker] = Task.Run(() =>
+                    {
+                        for (int index = firstIndex; index < inputs.Count; index += workerCount)
+                        {
+                            CopyTile(index, decode(inputs[index]));
+                        }
+                    });
+                }
+
+                Task.WhenAll(workers).GetAwaiter().GetResult();
+            }
+
+            return new RgbaImage(properties.Width, properties.Height, pixels, color);
+
+            void CopyTile(int index, RgbaImage tile)
+            {
+                if (tile.Width != tileWidth || tile.Height != tileHeight ||
+                    tile.ColorInformation.ColorPrimaries != color.ColorPrimaries ||
                     tile.ColorInformation.TransferCharacteristics != color.TransferCharacteristics ||
                     !tile.ColorInformation.IccProfile.Span.SequenceEqual(color.IccProfile.Span))
                 {
@@ -74,8 +100,6 @@ namespace Heic.Net.Heif
                         pixels.AsSpan(((top + y) * properties.Width + left) * 4, copyWidth * 4));
                 }
             }
-
-            return new RgbaImage(properties.Width, properties.Height, pixels, color!);
         }
     }
 }
