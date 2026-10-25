@@ -1,3 +1,5 @@
+using System;
+
 namespace Heic.Net
 {
     /// <summary>
@@ -11,6 +13,20 @@ namespace Heic.Net
     /// </remarks>
     public class ImageColorInformation(int colorPrimaries, int transferCharacteristics)
     {
+        internal ImageColorInformation(int colorPrimaries, int transferCharacteristics, ReadOnlyMemory<byte> iccProfile)
+            : this(colorPrimaries, transferCharacteristics)
+        {
+            IccProfile = iccProfile.ToArray();
+        }
+
+        /// <summary>
+        /// Gets an owned copy of the embedded RGB ICC profile, or empty memory when absent.
+        /// </summary>
+        /// <remarks>
+        /// The profile describes the returned RGB signal and is preserved without applying a colour transform.
+        /// </remarks>
+        public ReadOnlyMemory<byte> IccProfile { get; }
+
         /// <summary>
         /// Gets the CICP colour primaries code.
         /// </summary>

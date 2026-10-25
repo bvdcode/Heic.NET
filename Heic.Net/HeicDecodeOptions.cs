@@ -16,16 +16,31 @@ namespace Heic.Net
         /// Initializes a set of decoding limits.
         /// </summary>
         /// <param name="maxInputBytes">The maximum encoded input size in bytes; at least 32.</param>
-        /// <param name="maxPixels">The maximum number of visible pixels in one image.</param>
+        /// <param name="maxPixels">The maximum coded or visible pixels per image, at most int.MaxValue / 4.</param>
         /// <param name="maxItems">The maximum number of HEIF items in one document.</param>
         /// <param name="maxDerivationDepth">The maximum nesting depth of derived images.</param>
         /// <exception cref="ArgumentOutOfRangeException">A resource limit is invalid.</exception>
         public HeicDecodeOptions(int maxInputBytes = 64 * 1024 * 1024, int maxPixels = 16 * 1024 * 1024,
             int maxItems = 1024, int maxDerivationDepth = 16)
         {
-            if (maxInputBytes < 32 || maxPixels <= 0 || maxItems <= 0 || maxDerivationDepth <= 0)
+            if (maxInputBytes < 32)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxInputBytes), "All resource limits must be positive.");
+                throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
+            }
+
+            if (maxPixels <= 0 || maxPixels > int.MaxValue / 4)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxPixels));
+            }
+
+            if (maxItems <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxItems));
+            }
+
+            if (maxDerivationDepth <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxDerivationDepth));
             }
 
             MaxInputBytes = maxInputBytes;
@@ -40,7 +55,7 @@ namespace Heic.Net
         public int MaxInputBytes { get; }
 
         /// <summary>
-        /// Gets the maximum number of visible pixels in one image.
+        /// Gets the maximum number of coded or visible pixels in one image.
         /// </summary>
         public int MaxPixels { get; }
 
