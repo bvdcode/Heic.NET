@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System;
 using System.IO;
 using Heic.Net.Hevc;
 using Xunit;
@@ -9,6 +10,49 @@ namespace Heic.Net.Tests
 {
     public class BitReaderTests
     {
+        [Fact]
+        public void IndividualBitsInterleaveWithFieldsPeeksAndSkips()
+        {
+            byte[] data = new byte[257];
+            Random random = new Random(197);
+            random.NextBytes(data);
+            BitReader reader = new BitReader(data);
+            int position = 0;
+            while (position < data.Length * 8)
+            {
+                int count = Math.Min(random.Next(1, 33), data.Length * 8 - position);
+                uint expected = 0;
+                for (int bit = 0; bit < count; bit++)
+                {
+                    int at = position + bit;
+                    expected = (expected << 1) | (uint)((data[at / 8] >> (7 - at % 8)) & 1);
+                }
+                Assert.Equal(unchecked((int)expected), reader.Peek(count));
+                Assert.Equal((ulong)position, reader.GetBitPosition());
+                switch (random.Next(3))
+                {
+                    case 0:
+                        reader.SkipBits(count);
+                        break;
+                    case 1:
+                        Assert.Equal(unchecked((int)expected), reader.Read(count));
+                        break;
+                    case 2:
+                        for (int bit = 0; bit < count; bit++)
+                        {
+                            Assert.Equal((int)((expected >> (count - bit - 1)) & 1), reader.ReadBit());
+                        }
+                        break;
+                }
+                position += count;
+                Assert.Equal((ulong)position, reader.GetBitPosition());
+                Assert.Equal(data.Length * 8 - position, reader.BitsRemaining);
+            }
+            Assert.Throws<InvalidDataException>(() => reader.ReadBit());
+            Assert.Equal((ulong)(data.Length * 8), reader.GetBitPosition());
+            Assert.Throws<InvalidDataException>(() => new BitReader(ReadOnlyMemory<byte>.Empty).ReadBit());
+        }
+
         [Fact]
         public void ReadsAcrossByteBoundariesAndPeeksWithoutConsumption()
         {

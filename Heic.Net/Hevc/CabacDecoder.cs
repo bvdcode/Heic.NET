@@ -64,7 +64,7 @@ namespace Heic.Net.Hevc
         public bool ReadBypass()
         {
             EnsureActive();
-            offset = (offset << 1) | reader.Read(1);
+            offset = (offset << 1) | reader.ReadBit();
             bool value = offset >= range;
             if (value)
             {
@@ -106,7 +106,7 @@ namespace Heic.Net.Hevc
             while (range < 256)
             {
                 range <<= 1;
-                offset = (offset << 1) | reader.Read(1);
+                offset = (offset << 1) | reader.ReadBit();
             }
 
             if (offset >= range)

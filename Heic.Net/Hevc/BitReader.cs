@@ -43,7 +43,20 @@ namespace Heic.Net.Hevc
             return unchecked((int)result);
         }
 
-        public bool ReadFlag() => Read(1) != 0;
+        public int ReadBit()
+        {
+            int byteIndex = position >> 3;
+            if (byteIndex >= data.Length)
+            {
+                throw new InvalidDataException("Truncated HEVC bitstream.");
+            }
+
+            int value = (data.Span[byteIndex] >> (7 - (position & 7))) & 1;
+            position++;
+            return value;
+        }
+
+        public bool ReadFlag() => ReadBit() != 0;
         public int Peek(int count)
         {
             int saved = position;
