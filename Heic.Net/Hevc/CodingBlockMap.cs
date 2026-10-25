@@ -10,9 +10,10 @@ namespace Heic.Net.Hevc
     /// </summary>
     internal class CodingBlockMap
     {
+        private const sbyte UnavailableQp = sbyte.MinValue;
         private readonly byte[] modes;
         private readonly byte[] depths;
-        private readonly int[] quantizers;
+        private readonly sbyte[] quantizers;
         private readonly byte[] boundaries;
         private readonly bool[] bypass;
 
@@ -23,19 +24,28 @@ namespace Heic.Net.Hevc
             int count = checked(Width * Height);
             modes = new byte[count];
             depths = new byte[count];
-            quantizers = new int[count];
+            quantizers = new sbyte[count];
             boundaries = new byte[count];
             bypass = new bool[count];
             modes.AsSpan().Fill(byte.MaxValue);
             depths.AsSpan().Fill(byte.MaxValue);
-            quantizers.AsSpan().Fill(int.MinValue);
+            quantizers.AsSpan().Fill(UnavailableQp);
         }
 
         public int Width { get; }
         public int Height { get; }
         public int Mode(int x, int y) => Inside(x, y) && modes[Index(x, y)] != byte.MaxValue ? modes[Index(x, y)] : 1;
         public int Depth(int x, int y) => Inside(x, y) && depths[Index(x, y)] != byte.MaxValue ? depths[Index(x, y)] : -1;
-        public int Qp(int x, int y) => Inside(x, y) ? quantizers[Index(x, y)] : int.MinValue;
+        public int Qp(int x, int y)
+        {
+            if (!Inside(x, y))
+            {
+                return int.MinValue;
+            }
+
+            int qp = quantizers[Index(x, y)];
+            return qp == UnavailableQp ? int.MinValue : qp;
+        }
         public bool Bypass(int x, int y) => bypass[Index(x, y)];
         public bool Boundary(int x, int y, bool vertical) => (boundaries[Index(x, y)] & (vertical ? 1 : 2)) != 0;
 
@@ -60,9 +70,14 @@ namespace Heic.Net.Hevc
 
         public void SetQp(int x, int y, int width, int height, int qp)
         {
+            if (qp <= UnavailableQp || qp > sbyte.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(qp));
+            }
+
             for (int row = y / 4; row < (y + height) / 4; row++)
             {
-                quantizers.AsSpan(row * Width + x / 4, width / 4).Fill(qp);
+                quantizers.AsSpan(row * Width + x / 4, width / 4).Fill((sbyte)qp);
             }
         }
 
