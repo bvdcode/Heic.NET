@@ -36,7 +36,7 @@ namespace Heic.Net.Hevc
             try
             {
                 SaoFilter sao = new SaoFilter(slice, reader);
-                ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding);
+                ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
                 using BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization);
                 int ctbSize = 1 << sequence.Log2Ctb;
                 for (int y = 0; y < sequence.Height; y += ctbSize)
@@ -113,15 +113,22 @@ namespace Heic.Net.Hevc
                 bool intraSplit = log2Size == sequence.Log2MinCodingBlock && !reader.Read(CabacElement.PartMode);
                 blocks.SetCodingUnit(x, y, size, depth, bypass);
                 modes.ReadLuma(x, y, size, intraSplit);
-                int chromaMode = sequence.ChromaFormat == 0 ? 0 : modes.ReadChroma(blocks.Mode(x, y));
-                TransformTree(x, y, x, y, log2Size, 0, 0, intraSplit, chromaMode, false, false, bypass,
+                Span<int> chromaModes = stackalloc int[4];
+                int modeCount = intraSplit && sequence.ChromaFormat == 3 ? 4 : 1;
+                for (int part = 0; part < modeCount; part++)
+                {
+                    int px = x + (part & 1) * (size / 2);
+                    int py = y + (part >> 1) * (size / 2);
+                    chromaModes[part] = sequence.ChromaFormat == 0 ? 0 : modes.ReadChroma(blocks.Mode(px, py));
+                }
+                TransformTree(x, y, x, y, log2Size, 0, 0, intraSplit, chromaModes.Slice(0, modeCount), false, false, bypass,
                     sequence.MaxTransformDepthIntra + (intraSplit ? 1 : 0), reconstruction);
                 quantization.CompleteCodingUnit(x, y, size);
             }
         }
 
         private void TransformTree(int x, int y, int baseX, int baseY, int log2Size, int depth, int index,
-            bool intraSplit, int chromaMode, bool parentCb, bool parentCr, bool bypass, int maxDepth, BlockReconstructor reconstruction)
+            bool intraSplit, ReadOnlySpan<int> chromaModes, bool parentCb, bool parentCr, bool bypass, int maxDepth, BlockReconstructor reconstruction)
         {
             bool split = log2Size > sequence.Log2MaxTransform || intraSplit && depth == 0;
             if (!split && log2Size > sequence.Log2MinTransform && depth < maxDepth)
@@ -131,7 +138,7 @@ namespace Heic.Net.Hevc
 
             bool cb = parentCb;
             bool cr = parentCr;
-            if (sequence.ChromaFormat != 0 && log2Size > 2)
+            if (sequence.ChromaFormat != 0 && (log2Size > 2 || sequence.ChromaFormat == 3))
             {
                 cb = (depth == 0 || parentCb) && reader.Read(CabacElement.ChromaCbf, depth);
                 cr = (depth == 0 || parentCr) && reader.Read(CabacElement.ChromaCbf, depth);
@@ -143,7 +150,8 @@ namespace Heic.Net.Hevc
                 for (int child = 0; child < 4; child++)
                 {
                     TransformTree(x + (child & 1) * half, y + (child >> 1) * half, x, y, log2Size - 1, depth + 1,
-                        child, intraSplit, chromaMode, cb, cr, bypass, maxDepth, reconstruction);
+                        child, intraSplit, chromaModes.Length == 4 ? chromaModes.Slice(child, 1) : chromaModes,
+                        cb, cr, bypass, maxDepth, reconstruction);
                 }
             }
             else
@@ -155,11 +163,13 @@ namespace Heic.Net.Hevc
                 }
                 blocks.MarkTransform(x, y, 1 << log2Size);
                 reconstruction.Reconstruct(x, y, log2Size, 0, blocks.Mode(x, y), luma, bypass);
-                if (sequence.ChromaFormat != 0 && (log2Size > 2 || index == 3))
+                if (sequence.ChromaFormat != 0 && (sequence.ChromaFormat == 3 || log2Size > 2 || index == 3))
                 {
-                    int chromaX = (log2Size == 2 ? baseX : x) / 2;
-                    int chromaY = (log2Size == 2 ? baseY : y) / 2;
-                    int log2Chroma = Math.Max(2, log2Size - 1);
+                    bool sharedChroma = sequence.ChromaFormat != 3 && log2Size == 2;
+                    int chromaX = (sharedChroma ? baseX : x) / sequence.SubWidthC;
+                    int chromaY = (sharedChroma ? baseY : y) / sequence.SubHeightC;
+                    int log2Chroma = Math.Max(2, log2Size - (sequence.ChromaFormat == 3 ? 0 : 1));
+                    int chromaMode = chromaModes[0];
                     reconstruction.Reconstruct(chromaX, chromaY, log2Chroma, 1, chromaMode, cb, bypass);
                     reconstruction.Reconstruct(chromaX, chromaY, log2Chroma, 2, chromaMode, cr, bypass);
                 }

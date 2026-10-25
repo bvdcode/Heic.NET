@@ -13,7 +13,7 @@ namespace Heic.Net.Hevc
     /// Parameters and the two-row ring buffer belong to this worker. Row storage is rented
     /// only during filtering and returned even when filtering fails. In-place writes never
     /// become neighbour inputs. CTB coordinates are in luma units; component coordinates
-    /// use half-sized CTBs for 4:2:0. Picture edges have no edge-offset neighbours.
+    /// follow the coded horizontal and vertical subsampling. Picture edges have no edge-offset neighbours.
     /// </remarks>
     internal class SaoFilter
     {
@@ -91,8 +91,10 @@ namespace Heic.Net.Hevc
         private void ApplyPlane(SamplePlane plane, CodingBlockMap blocks, int component)
         {
             int depth = slice.Picture.Sequence.BitDepth;
-            int lumaScale = component == 0 ? 1 : 2;
-            int ctb = (1 << slice.Picture.Sequence.Log2Ctb) / lumaScale;
+            int scaleX = component == 0 ? 1 : slice.Picture.Sequence.SubWidthC;
+            int scaleY = component == 0 ? 1 : slice.Picture.Sequence.SubHeightC;
+            int ctbWidth = (1 << slice.Picture.Sequence.Log2Ctb) / scaleX;
+            int ctbHeight = (1 << slice.Picture.Sequence.Log2Ctb) / scaleY;
             ushort[] buffer = ArrayPool<ushort>.Shared.Rent(checked(plane.Width * 2));
             try
             {
@@ -103,8 +105,8 @@ namespace Heic.Net.Hevc
                     ReadOnlySpan<ushort> above = y == 0 ? ReadOnlySpan<ushort>.Empty : buffer.AsSpan(((y - 1) & 1) * plane.Width, plane.Width);
                     ReadOnlySpan<ushort> below = y + 1 == plane.Height ? ReadOnlySpan<ushort>.Empty : plane.Row(y + 1);
                     Span<ushort> output = plane.Row(y);
-                    int parameterRow = y / ctb * columns * components + component;
-                    for (int start = 0, index = parameterRow; start < plane.Width; start += ctb, index += components)
+                    int parameterRow = y / ctbHeight * columns * components + component;
+                    for (int start = 0, index = parameterRow; start < plane.Width; start += ctbWidth, index += components)
                     {
                         SaoParameters parameter = parameters[index];
                         if (parameter.Type == 0)
@@ -112,12 +114,12 @@ namespace Heic.Net.Hevc
                             continue;
                         }
 
-                        int end = Math.Min(start + ctb, plane.Width);
+                        int end = Math.Min(start + ctbWidth, plane.Width);
                         if (parameter.Type == 1)
                         {
                             for (int x = start; x < end; x++)
                             {
-                                if (!blocks.Bypass(x * lumaScale, y * lumaScale))
+                                if (!blocks.Bypass(x * scaleX, y * scaleY))
                                 {
                                     output[x] = (ushort)SaoKernel.Band(current[x], depth, parameter);
                                 }
@@ -137,7 +139,7 @@ namespace Heic.Net.Hevc
                             int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
                             for (int x = firstX; x < lastX; x++)
                             {
-                                if (!blocks.Bypass(x * lumaScale, y * lumaScale))
+                                if (!blocks.Bypass(x * scaleX, y * scaleY))
                                 {
                                     output[x] = (ushort)SaoKernel.Edge(current[x], first[x + dx], second[x - dx], depth, parameter);
                                 }

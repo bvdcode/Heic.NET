@@ -24,7 +24,7 @@ namespace Heic.Net.Hevc
         };
 
         public static void Predict(ReadOnlySpan<int> top, ReadOnlySpan<int> left, Span<int> destination,
-            int size, int mode, int bitDepth, bool luma, bool strongSmoothing)
+            int size, int mode, int bitDepth, bool luma, bool strongSmoothing, bool fullResolutionChroma = false)
         {
             IntraReferenceSamples.Validate(top, left, size, bitDepth);
             if (mode < 0 || mode > 34)
@@ -47,9 +47,9 @@ namespace Heic.Net.Hevc
             Span<int> filteredLeft = stackalloc int[65];
             top.Slice(0, 2 * size + 1).CopyTo(filteredTop);
             left.Slice(0, 2 * size + 1).CopyTo(filteredLeft);
-            if (luma)
+            if (luma || fullResolutionChroma)
             {
-                IntraReferenceFilter.Apply(filteredTop, filteredLeft, size, mode, bitDepth, strongSmoothing);
+                IntraReferenceFilter.Apply(filteredTop, filteredLeft, size, mode, bitDepth, strongSmoothing && luma);
             }
             switch (mode)
             {

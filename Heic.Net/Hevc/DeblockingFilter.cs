@@ -111,6 +111,8 @@ namespace Heic.Net.Hevc
             int acrossEnd = vertical ? plane.Width : plane.Height;
             int alongEnd = vertical ? plane.Height : plane.Width;
             int depth = slice.Picture.Sequence.BitDepth;
+            int scaleX = slice.Picture.Sequence.SubWidthC;
+            int scaleY = slice.Picture.Sequence.SubHeightC;
             Span<int> samples = stackalloc int[4];
             for (int across = 8; across < acrossEnd; across += 8)
             {
@@ -118,14 +120,14 @@ namespace Heic.Net.Hevc
                 {
                     int x = vertical ? across : along;
                     int y = vertical ? along : across;
-                    if (!blocks.Boundary(x * 2, y * 2, vertical))
+                    if (!blocks.Boundary(x * scaleX, y * scaleY, vertical))
                     {
                         continue;
                     }
-                    int px = vertical ? x * 2 - 1 : x * 2;
-                    int py = vertical ? y * 2 : y * 2 - 1;
-                    int qp = ((blocks.Qp(x * 2, y * 2) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
-                    int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp) + 2 + slice.TcOffset, depth);
+                    int px = vertical ? x * scaleX - 1 : x * scaleX;
+                    int py = vertical ? y * scaleY : y * scaleY - 1;
+                    int qp = ((blocks.Qp(x * scaleX, y * scaleY) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
+                    int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, slice.Picture.Sequence.ChromaFormat) + 2 + slice.TcOffset, depth);
                     if (tc == 0)
                     {
                         continue;
@@ -137,8 +139,8 @@ namespace Heic.Net.Hevc
                             samples[i] = plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)];
                         }
 
-                        bool writeP = !blocks.Bypass(px + (vertical ? 0 : k * 2), py + (vertical ? k * 2 : 0));
-                        bool writeQ = !blocks.Bypass((x + (vertical ? 0 : k)) * 2, (y + (vertical ? k : 0)) * 2);
+                        bool writeP = !blocks.Bypass(px + (vertical ? 0 : k * scaleX), py + (vertical ? k * scaleY : 0));
+                        bool writeQ = !blocks.Bypass((x + (vertical ? 0 : k)) * scaleX, (y + (vertical ? k : 0)) * scaleY);
                         DeblockingKernel.Chroma(samples, tc, depth, writeP, writeQ);
                         for (int i = 1; i <= 2; i++)
                         {

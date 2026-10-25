@@ -36,7 +36,7 @@ namespace Heic.Net.Hevc
             }
 
             IntraReferenceSamples.Substitute(top, left, size, depth);
-            IntraPredictor.Predict(top, left, prediction, size, mode, depth, component == 0, parameters.Sequence.StrongIntraSmoothing);
+            IntraPredictor.Predict(top, left, prediction, size, mode, depth, component == 0, parameters.Sequence.StrongIntraSmoothing, parameters.Sequence.ChromaFormat == 3);
             Span<int> output = residual.AsSpan(0, size * size);
             output.Clear();
             if (coded)

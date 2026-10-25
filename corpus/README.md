@@ -69,3 +69,17 @@ These procedural charts are released under
 quantization groups containing both uncoded and residual-bearing coding units.
 The complete YUV hashes come from FFmpeg with the original pixel format preserved
 and automatic conformance-window cropping disabled.
+
+## Full-resolution chroma regression streams
+
+`wpp-chroma444-8bit.hevc`, `wpp-chroma444-10bit.hevc` and
+`scaling-chroma444-8bit.hevc` contain original 200×144 patterns. For component
+`c` (Y=0, Cb=1, Cr=2), every plane uses
+`16 + ((3 + 4*c)*x + (5 + 2*c)*y + 30*((x/16 + y/24)%2))%220`,
+with integer divisions and a factor of four for 10 bits.
+
+x265 3.5 encodes one IDR frame with 32-pixel CTUs, 8-pixel minimum CUs,
+QP 24, one frame thread, SAO and deblocking. The `wpp-` files use WPP and
+flat scaling lists; the `scaling-` file disables WPP and enables default scaling
+lists. All NAL units use four-byte Annex B delimiters. Complete YUV references
+come from FFmpeg 6.1 with `-apply_cropping 0 -pix_fmt +`.

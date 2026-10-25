@@ -14,10 +14,10 @@ namespace Heic.Net.Hevc
             bool initialized = false;
             try
             {
-                if (sequence.ChromaFormat == 1)
+                if (sequence.ChromaFormat != 0)
                 {
-                    Cb = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
-                    Cr = new SamplePlane(sequence.Width / 2, sequence.Height / 2);
+                    Cb = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC);
+                    Cr = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC);
                 }
 
                 initialized = true;

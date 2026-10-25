@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System;
 using System.IO;
 
 namespace Heic.Net.Hevc
@@ -25,6 +26,22 @@ namespace Heic.Net.Hevc
         public int VisibleHeight { get; private set; }
         public int BitDepth { get; private set; }
         public int ChromaFormat { get; private set; }
+        public int SubWidthC => ChromaFormat switch
+        {
+            0 => 1,
+            1 => 2,
+            2 => 2,
+            3 => 1,
+            _ => throw new InvalidOperationException("Invalid chroma format.")
+        };
+        public int SubHeightC => ChromaFormat switch
+        {
+            0 => 1,
+            1 => 2,
+            2 => 1,
+            3 => 1,
+            _ => throw new InvalidOperationException("Invalid chroma format.")
+        };
         public int Log2MinCodingBlock { get; private set; }
         public int Log2Ctb { get; private set; }
         public int Log2MinTransform { get; private set; }
@@ -48,9 +65,13 @@ namespace Heic.Net.Hevc
             SequenceParameters sps = new SequenceParameters { Profile = HevcSyntax.ProfileTierLevel(reader, subLayers) };
             sps.Id = HevcSyntax.Ue(reader, 15, "sps_seq_parameter_set_id");
             sps.ChromaFormat = HevcSyntax.Ue(reader, 3, "chroma_format_idc");
-            if (sps.ChromaFormat > 1)
+            if (sps.ChromaFormat == 2)
             {
-                throw new UnsupportedHeicFeatureException("HEVC 4:2:2 or 4:4:4 chroma");
+                throw new UnsupportedHeicFeatureException("HEVC 4:2:2 chroma");
+            }
+            if (sps.ChromaFormat == 3 && reader.ReadFlag())
+            {
+                throw new UnsupportedHeicFeatureException("separate HEVC colour planes");
             }
             sps.ReadDimensions(reader, options);
             sps.BitDepth = HevcSyntax.Ue(reader, 8, "bit_depth_luma_minus8") + 8;
@@ -105,11 +126,10 @@ namespace Heic.Net.Hevc
             int bottom = 0;
             if (reader.ReadFlag())
             {
-                int unit = ChromaFormat == 1 ? 2 : 1;
-                CropLeft = HevcSyntax.Ue(reader, Width / unit, "conf_win_left_offset") * unit;
-                right = HevcSyntax.Ue(reader, Width / unit, "conf_win_right_offset") * unit;
-                CropTop = HevcSyntax.Ue(reader, Height / unit, "conf_win_top_offset") * unit;
-                bottom = HevcSyntax.Ue(reader, Height / unit, "conf_win_bottom_offset") * unit;
+                CropLeft = HevcSyntax.Ue(reader, Width / SubWidthC, "conf_win_left_offset") * SubWidthC;
+                right = HevcSyntax.Ue(reader, Width / SubWidthC, "conf_win_right_offset") * SubWidthC;
+                CropTop = HevcSyntax.Ue(reader, Height / SubHeightC, "conf_win_top_offset") * SubHeightC;
+                bottom = HevcSyntax.Ue(reader, Height / SubHeightC, "conf_win_bottom_offset") * SubHeightC;
             }
 
             VisibleWidth = Width - CropLeft - right;

@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
     /// coefficients[y * (1 &lt;&lt; log2Size) + x]. Quantized levels are signed 16-bit values;
     /// malformed magnitudes are rejected before dequantization. Contexts remain slice-local.
     /// </remarks>
-    internal class ResidualDecoder(IntraCabacReader reader, bool transformSkipEnabled, bool signDataHiding)
+    internal class ResidualDecoder(IntraCabacReader reader, bool transformSkipEnabled, bool signDataHiding, bool fullResolutionChroma = false)
     {
         public bool Read(Span<int> coefficients, int log2Size, int component, int intraMode, bool bypass)
         {
@@ -23,7 +23,7 @@ namespace Heic.Net.Hevc
             output.Clear();
             bool skip = transformSkipEnabled && !bypass && log2Size == 2 && reader.Read(CabacElement.TransformSkip, component == 0 ? 0 : 1);
             int scanIndex = 0;
-            if (log2Size == 2 || log2Size == 3 && component == 0)
+            if (log2Size == 2 || log2Size == 3 && (component == 0 || fullResolutionChroma))
             {
                 if (intraMode >= 6 && intraMode <= 14)
                 {

@@ -27,7 +27,7 @@ namespace Heic.Net.Tests
                 int size = 1 << log2Size;
                 int count = size * size;
                 decimal divisor = (decimal)Math.Pow(2, depth + log2Size - 5);
-                for (int matrixId = 0; matrixId < 6; matrixId += log2Size == 5 ? 3 : 1)
+                for (int matrixId = 0; matrixId < 6; matrixId++)
                 {
                     for (int qp = 0; qp <= 51 + 6 * (depth - 8); qp++)
                     {
@@ -59,7 +59,7 @@ namespace Heic.Net.Tests
             Assert.Throws<ArgumentException>(() => CoefficientMath.Dequantize(new int[15], lists, 0, 0, 2, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[16], lists, -1, 0, 2, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[16], lists, 6, 0, 2, 8));
-            Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[1024], lists, 1, 0, 5, 8));
+            Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[1024], lists, 6, 0, 5, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[16], lists, 0, -1, 2, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[16], lists, 0, 52, 2, 8));
             Assert.Throws<ArgumentOutOfRangeException>(() => CoefficientMath.Dequantize(new int[16], lists, 0, 64, 2, 10));

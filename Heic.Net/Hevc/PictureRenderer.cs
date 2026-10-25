@@ -8,7 +8,7 @@ using Heic.Net.Heif;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Copies the SPS conformance window into owned RGBA8 rows with block-replicated 4:2:0 chroma.
+    /// Copies the SPS conformance window into owned RGBA8 rows with chroma sampled at the coded resolution.
     /// </summary>
     /// <remarks>
     /// Chroma sample (x/2,y/2) supplies each 2x2 luma block; no smoothing is applied.
@@ -35,6 +35,8 @@ namespace Heic.Net.Hevc
             }
 
             int maximum = (1 << sequence.BitDepth) - 1;
+            int subWidth = sequence.SubWidthC;
+            int subHeight = sequence.SubHeightC;
             for (int y = 0; y < height; y++)
             {
                 int sy = y + sequence.CropTop;
@@ -59,11 +61,11 @@ namespace Heic.Net.Hevc
                 }
                 else
                 {
-                    ReadOnlySpan<ushort> cb = picture.Cb.Row(sy / 2).Slice(sequence.CropLeft / 2);
-                    ReadOnlySpan<ushort> cr = picture.Cr.Row(sy / 2).Slice(sequence.CropLeft / 2);
+                    ReadOnlySpan<ushort> cb = picture.Cb.Row(sy / subHeight).Slice(sequence.CropLeft / subWidth);
+                    ReadOnlySpan<ushort> cr = picture.Cr.Row(sy / subHeight).Slice(sequence.CropLeft / subWidth);
                     for (int x = 0; x < width; x++)
                     {
-                        conversion!.Convert(luma[x], cb[x / 2], cr[x / 2], row.Slice(x * 4, 4));
+                        conversion!.Convert(luma[x], cb[x / subWidth], cr[x / subWidth], row.Slice(x * 4, 4));
                     }
                 }
             }

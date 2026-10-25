@@ -69,7 +69,7 @@ namespace Heic.Net.Hevc
             }
 
             int qp = Math.Min(57, Math.Max(-depthOffset, currentQp + colourOffset));
-            return QuantizationMath.Chroma(qp) + depthOffset;
+            return QuantizationMath.Chroma(qp, slice.Picture.Sequence.ChromaFormat) + depthOffset;
         }
 
         public void CompleteCodingUnit(int x, int y, int size)

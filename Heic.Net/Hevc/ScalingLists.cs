@@ -60,8 +60,7 @@ namespace Heic.Net.Hevc
         public int Factor(int log2Size, int matrixId, int x, int y)
         {
             if (log2Size < 2 || log2Size > 5 || matrixId < 0 || matrixId > 5 ||
-                x < 0 || y < 0 || x >= 1 << log2Size || y >= 1 << log2Size ||
-                log2Size == 5 && matrixId != 0 && matrixId != 3)
+                x < 0 || y < 0 || x >= 1 << log2Size || y >= 1 << log2Size)
             {
                 throw new ArgumentOutOfRangeException(nameof(log2Size));
             }
@@ -70,7 +69,8 @@ namespace Heic.Net.Hevc
             {
                 return 16;
             }
-            int index = (log2Size - 2) * 6 + matrixId;
+            int listSize = log2Size == 5 && matrixId % 3 != 0 ? 4 : log2Size;
+            int index = (listSize - 2) * 6 + matrixId;
             if (log2Size > 3 && x == 0 && y == 0)
             {
                 return dc[index];

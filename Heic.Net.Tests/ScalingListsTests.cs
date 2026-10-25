@@ -67,6 +67,60 @@ namespace Heic.Net.Tests
         }
 
         [Fact]
+        public void FullResolutionChromaUsesExpandedSixteenPointScalingLists()
+        {
+            TestBitWriter writer = new TestBitWriter();
+            for (int sizeId = 0; sizeId < 4; sizeId++)
+            {
+                for (int matrixId = 0; matrixId < 6; matrixId += sizeId == 3 ? 3 : 1)
+                {
+                    writer.Flag(true);
+                    if (sizeId > 1)
+                    {
+                        writer.Se(10 * sizeId + matrixId);
+                    }
+                    for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
+                    {
+                        writer.Se(1);
+                    }
+                }
+            }
+            ScalingLists lists = ScalingLists.Read(new BitReader(writer.ToArray()));
+            foreach (int matrixId in new[] { 1, 2, 4, 5 })
+            {
+                for (int y = 0; y < 32; y++)
+                {
+                    for (int x = 0; x < 32; x++)
+                    {
+                        int expected = x == 0 && y == 0 ? 28 + matrixId : 29 + matrixId + DiagonalIndex(x / 4, y / 4);
+                        Assert.Equal(expected, lists.Factor(5, matrixId, x, y));
+                    }
+                }
+            }
+        }
+
+        private static int DiagonalIndex(int x, int y)
+        {
+            int index = 0;
+            for (int sum = 0; sum <= 14; sum++)
+            {
+                for (int px = 0; px < 8; px++)
+                {
+                    int py = sum - px;
+                    if (py >= 0 && py < 8)
+                    {
+                        if (px == x && py == y)
+                        {
+                            return index;
+                        }
+                        index++;
+                    }
+                }
+            }
+            throw new ArgumentOutOfRangeException(nameof(x));
+        }
+
+        [Fact]
         public void DisabledListsAndDefaultListsHaveDifferentHighFrequencyWeights()
         {
             Assert.Equal(16, ScalingLists.Flat.Factor(5, 0, 31, 31));
