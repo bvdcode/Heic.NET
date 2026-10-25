@@ -34,38 +34,41 @@ namespace Heic.Net.Hevc
                 conversion = new ColorConversion(sequence.BitDepth, color.FullRange, matrix);
             }
 
-            int maximum = (1 << sequence.BitDepth) - 1;
-            int subWidth = sequence.SubWidthC;
-            int subHeight = sequence.SubHeightC;
-            for (int y = 0; y < height; y++)
+            if (!alpha && picture.Cb is not null && picture.Cr is not null)
             {
-                int sy = y + sequence.CropTop;
-                ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(sequence.CropLeft, width);
-                Span<byte> row = pixels.Span.Slice(y * width * 4, width * 4);
-                if (alpha)
+                int subWidth = sequence.SubWidthC;
+                int subHeight = sequence.SubHeightC;
+                ColorPlaneLayout layout = new ColorPlaneLayout(width, height, picture.Luma.Stride,
+                    picture.Cb.Stride, subWidth, subHeight);
+                int lumaOffset = sequence.CropTop * picture.Luma.Stride + sequence.CropLeft;
+                int chromaOffset = sequence.CropTop / subHeight * picture.Cb.Stride + sequence.CropLeft / subWidth;
+                conversion!.ConvertRows(picture.Luma.Samples.Span.Slice(lumaOffset),
+                    picture.Cb.Samples.Span.Slice(chromaOffset), picture.Cr.Samples.Span.Slice(chromaOffset), layout, pixels.Span);
+            }
+            else
+            {
+                int maximum = (1 << sequence.BitDepth) - 1;
+                for (int y = 0; y < height; y++)
                 {
-                    for (int x = 0; x < width; x++)
+                    int sy = y + sequence.CropTop;
+                    ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(sequence.CropLeft, width);
+                    Span<byte> row = pixels.Span.Slice(y * width * 4, width * 4);
+                    if (alpha)
                     {
-                        byte value = alphaInformation is null
-                            ? (byte)((luma[x] * 255 + maximum / 2) / maximum)
-                            : alphaInformation.Convert(luma[x]);
-                        WriteGray(value, row.Slice(x * 4, 4));
+                        for (int x = 0; x < width; x++)
+                        {
+                            byte value = alphaInformation is null
+                                ? (byte)((luma[x] * 255 + maximum / 2) / maximum)
+                                : alphaInformation.Convert(luma[x]);
+                            WriteGray(value, row.Slice(x * 4, 4));
+                        }
                     }
-                }
-                else if (picture.Cb is null || picture.Cr is null)
-                {
-                    for (int x = 0; x < width; x++)
+                    else
                     {
-                        WriteGray(conversion!.Gray(luma[x]), row.Slice(x * 4, 4));
-                    }
-                }
-                else
-                {
-                    ReadOnlySpan<ushort> cb = picture.Cb.Row(sy / subHeight).Slice(sequence.CropLeft / subWidth);
-                    ReadOnlySpan<ushort> cr = picture.Cr.Row(sy / subHeight).Slice(sequence.CropLeft / subWidth);
-                    for (int x = 0; x < width; x++)
-                    {
-                        conversion!.Convert(luma[x], cb[x / subWidth], cr[x / subWidth], row.Slice(x * 4, 4));
+                        for (int x = 0; x < width; x++)
+                        {
+                            WriteGray(conversion!.Gray(luma[x]), row.Slice(x * 4, 4));
+                        }
                     }
                 }
             }

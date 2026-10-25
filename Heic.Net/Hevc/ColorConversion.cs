@@ -2,11 +2,14 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Converts nonlinear YCbCr to RGB with Q20 coefficients and a signed 64-bit accumulator.
+    /// Converts nonlinear YCbCr to RGB with Q20 coefficients.
     /// </summary>
     /// <remarks>
     /// Limited range uses Y 16..235 and C 16..240 scaled by 2^(depth-8). Full range
@@ -67,6 +70,61 @@ namespace Heic.Net.Hevc
             greenCr = Fixed(-255.0 / cRange * 2 * kr * (1 - kr) / (1 - kr - kb));
         }
 
+        public void ConvertRows(ReadOnlySpan<ushort> luma, ReadOnlySpan<ushort> cb, ReadOnlySpan<ushort> cr,
+            ColorPlaneLayout layout, Span<byte> rgba)
+        {
+            if (luma.Length < layout.LumaLength || cb.Length < layout.ChromaLength ||
+                cr.Length < layout.ChromaLength || rgba.Length < layout.OutputLength)
+            {
+                throw new ArgumentException("Colour plane buffers are shorter than the visible image.");
+            }
+            int bytes = layout.Width * 4;
+            int subWidth = layout.SubWidth;
+            ColorConversionVectors vectors = new ColorConversionVectors(yOffset, chromaOffset, yFactor, redCr, blueCb, greenCb, greenCr);
+            for (int row = 0; row < layout.Height; row++)
+            {
+                ReadOnlySpan<ushort> ySamples = luma.Slice(row * layout.LumaStride, layout.Width);
+                int chromaOffset = row / layout.SubHeight * layout.ChromaStride;
+                ReadOnlySpan<ushort> cbSamples = cb.Slice(chromaOffset, layout.ChromaWidth);
+                ReadOnlySpan<ushort> crSamples = cr.Slice(chromaOffset, layout.ChromaWidth);
+                Span<byte> destination = rgba.Slice(row * bytes, bytes);
+                int x = 0;
+                if (Vector.IsHardwareAccelerated)
+                {
+                    ReadOnlySpan<Vector<ushort>> yRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(ySamples);
+                    ReadOnlySpan<Vector<ushort>> cbRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(cbSamples);
+                    ReadOnlySpan<Vector<ushort>> crRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(crSamples);
+                    Span<Vector<int>> output = MemoryMarshal.Cast<byte, Vector<int>>(destination);
+                    int count = layout.Width / (Vector<ushort>.Count * subWidth);
+                    if (subWidth == 1)
+                    {
+                        for (int i = 0; i < count; i++)
+                        {
+                            ConvertSamples(in vectors, yRows[i], cbRows[i], crRows[i], output.Slice(i * 2, 2));
+                        }
+                    }
+                    else
+                    {
+                        Vector<uint> duplicate = new Vector<uint>(0x00010001);
+                        for (int i = 0; i < count; i++)
+                        {
+                            Vector.Widen(cbRows[i], out Vector<uint> cbFirst, out Vector<uint> cbSecond);
+                            Vector.Widen(crRows[i], out Vector<uint> crFirst, out Vector<uint> crSecond);
+                            ConvertSamples(in vectors, yRows[i * 2], Vector.AsVectorUInt16(cbFirst * duplicate),
+                                Vector.AsVectorUInt16(crFirst * duplicate), output.Slice(i * 4, 2));
+                            ConvertSamples(in vectors, yRows[i * 2 + 1], Vector.AsVectorUInt16(cbSecond * duplicate),
+                                Vector.AsVectorUInt16(crSecond * duplicate), output.Slice(i * 4 + 2, 2));
+                        }
+                    }
+                    x = count * Vector<ushort>.Count * subWidth;
+                }
+                for (; x < layout.Width; x++)
+                {
+                    Convert(ySamples[x], cbSamples[x / subWidth], crSamples[x / subWidth], destination.Slice(x * 4, 4));
+                }
+            }
+        }
+
         public void Convert(int y, int cb, int cr, Span<byte> rgba)
         {
             long luma = yFactor * (y - yOffset);
@@ -79,6 +137,17 @@ namespace Heic.Net.Hevc
         }
 
         public byte Gray(int y) => Channel(yFactor * (y - yOffset));
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ConvertSamples(in ColorConversionVectors vectors, Vector<ushort> y, Vector<ushort> cb,
+            Vector<ushort> cr, Span<Vector<int>> output)
+        {
+            Vector.Widen(y, out Vector<uint> yFirst, out Vector<uint> ySecond);
+            Vector.Widen(cb, out Vector<uint> cbFirst, out Vector<uint> cbSecond);
+            Vector.Widen(cr, out Vector<uint> crFirst, out Vector<uint> crSecond);
+            output[0] = vectors.Convert(Vector.AsVectorInt32(yFirst), Vector.AsVectorInt32(cbFirst), Vector.AsVectorInt32(crFirst));
+            output[1] = vectors.Convert(Vector.AsVectorInt32(ySecond), Vector.AsVectorInt32(cbSecond), Vector.AsVectorInt32(crSecond));
+        }
 
         private static long Fixed(double value) => (long)Math.Round(value * Scale, MidpointRounding.AwayFromZero);
         private static byte Channel(long value) => (byte)Math.Min(255L, Math.Max(0L, (value + Scale / 2) >> FractionBits));
