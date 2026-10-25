@@ -15,7 +15,15 @@ namespace Heic.Net.Tests
         [InlineData(8, true)]
         [InlineData(10, false)]
         [InlineData(10, true)]
-        public void StridedPlanesMatchScalarPixelsWithoutReadingPadding(int depth, bool fullRange)
+        [InlineData(8, false, 1, 0)]
+        [InlineData(8, true, 0, 1)]
+        [InlineData(8, false, 1, 1)]
+        [InlineData(8, true, 1, 1)]
+        [InlineData(10, false, 1, 0)]
+        [InlineData(10, true, 0, 1)]
+        [InlineData(10, false, 1, 1)]
+        [InlineData(10, true, 1, 1)]
+        public void StridedPlanesMatchScalarPixelsWithoutReadingPadding(int depth, bool fullRange, int phaseX = 0, int phaseY = 0)
         {
             const int LumaOffset = 3;
             const int ChromaOffset = 5;
@@ -29,13 +37,17 @@ namespace Heic.Net.Tests
                 {
                     foreach (int subHeight in new[] { 1, 2 })
                     {
+                        if (phaseX >= subWidth || phaseY >= subHeight)
+                        {
+                            continue;
+                        }
                         foreach (int width in widths)
                         {
                             foreach (int height in new[] { 1, 2, 3, 17 })
                             {
-                                int chromaWidth = (width + subWidth - 1) / subWidth;
-                                int chromaHeight = (height + subHeight - 1) / subHeight;
-                                ColorPlaneLayout layout = new ColorPlaneLayout(width, height, width + 7, chromaWidth + 5, subWidth, subHeight);
+                                int chromaWidth = (width + phaseX + subWidth - 1) / subWidth;
+                                int chromaHeight = (height + phaseY + subHeight - 1) / subHeight;
+                                ColorPlaneLayout layout = new ColorPlaneLayout(width, height, width + 7, chromaWidth + 5, subWidth, subHeight, phaseX, phaseY);
                                 ushort[] y = Plane(width, height, layout.LumaStride, LumaOffset, depth, random);
                                 ushort[] cb = Plane(chromaWidth, chromaHeight, layout.ChromaStride, ChromaOffset, depth, random);
                                 ushort[] cr = Plane(chromaWidth, chromaHeight, layout.ChromaStride, ChromaOffset, depth, random);
@@ -50,7 +62,7 @@ namespace Heic.Net.Tests
                                 {
                                     for (int x = 0; x < width; x++)
                                     {
-                                        int chroma = ChromaOffset + row / subHeight * layout.ChromaStride + x / subWidth;
+                                        int chroma = ChromaOffset + (row + phaseY) / subHeight * layout.ChromaStride + (x + phaseX) / subWidth;
                                         conversion.Convert(y[LumaOffset + row * layout.LumaStride + x], cb[chroma], cr[chroma],
                                             expected.AsSpan(3 + (row * width + x) * 4, 4));
                                     }
@@ -83,6 +95,11 @@ namespace Heic.Net.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 2, 2, 2));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 3, 2, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 3, 2, 3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 3, 2, 2, -1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 3, 2, 2, 2, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 3, 2, 2, 0, 2));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(5, 3, 5, 5, 1, 1, 1, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(6, 3, 6, 3, 2, 2, 1, 0));
             Assert.Throws<OverflowException>(() => new ColorPlaneLayout(65536, 65536, 65536, 32768, 2, 2));
             ColorPlaneLayout layout = new ColorPlaneLayout(5, 3, 8, 4, 2, 2);
             Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new ushort[20], new ushort[7], new ushort[7], layout, new byte[60]));

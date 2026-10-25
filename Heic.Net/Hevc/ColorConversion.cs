@@ -84,18 +84,24 @@ namespace Heic.Net.Hevc
             for (int row = 0; row < layout.Height; row++)
             {
                 ReadOnlySpan<ushort> ySamples = luma.Slice(row * layout.LumaStride, layout.Width);
-                int chromaOffset = row / layout.SubHeight * layout.ChromaStride;
+                int chromaOffset = (row + layout.ChromaPhaseY) / layout.SubHeight * layout.ChromaStride;
                 ReadOnlySpan<ushort> cbSamples = cb.Slice(chromaOffset, layout.ChromaWidth);
                 ReadOnlySpan<ushort> crSamples = cr.Slice(chromaOffset, layout.ChromaWidth);
                 Span<byte> destination = rgba.Slice(row * bytes, bytes);
                 int x = 0;
+                if (layout.ChromaPhaseX != 0 && layout.Width != 0)
+                {
+                    Convert(ySamples[0], cbSamples[0], crSamples[0], destination.Slice(0, 4));
+                    x = 1;
+                }
                 if (Vector.IsHardwareAccelerated)
                 {
-                    ReadOnlySpan<Vector<ushort>> yRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(ySamples);
-                    ReadOnlySpan<Vector<ushort>> cbRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(cbSamples);
-                    ReadOnlySpan<Vector<ushort>> crRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(crSamples);
-                    Span<Vector<int>> output = MemoryMarshal.Cast<byte, Vector<int>>(destination);
-                    int count = layout.Width / (Vector<ushort>.Count * subWidth);
+                    int chromaStart = (x + layout.ChromaPhaseX) / subWidth;
+                    ReadOnlySpan<Vector<ushort>> yRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(ySamples.Slice(x));
+                    ReadOnlySpan<Vector<ushort>> cbRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(cbSamples.Slice(chromaStart));
+                    ReadOnlySpan<Vector<ushort>> crRows = MemoryMarshal.Cast<ushort, Vector<ushort>>(crSamples.Slice(chromaStart));
+                    Span<Vector<int>> output = MemoryMarshal.Cast<byte, Vector<int>>(destination.Slice(x * 4));
+                    int count = (layout.Width - x) / (Vector<ushort>.Count * subWidth);
                     if (subWidth == 1)
                     {
                         for (int i = 0; i < count; i++)
@@ -116,11 +122,12 @@ namespace Heic.Net.Hevc
                                 Vector.AsVectorUInt16(crSecond * duplicate), output.Slice(i * 4 + 2, 2));
                         }
                     }
-                    x = count * Vector<ushort>.Count * subWidth;
+                    x += count * Vector<ushort>.Count * subWidth;
                 }
                 for (; x < layout.Width; x++)
                 {
-                    Convert(ySamples[x], cbSamples[x / subWidth], crSamples[x / subWidth], destination.Slice(x * 4, 4));
+                    int chroma = (x + layout.ChromaPhaseX) / subWidth;
+                    Convert(ySamples[x], cbSamples[chroma], crSamples[chroma], destination.Slice(x * 4, 4));
                 }
             }
         }

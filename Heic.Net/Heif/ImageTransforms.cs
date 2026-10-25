@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using Heic.Net.Binary;
 
 namespace Heic.Net.Heif
 {
@@ -25,32 +24,12 @@ namespace Heic.Net.Heif
                 return Orient(image, ImageOrientation.Read(image.Width, image.Height, property), buffers);
             }
 
-            ByteReader reader = new ByteReader(property.Payload);
-            RgbaImage result;
             if (property.Type == HeifBox.Code("clap"))
             {
-                int width = Dimension(reader, image.Width);
-                int height = Dimension(reader, image.Height);
-                long left = Origin(reader, image.Width, width);
-                long top = Origin(reader, image.Height, height);
-                if (width <= 0 || height <= 0 || left < 0 || top < 0 || left + width > image.Width || top + height > image.Height)
-                {
-                    throw new InvalidDataException("Clean aperture exceeds the image.");
-                }
-
-                result = Crop(image, (int)left, (int)top, width, height, buffers);
+                ImageCrop crop = ImageCrop.Read(image.Width, image.Height, property);
+                return Crop(image, crop.Left, crop.Top, crop.Width, crop.Height, buffers);
             }
-            else
-            {
-                throw new InvalidDataException("Expected an image transformation.");
-            }
-
-            if (reader.Remaining != 0)
-            {
-                throw new InvalidDataException("Unexpected image transformation data.");
-            }
-
-            return result;
+            throw new InvalidDataException("Expected an image transformation.");
         }
 
         public static RgbaImage Orient(RgbaImage source, int turns, int? mirrorAxis, PixelBufferScope buffers)
@@ -77,46 +56,5 @@ namespace Heic.Net.Heif
             return new RgbaImage(width, height, pixels, source.ColorInformation);
         }
 
-        private static int Dimension(ByteReader reader, int extent)
-        {
-            uint numerator = reader.U32();
-            uint denominator = reader.U32();
-            if (denominator == 0)
-            {
-                throw new InvalidDataException("Clean aperture denominator must be nonzero.");
-            }
-
-            if (numerator % denominator != 0)
-            {
-                throw new UnsupportedHeicFeatureException("fractional clean aperture dimensions");
-            }
-
-            uint result = numerator / denominator;
-            if (result == 0 || result > extent)
-            {
-                throw new InvalidDataException("Clean aperture exceeds the image.");
-            }
-
-            return (int)result;
-        }
-
-        private static long Origin(ByteReader reader, int extent, int croppedExtent)
-        {
-            int offset = unchecked((int)reader.U32());
-            uint denominator = reader.U32();
-            if (denominator == 0)
-            {
-                throw new InvalidDataException("Clean aperture denominator must be nonzero.");
-            }
-
-            long numerator = (long)(extent - croppedExtent) * denominator + 2L * offset;
-            long divisor = 2L * denominator;
-            if (numerator % divisor != 0)
-            {
-                throw new UnsupportedHeicFeatureException("fractional clean aperture offsets");
-            }
-
-            return numerator / divisor;
-        }
     }
 }

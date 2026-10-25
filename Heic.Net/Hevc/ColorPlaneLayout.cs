@@ -10,7 +10,8 @@ namespace Heic.Net.Hevc
     /// </summary>
     internal readonly struct ColorPlaneLayout
     {
-        public ColorPlaneLayout(int width, int height, int lumaStride, int chromaStride, int subWidth, int subHeight)
+        public ColorPlaneLayout(int width, int height, int lumaStride, int chromaStride, int subWidth, int subHeight,
+            int chromaPhaseX = 0, int chromaPhaseY = 0)
         {
             if (width < 0 || height < 0 || lumaStride < width)
             {
@@ -20,7 +21,11 @@ namespace Heic.Net.Hevc
             {
                 throw new ArgumentOutOfRangeException(nameof(subWidth));
             }
-            int chromaWidth = checked(width + subWidth - 1) / subWidth;
+            if (chromaPhaseX < 0 || chromaPhaseX >= subWidth || chromaPhaseY < 0 || chromaPhaseY >= subHeight)
+            {
+                throw new ArgumentOutOfRangeException(nameof(chromaPhaseX));
+            }
+            int chromaWidth = width == 0 ? 0 : checked(width + chromaPhaseX + subWidth - 1) / subWidth;
             if (chromaStride < chromaWidth)
             {
                 throw new ArgumentOutOfRangeException(nameof(chromaStride));
@@ -31,8 +36,10 @@ namespace Heic.Net.Hevc
             ChromaStride = chromaStride;
             SubWidth = subWidth;
             SubHeight = subHeight;
+            ChromaPhaseX = chromaPhaseX;
+            ChromaPhaseY = chromaPhaseY;
             ChromaWidth = chromaWidth;
-            int chromaHeight = checked(height + subHeight - 1) / subHeight;
+            int chromaHeight = height == 0 ? 0 : checked(height + chromaPhaseY + subHeight - 1) / subHeight;
             LumaLength = height == 0 ? 0 : checked((height - 1) * lumaStride + width);
             ChromaLength = chromaHeight == 0 ? 0 : checked((chromaHeight - 1) * chromaStride + chromaWidth);
             OutputLength = checked(width * height * 4);
@@ -44,6 +51,8 @@ namespace Heic.Net.Hevc
         public int ChromaStride { get; }
         public int SubWidth { get; }
         public int SubHeight { get; }
+        public int ChromaPhaseX { get; }
+        public int ChromaPhaseY { get; }
         public int ChromaWidth { get; }
         public int LumaLength { get; }
         public int ChromaLength { get; }

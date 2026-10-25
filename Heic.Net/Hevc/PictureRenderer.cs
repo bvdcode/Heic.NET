@@ -8,7 +8,7 @@ using Heic.Net.Heif;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Copies the SPS conformance window into owned RGBA8 rows with chroma sampled at the coded resolution.
+    /// Renders a clean aperture within the SPS conformance window into owned RGBA8 rows.
     /// </summary>
     /// <remarks>
     /// Chroma sample (x/2,y/2) supplies each 2x2 luma block; no smoothing is applied.
@@ -17,15 +17,17 @@ namespace Heic.Net.Hevc
     /// </remarks>
     internal static class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
+        public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
         {
             SequenceParameters sequence = picture.Sequence;
             if (alpha && alphaInformation is not null && alphaInformation.BitDepth != sequence.BitDepth)
             {
                 throw new InvalidDataException("Alpha information depth disagrees with the HEVC sequence.");
             }
-            int width = sequence.VisibleWidth;
-            int height = sequence.VisibleHeight;
+            int width = crop.Width;
+            int height = crop.Height;
+            int left = sequence.CropLeft + crop.Left;
+            int top = sequence.CropTop + crop.Top;
             Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             ColorConversion? conversion = null;
             if (!alpha)
@@ -39,9 +41,9 @@ namespace Heic.Net.Hevc
                 int subWidth = sequence.SubWidthC;
                 int subHeight = sequence.SubHeightC;
                 ColorPlaneLayout layout = new ColorPlaneLayout(width, height, picture.Luma.Stride,
-                    picture.Cb.Stride, subWidth, subHeight);
-                int lumaOffset = sequence.CropTop * picture.Luma.Stride + sequence.CropLeft;
-                int chromaOffset = sequence.CropTop / subHeight * picture.Cb.Stride + sequence.CropLeft / subWidth;
+                    picture.Cb.Stride, subWidth, subHeight, left % subWidth, top % subHeight);
+                int lumaOffset = top * picture.Luma.Stride + left;
+                int chromaOffset = top / subHeight * picture.Cb.Stride + left / subWidth;
                 conversion!.ConvertRows(picture.Luma.Samples.Span.Slice(lumaOffset),
                     picture.Cb.Samples.Span.Slice(chromaOffset), picture.Cr.Samples.Span.Slice(chromaOffset), layout, pixels.Span);
             }
@@ -50,8 +52,8 @@ namespace Heic.Net.Hevc
                 int maximum = (1 << sequence.BitDepth) - 1;
                 for (int y = 0; y < height; y++)
                 {
-                    int sy = y + sequence.CropTop;
-                    ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(sequence.CropLeft, width);
+                    int sy = y + top;
+                    ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(left, width);
                     Span<byte> row = pixels.Span.Slice(y * width * 4, width * 4);
                     if (alpha)
                     {

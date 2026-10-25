@@ -5,6 +5,7 @@ using System;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
+using Heic.Net.Heif;
 
 namespace Heic.Net.Tests
 {
@@ -31,6 +32,13 @@ namespace Heic.Net.Tests
             Join(new byte[] { version, (byte)(flags >> 16), (byte)(flags >> 8), (byte)flags }, payload));
 
         public static byte[] Text(string value) => Encoding.ASCII.GetBytes(value);
+
+        public static HeifBox CleanAperture(int width, int height, int left, int top, int croppedWidth, int croppedHeight)
+        {
+            return new HeifBox(HeifBox.Code("clap"), 0, Join(U32((uint)croppedWidth), U32(1),
+                U32((uint)croppedHeight), U32(1), U32(unchecked((uint)(2 * left - width + croppedWidth))), U32(2),
+                U32(unchecked((uint)(2 * top - height + croppedHeight))), U32(2)));
+        }
 
         public static byte[] U16(ushort value)
         {

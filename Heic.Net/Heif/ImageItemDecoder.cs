@@ -45,7 +45,15 @@ namespace Heic.Net.Heif
                 {
                     ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
                 }
-                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
+                if (picture.Sequence.VisibleWidth != expectedWidth || picture.Sequence.VisibleHeight != expectedHeight)
+                {
+                    throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
+                }
+                ImageCrop crop = ImageCrop.ReadPrefix(expectedWidth, expectedHeight, properties.Transforms);
+                expectedWidth = crop.Width;
+                expectedHeight = crop.Height;
+                transformedProperties = crop.PropertyCount;
+                result = PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
