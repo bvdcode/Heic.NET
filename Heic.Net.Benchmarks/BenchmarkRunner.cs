@@ -20,7 +20,7 @@ namespace Heic.Net.Benchmarks
         {
             if (arguments.Length == 0 || Array.IndexOf(arguments, "--help") >= 0)
             {
-                Console.WriteLine("--input <HEIC file> [--repetitions 5] [--output artifacts/benchmarks] [--max-pixels 16777216]");
+                Console.WriteLine("--input <HEIC file> [--repetitions 5] [--output artifacts/benchmarks] [--max-pixels <limit>]");
                 return;
             }
 

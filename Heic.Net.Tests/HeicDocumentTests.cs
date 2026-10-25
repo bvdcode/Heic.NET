@@ -78,10 +78,12 @@ namespace Heic.Net.Tests
         }
 
         [Fact]
-        public void LargeImagesRequireAnExplicitPixelLimit()
+        public void LargeImagesLoadByDefaultAndHonorExplicitPixelLimits()
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "20260223_110514.heic"));
-            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(encoded));
+            Assert.NotEqual(0u, HeicDocument.Load(encoded).PrimaryItemId);
+            Assert.Throws<InvalidDataException>(() => HeicDocument.Load(encoded,
+                new HeicDecodeOptions(maxPixels: 16 * 1024 * 1024)));
         }
 
         [Fact]

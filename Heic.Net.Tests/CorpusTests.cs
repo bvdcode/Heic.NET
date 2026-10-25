@@ -30,7 +30,7 @@ namespace Heic.Net.Tests
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
             Assert.Equal(inputHash, Convert.ToHexString(SHA256.HashData(encoded)));
-            HeicDocument document = HeicDocument.Load(encoded, new HeicDecodeOptions(maxPixels: maxPixels));
+            HeicDocument document = HeicDocument.Load(encoded);
             RgbaImage image = document.DecodePrimary();
             Assert.Equal(width, image.Width);
             Assert.Equal(height, image.Height);
@@ -44,7 +44,7 @@ namespace Heic.Net.Tests
             foreach (JsonElement entry in manifest.RootElement.EnumerateArray())
             {
                 int maxPixels = entry.GetProperty("maxPixels").GetInt32();
-                if ((maxPixels > HeicDecodeOptions.Default.MaxPixels) != large)
+                if ((maxPixels > 16 * 1024 * 1024) != large)
                 {
                     continue;
                 }

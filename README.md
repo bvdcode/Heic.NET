@@ -32,11 +32,12 @@ Documents copy their input once. Concurrent decode calls have separate workers a
 return separate pixel arrays. RGB retains the signalled primaries, transfer function
 and embedded ICC profile; it is not implicitly converted to sRGB.
 
-Defaults allow 64 MiB of encoded input and 16 Mi pixels per coded or visible image.
-For the included 200-megapixel photograph, explicitly increase the pixel limit:
+Defaults allow 64 MiB of encoded input and images up to the RGBA buffer size limit
+(`int.MaxValue / 4` pixels). The included 200-megapixel photograph opens with the
+default options. Applications can set a smaller pixel limit to bound resource use:
 
 ```csharp
-HeicDecodeOptions limits = new HeicDecodeOptions(maxPixels: 199756800);
+HeicDecodeOptions limits = new HeicDecodeOptions(maxPixels: 16 * 1024 * 1024);
 HeicDocument document = HeicDocument.Load(encodedFile, limits);
 ```
 

@@ -23,7 +23,7 @@ namespace Heic.Net
         /// <param name="maxItems">The maximum number of HEIF items in one document.</param>
         /// <param name="maxDerivationDepth">The maximum nesting depth of derived images.</param>
         /// <exception cref="ArgumentOutOfRangeException">A resource limit is invalid.</exception>
-        public HeicDecodeOptions(int maxInputBytes = 64 * 1024 * 1024, int maxPixels = 16 * 1024 * 1024,
+        public HeicDecodeOptions(int maxInputBytes = 64 * 1024 * 1024, int maxPixels = int.MaxValue / 4,
             int maxItems = 1024, int maxDerivationDepth = 16)
         {
             if (maxInputBytes < 32)
