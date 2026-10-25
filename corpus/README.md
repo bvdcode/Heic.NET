@@ -22,7 +22,7 @@ crop to the declared canvas, then apply the documented Q20 conversion.
 
 The codec fixtures contain one 64×48 IDR picture each: 8-bit 4:2:0, 10-bit 4:2:0,
 and 8-bit monochrome. `pattern-*` disables deblocking; `deblock-*` enables it.
-`sao-*` enables both deblocking and SAO. Wavefront coding is disabled in all fixtures.
+`sao-*` enables both deblocking and SAO. Wavefront coding is disabled in these original 64×48 fixtures.
 
 The source pattern is original and covered by the repository license. For zero-based
 coordinates, its 8-bit planes are:
@@ -51,3 +51,21 @@ The generator decodes the committed original elementary streams with FFmpeg, bui
 the HEIF structures, and calculates RGB through separate Decimal/NumPy arithmetic.
 It preserves the camera files and records their verified reference hashes. Camera
 reference generation uses native per-tile decoding; it is not rerun by this command.
+
+## Wavefront and quantization regression streams
+
+`wpp-8bit.hevc`, `wpp-10bit.hevc` and `wpp-mono.hevc` contain original
+200×144 patterns encoded by x265 3.5 with 32-pixel CTUs and WPP.
+`ctu64-8bit.hevc` and `wpp-ctu64-8bit.hevc` encode the same 8-bit pattern
+with 64-pixel CTUs, without and with WPP respectively. Complete reconstructed
+planes are checked against FFmpeg 6.1 references, including partial CTU rows.
+
+`wpp-quantization-8bit.hevc` and `wpp-quantization-10bit.hevc` contain the
+elementary image streams from HEIC.FYI's
+[basic 8-bit](https://heic.fyi/samples/basic-8bit-srgb.heic) and
+[Display P3 10-bit](https://heic.fyi/samples/display-p3-10bit.heic) samples.
+These procedural charts are released under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). They exercise
+quantization groups containing both uncoded and residual-bearing coding units.
+The complete YUV hashes come from FFmpeg with the original pixel format preserved
+and automatic conformance-window cropping disabled.

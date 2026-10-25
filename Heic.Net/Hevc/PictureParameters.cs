@@ -22,6 +22,7 @@ namespace Heic.Net.Hevc
         public int CrQpOffset { get; private set; }
         public bool SliceChromaQpOffsets { get; private set; }
         public bool TransquantBypass { get; private set; }
+        public bool EntropyCodingSync { get; private set; }
         public bool LoopFilterAcrossSlices { get; private set; }
         public bool DeblockingOverride { get; private set; }
         public bool DeblockingDisabled { get; private set; }
@@ -66,10 +67,7 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC tiles");
             }
-            if (reader.ReadFlag())
-            {
-                throw new UnsupportedHeicFeatureException("HEVC wavefront entropy synchronization");
-            }
+            pps.EntropyCodingSync = reader.ReadFlag();
             pps.LoopFilterAcrossSlices = reader.ReadFlag();
             if (reader.ReadFlag())
             {

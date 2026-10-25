@@ -11,10 +11,12 @@ namespace Heic.Net.Hevc
         private int previousQp = slice.Qp;
         private int currentQp = slice.Qp;
         private bool deltaCoded;
-        private int groupX;
-        private int groupY;
-        private int groupWidth;
-        private int groupHeight;
+
+        public void StartWavefrontRow()
+        {
+            previousQp = slice.Qp;
+            currentQp = slice.Qp;
+        }
 
         public void Begin(int x, int y, int log2Size)
         {
@@ -24,15 +26,10 @@ namespace Heic.Net.Hevc
             {
                 return;
             }
-            groupX = x;
-            groupY = y;
-            groupWidth = Math.Min(1 << log2Size, sps.Width - x);
-            groupHeight = Math.Min(1 << log2Size, sps.Height - y);
             int left = NeighbourQp(x - 1, y, x, y);
             int top = NeighbourQp(x, y - 1, x, y);
             currentQp = (left + top + 1) >> 1;
             deltaCoded = false;
-            blocks.SetQp(groupX, groupY, groupWidth, groupHeight, currentQp);
         }
 
         public void ReadDelta()
@@ -48,7 +45,6 @@ namespace Heic.Net.Hevc
                 throw new InvalidDataException("Invalid luma QP delta.");
             }
             currentQp = (currentQp + delta + 52 + 2 * offset) % (52 + offset) - offset;
-            blocks.SetQp(groupX, groupY, groupWidth, groupHeight, currentQp);
             deltaCoded = true;
         }
 
@@ -78,10 +74,7 @@ namespace Heic.Net.Hevc
 
         public void CompleteCodingUnit(int x, int y, int size)
         {
-            if (!slice.Picture.CuQpDelta)
-            {
-                blocks.SetQp(x, y, size, size, currentQp);
-            }
+            blocks.SetQp(x, y, size, size, currentQp);
             previousQp = currentQp;
         }
 

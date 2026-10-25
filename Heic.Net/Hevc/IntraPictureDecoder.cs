@@ -41,14 +41,27 @@ namespace Heic.Net.Hevc
                 int ctbSize = 1 << sequence.Log2Ctb;
                 for (int y = 0; y < sequence.Height; y += ctbSize)
                 {
+                    if (slice.Picture.EntropyCodingSync && y > 0)
+                    {
+                        reader.StartWavefrontRow(new BitReader(slice.RowSubstreams[y / ctbSize]), slice.Qp);
+                        quantization.StartWavefrontRow();
+                    }
                     for (int x = 0; x < sequence.Width; x += ctbSize)
                     {
                         sao.ReadCtb(x / ctbSize, y / ctbSize);
                         CodingTree(x, y, sequence.Log2Ctb, 0, reconstruction);
+                        if (slice.Picture.EntropyCodingSync && x == ctbSize)
+                        {
+                            reader.StoreWavefrontContexts();
+                        }
                         bool last = x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
                         if (reader.Termination() != last)
                         {
                             throw new InvalidDataException("Unexpected HEVC slice termination.");
+                        }
+                        if (slice.Picture.EntropyCodingSync && !last && x + ctbSize >= sequence.Width && !reader.Termination())
+                        {
+                            throw new InvalidDataException("Missing HEVC row termination.");
                         }
                     }
                 }

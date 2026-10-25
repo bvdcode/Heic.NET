@@ -20,6 +20,13 @@ namespace Heic.Net.Tests
         [InlineData("deblock-10bit.hevc", "715994A6D11DA7B5A78B1203FD992837492B232719AF9810607781A8531CFFCE")]
         [InlineData("sao-8bit.hevc", "FBFEE2D98685369EE0F167741E2023289B2687E14E2F74B77C9282F1D0A31560")]
         [InlineData("sao-10bit.hevc", "5E7EF210B66D73630EBEA8E419495DC7BCB73D1C210671CD31A4E33B6C86D4C1")]
+        [InlineData("wpp-8bit.hevc", "5EBACC5688E590C1F36DCF166CE7C1EC3449B7F633BB2F39814C9549A6C36256")]
+        [InlineData("wpp-10bit.hevc", "E3E54B71B1EFA1F0B5AC235D5A0415BC9C88AB6385C7BBB654F7697E7442AF90")]
+        [InlineData("wpp-mono.hevc", "3CDA530E7B6F60A0831EC43C2FF747B3AE92605FCA5BF6EDD029EC0471B036B9")]
+        [InlineData("ctu64-8bit.hevc", "8D862F8599CD4764436C69412ACC19616BD0711700752851529E56489C567DB7")]
+        [InlineData("wpp-ctu64-8bit.hevc", "9CBB32E59D49BE3084230ED9F1D0726A05A8DC4FD4CF19C480BAF073E56DFD3E")]
+        [InlineData("wpp-quantization-8bit.hevc", "30BF60DF772CD775A499A4D24FB151D58AFC2C6561EFB83B47570D3BF9014B44")]
+        [InlineData("wpp-quantization-10bit.hevc", "2A3279C698798E5E9BD13FC3AD16542CF30B350FBE2983CF7E4FA08EAC30F645")]
         public void PatternPictureMatchesIndependentNativePlaneHash(string file, string expectedHash)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
@@ -36,6 +43,7 @@ namespace Heic.Net.Tests
                         break;
                     case 34:
                         PictureParameters pps = PictureParameters.Read(nal, sequences);
+                        Assert.Equal(file.StartsWith("wpp-", StringComparison.Ordinal), pps.EntropyCodingSync);
                         pictures.Add(pps.Id, pps);
                         break;
                     case 19:

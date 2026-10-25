@@ -42,7 +42,8 @@ namespace Heic.Net.Hevc
             new byte[] { 200 }
         };
 
-        private readonly CabacDecoder decoder;
+        private CabacDecoder decoder;
+        private CabacContext[][]? wavefrontContexts;
         private readonly CabacContext[][] contexts;
 
         public IntraCabacReader(BitReader reader, int sliceQp)
@@ -52,10 +53,42 @@ namespace Heic.Net.Hevc
             for (int group = 0; group < contexts.Length; group++)
             {
                 contexts[group] = new CabacContext[InitialValues[group].Length];
+            }
+            InitializeContexts(sliceQp);
+        }
+
+        private void InitializeContexts(int sliceQp)
+        {
+            for (int group = 0; group < contexts.Length; group++)
+            {
                 for (int i = 0; i < contexts[group].Length; i++)
                 {
                     contexts[group][i] = CabacContext.Initialize(InitialValues[group][i], sliceQp);
                 }
+            }
+        }
+
+        public void StoreWavefrontContexts()
+        {
+            wavefrontContexts ??= new CabacContext[contexts.Length][];
+            for (int group = 0; group < contexts.Length; group++)
+            {
+                wavefrontContexts[group] ??= new CabacContext[contexts[group].Length];
+                contexts[group].CopyTo(wavefrontContexts[group], 0);
+            }
+        }
+
+        public void StartWavefrontRow(BitReader reader, int sliceQp)
+        {
+            decoder = new CabacDecoder(reader);
+            if (wavefrontContexts is null)
+            {
+                InitializeContexts(sliceQp);
+                return;
+            }
+            for (int group = 0; group < contexts.Length; group++)
+            {
+                wavefrontContexts[group].CopyTo(contexts[group], 0);
             }
         }
 

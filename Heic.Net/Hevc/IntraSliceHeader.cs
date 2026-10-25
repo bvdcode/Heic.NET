@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -13,6 +14,7 @@ namespace Heic.Net.Hevc
     {
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
+        public IReadOnlyList<ReadOnlyMemory<byte>> RowSubstreams { get; private set; } = Array.Empty<ReadOnlyMemory<byte>>();
         public int Qp { get; private set; }
         public int CbQpOffset { get; private set; }
         public int CrQpOffset { get; private set; }
@@ -103,6 +105,30 @@ namespace Heic.Net.Hevc
             {
                 reader.ReadFlag();
             }
+            int[] entryLengths = Array.Empty<int>();
+            if (picture.EntropyCodingSync)
+            {
+                int rows = (picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
+                int count = HevcSyntax.Ue(reader, rows - 1, "num_entry_point_offsets");
+                if (count != rows - 1)
+                {
+                    throw new InvalidDataException("WPP entry points do not cover every picture row.");
+                }
+                entryLengths = new int[count];
+                if (count > 0)
+                {
+                    int bits = HevcSyntax.Ue(reader, 31, "offset_len_minus1") + 1;
+                    for (int i = 0; i < count; i++)
+                    {
+                        uint offset = unchecked((uint)reader.Read(bits));
+                        if (offset >= int.MaxValue)
+                        {
+                            throw new InvalidDataException("HEVC entry point offset exceeds the NAL payload.");
+                        }
+                        entryLengths[i] = (int)offset + 1;
+                    }
+                }
+            }
             if (picture.HeaderExtension)
             {
                 int length = HevcSyntax.Ue(reader, reader.BitsRemaining / 8, "slice_segment_header_extension_length");
@@ -110,6 +136,11 @@ namespace Heic.Net.Hevc
             }
 
             HevcSyntax.Alignment(reader);
+            if (picture.EntropyCodingSync)
+            {
+                slice.RowSubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
+                slice.Reader = new BitReader(slice.RowSubstreams[0]);
+            }
             return slice;
         }
     }

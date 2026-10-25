@@ -75,6 +75,28 @@ namespace Heic.Net.Tests
         }
 
         [Fact]
+        public void EntropySubstreamOffsetsIncludeEmulationPreventionBytes()
+        {
+            NalPayload nal = new NalPayload(new byte[]
+            {
+                0x28, 1, 0, 0, 3, 1, 0x80,
+                0, 0, 3, 2, 0x80,
+                0, 0, 3, 0, 0x80,
+                1, 2
+            });
+            ReadOnlyMemory<byte>[] streams = nal.Substreams(6, new[] { 5, 5 });
+            Assert.Equal(3, streams.Length);
+            Assert.Equal(new byte[] { 0, 0, 2, 0x80 }, streams[0].ToArray());
+            Assert.Equal(new byte[] { 0, 0, 0, 0x80 }, streams[1].ToArray());
+            Assert.Equal(new byte[] { 1, 2 }, streams[2].ToArray());
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(-1, Array.Empty<int>()));
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(nal.Bytes.Length, Array.Empty<int>()));
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { 0 }));
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { 5, 7 }));
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { int.MaxValue }));
+        }
+
+        [Fact]
         public void EmulationPreventionBytesAreRemovedOnce()
         {
             NalPayload nal = new NalPayload(new byte[] { 0x40, 1, 0, 0, 3, 1, 0x80 });

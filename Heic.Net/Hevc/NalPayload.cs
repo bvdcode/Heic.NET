@@ -10,6 +10,8 @@ namespace Heic.Net.Hevc
 {
     internal class NalPayload
     {
+        private readonly ReadOnlyMemory<byte> encoded;
+
         public NalPayload(ReadOnlyMemory<byte> encoded)
         {
             if (encoded.Length < 2)
@@ -26,6 +28,7 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("multilayer HEVC");
             }
+            this.encoded = encoded;
             Type = (header >> 9) & 63;
             byte[] rbsp = new byte[encoded.Length];
             int target = 0;
@@ -53,6 +56,52 @@ namespace Heic.Net.Hevc
 
         public int Type { get; }
         public ReadOnlyMemory<byte> Bytes { get; }
+
+        public ReadOnlyMemory<byte>[] Substreams(int rbspOffset, int[] encodedLengths)
+        {
+            if (rbspOffset < 0 || rbspOffset >= Bytes.Length)
+            {
+                throw new InvalidDataException("HEVC entropy data offset exceeds the NAL payload.");
+            }
+            int encodedPosition = 0;
+            int rbspPosition = 0;
+            int zeros = 0;
+            while (rbspPosition < rbspOffset)
+            {
+                Advance();
+            }
+
+            ReadOnlyMemory<byte>[] streams = new ReadOnlyMemory<byte>[encodedLengths.Length + 1];
+            for (int i = 0; i < encodedLengths.Length; i++)
+            {
+                int length = encodedLengths[i];
+                if (length <= 0 || length >= encoded.Length - encodedPosition)
+                {
+                    throw new InvalidDataException("HEVC entry point exceeds the NAL payload.");
+                }
+                int end = encodedPosition + length;
+                int start = rbspPosition;
+                while (encodedPosition < end)
+                {
+                    Advance();
+                }
+                streams[i] = Bytes.Slice(start, rbspPosition - start);
+            }
+            streams[streams.Length - 1] = Bytes.Slice(rbspPosition);
+            return streams;
+
+            void Advance()
+            {
+                byte value = encoded.Span[encodedPosition++];
+                if (encodedPosition > 2 && zeros >= 2 && value == 3)
+                {
+                    zeros = 0;
+                    return;
+                }
+                rbspPosition++;
+                zeros = value == 0 ? zeros + 1 : 0;
+            }
+        }
 
         public static IReadOnlyList<NalPayload> ReadLengthPrefixed(ReadOnlyMemory<byte> data, int lengthSize)
         {
