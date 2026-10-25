@@ -52,6 +52,8 @@ namespace Heic.Net.Hevc
             }
         }
 
+        public bool IsFlat => !enabled;
+
         public static ScalingLists Flat { get; } = new ScalingLists(false);
         public static ScalingLists Default { get; } = new ScalingLists(true);
 

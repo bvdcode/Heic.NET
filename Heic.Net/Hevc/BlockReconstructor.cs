@@ -49,15 +49,7 @@ namespace Heic.Net.Hevc
                 else
                 {
                     int qp = quantization.ForComponent(component);
-                    for (int row = 0; row < size; row++)
-                    {
-                        for (int column = 0; column < size; column++)
-                        {
-                            int index = row * size + column;
-                            coefficients[index] = CoefficientMath.Dequantize(coefficients[index],
-                                parameters.Scaling.Factor(log2Size, component, column, row), qp, log2Size, depth);
-                        }
-                    }
+                    CoefficientMath.Dequantize(coefficients, parameters.Scaling, component, qp, log2Size, depth);
 
                     if (skip)
                     {
