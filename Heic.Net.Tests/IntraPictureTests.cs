@@ -2,9 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using Heic.Net.Hevc;
 using Xunit;
 
@@ -36,45 +34,11 @@ namespace Heic.Net.Tests
         [InlineData("scaling-chroma422-10bit.hevc", "971855F82CCA40AF17A12EDDE955F62E18CA118033C3408AFC873E254B7D801F")]
         public void PatternPictureMatchesIndependentNativePlaneHash(string file, string expectedHash)
         {
-            byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
-            Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
-            Dictionary<int, PictureParameters> pictures = new Dictionary<int, PictureParameters>();
-            DecodedPicture? decoded = null;
-            foreach (NalPayload nal in ReadAnnexB(encoded))
+            foreach (int workers in new[] { 1, 4 })
             {
-                switch (nal.Type)
-                {
-                    case 33:
-                        SequenceParameters sps = SequenceParameters.Read(nal, HeicDecodeOptions.Default);
-                        sequences.Add(sps.Id, sps);
-                        break;
-                    case 34:
-                        PictureParameters pps = PictureParameters.Read(nal, sequences);
-                        Assert.Equal(file.StartsWith("wpp-", StringComparison.Ordinal), pps.EntropyCodingSync);
-                        pictures.Add(pps.Id, pps);
-                        break;
-                    case 19:
-                    case 20:
-                        decoded = new IntraPictureDecoder(IntraSliceHeader.Read(nal, pictures)).Decode();
-                        break;
-                }
-            }
-
-            Assert.NotNull(decoded);
-            using (decoded)
-            {
-                List<byte> samples = new List<byte>();
-                AddPlane(samples, decoded.Luma, decoded.Sequence.BitDepth);
-                if (decoded.Cb is not null)
-                {
-                    AddPlane(samples, decoded.Cb, decoded.Sequence.BitDepth);
-                }
-                if (decoded.Cr is not null)
-                {
-                    AddPlane(samples, decoded.Cr, decoded.Sequence.BitDepth);
-                }
-                string hash = Convert.ToHexString(SHA256.HashData(samples.ToArray()));
-                Assert.Equal(expectedHash, hash);
+                IntraSliceHeader slice = IntraPictureFixture.ReadSlice(file);
+                using DecodedPicture decoded = new IntraPictureDecoder(slice).Decode(workers);
+                Assert.Equal(expectedHash, IntraPictureFixture.PlaneHash(decoded));
             }
         }
 
@@ -86,7 +50,7 @@ namespace Heic.Net.Tests
         public void HorizontalSubsamplingRetainsOddVisibleHeight(string file)
         {
             byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", file));
-            NalPayload nal = Assert.Single(ReadAnnexB(encoded), value => value.Type == 33);
+            NalPayload nal = Assert.Single(IntraPictureFixture.ReadAnnexB(encoded), value => value.Type == 33);
             SequenceParameters sequence = SequenceParameters.Read(nal, HeicDecodeOptions.Default);
             Assert.Equal(2, sequence.ChromaFormat);
             Assert.Equal(208, sequence.Width);
@@ -102,30 +66,5 @@ namespace Heic.Net.Tests
             Assert.Equal(152, picture.Cr.Height);
         }
 
-        private static void AddPlane(List<byte> samples, SamplePlane plane, int depth)
-        {
-            foreach (ushort sample in plane.Samples.Span)
-            {
-                samples.Add((byte)(sample & 255));
-                if (depth == 10)
-                {
-                    samples.Add((byte)(sample >> 8));
-                }
-            }
-        }
-
-        private static IEnumerable<NalPayload> ReadAnnexB(byte[] data)
-        {
-            int start = 4;
-            for (int i = 4; i <= data.Length; i++)
-            {
-                if (i == data.Length || i + 4 <= data.Length && data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 0 && data[i + 3] == 1)
-                {
-                    yield return new NalPayload(data.AsMemory(start, i - start));
-                    start = i + 4;
-                    i += 3;
-                }
-            }
-        }
     }
 }

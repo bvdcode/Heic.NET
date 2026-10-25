@@ -18,7 +18,7 @@ namespace Heic.Net.Hevc
     internal static class HevcImageDecoder
     {
         public static DecodedPicture Decode(DecoderConfiguration configuration, ReadOnlyMemory<byte> data,
-            HeicDecodeOptions options)
+            HeicDecodeOptions options, int workerCount = 1)
         {
             Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
             Dictionary<int, PictureParameters> pictures = new Dictionary<int, PictureParameters>();
@@ -77,7 +77,7 @@ namespace Heic.Net.Hevc
                         {
                             throw new UnsupportedHeicFeatureException("multiple HEVC pictures or slices per image item");
                         }
-                        result = new IntraPictureDecoder(IntraSliceHeader.Read(unit, pictures)).Decode();
+                        result = new IntraPictureDecoder(IntraSliceHeader.Read(unit, pictures)).Decode(workerCount);
                         break;
                     case 35:
                     case 36:

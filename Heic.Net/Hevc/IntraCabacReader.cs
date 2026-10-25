@@ -7,7 +7,7 @@ using System.IO;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Owns the arithmetic engine and adaptive contexts of one independent I slice.
+    /// Owns the arithmetic engine and adaptive contexts of one I-slice decoding substream.
     /// </summary>
     internal class IntraCabacReader
     {
@@ -89,6 +89,16 @@ namespace Heic.Net.Hevc
             for (int group = 0; group < contexts.Length; group++)
             {
                 wavefrontContexts[group].CopyTo(contexts[group], 0);
+            }
+        }
+
+        public void CopyWavefrontContexts(IntraCabacReader previous)
+        {
+            CabacContext[][] snapshot = previous.wavefrontContexts ??
+                throw new InvalidOperationException("The preceding WPP row has not stored its contexts.");
+            for (int group = 0; group < contexts.Length; group++)
+            {
+                snapshot[group].CopyTo(contexts[group], 0);
             }
         }
 

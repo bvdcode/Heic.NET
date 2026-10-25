@@ -9,19 +9,17 @@ namespace Heic.Net.Hevc
     /// Combines prediction with decoded residuals using one worker's reusable storage.
     /// </summary>
     /// <remarks>
-    /// Scratch arrays and the pooled transform intermediate never escape this instance.
+    /// Scratch arrays and the pooled transform intermediate belong to the current worker.
     /// Completed samples are copied into picture-owned planes before the next block reuses
     /// scratch storage. Transform skip uses (d * 2^(5 + log2Size) + half) / 2^(20 - depth).
     /// </remarks>
     internal class BlockReconstructor(DecodedPicture picture, ResidualDecoder residualDecoder,
-        PictureParameters parameters, QuantizationGroup quantization) : IDisposable
+        PictureParameters parameters, QuantizationGroup quantization, ReconstructionWorkspace workspace)
     {
-        private readonly int[] coefficients = new int[1024];
-        private readonly int[] prediction = new int[1024];
-        private readonly int[] residual = new int[1024];
-        private readonly TransformWorkspace transform = new TransformWorkspace();
         public void Reconstruct(int x, int y, int log2Size, int component, int mode, bool coded, bool bypass)
         {
+            Span<int> coefficients = workspace.Coefficients;
+            Span<int> prediction = workspace.Prediction;
             SamplePlane plane = Plane(component);
             int size = 1 << log2Size;
             int depth = parameters.Sequence.BitDepth;
@@ -37,14 +35,14 @@ namespace Heic.Net.Hevc
 
             IntraReferenceSamples.Substitute(top, left, size, depth);
             IntraPredictor.Predict(top, left, prediction, size, mode, depth, component == 0, parameters.Sequence.StrongIntraSmoothing, parameters.Sequence.ChromaFormat == 3);
-            Span<int> output = residual.AsSpan(0, size * size);
+            Span<int> output = workspace.Residual.Slice(0, size * size);
             output.Clear();
             if (coded)
             {
                 bool skip = residualDecoder.Read(coefficients, log2Size, component, mode, bypass);
                 if (bypass)
                 {
-                    coefficients.AsSpan(0, size * size).CopyTo(output);
+                    coefficients.Slice(0, size * size).CopyTo(output);
                 }
                 else
                 {
@@ -61,15 +59,13 @@ namespace Heic.Net.Hevc
                     }
                     else
                     {
-                        IntegerTransform.Inverse(coefficients, output, size, depth, component == 0, transform);
+                        IntegerTransform.Inverse(coefficients, output, size, depth, component == 0, workspace.Transform);
                     }
                 }
             }
 
             plane.Store(x, y, size, prediction, output, depth);
         }
-
-        public void Dispose() => transform.Dispose();
 
         private SamplePlane Plane(int component)
         {

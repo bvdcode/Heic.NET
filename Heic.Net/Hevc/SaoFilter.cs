@@ -10,7 +10,7 @@ namespace Heic.Net.Hevc
     /// Reads CTB offsets and applies them after deblocking using original neighbouring rows.
     /// </summary>
     /// <remarks>
-    /// Parameters and the two-row ring buffer belong to this worker. Row storage is rented
+    /// CTB parameters belong to the picture and are published with completed CTUs. Row storage is rented
     /// only during filtering and returned even when filtering fails. In-place writes never
     /// become neighbour inputs. CTB coordinates are in luma units; component coordinates
     /// follow the coded horizontal and vertical subsampling. Picture edges have no edge-offset neighbours.
@@ -18,16 +18,14 @@ namespace Heic.Net.Hevc
     internal class SaoFilter
     {
         private readonly IntraSliceHeader slice;
-        private readonly IntraCabacReader reader;
         private readonly SaoParameters[] parameters;
         private readonly int columns;
         private readonly int components;
         private readonly bool enabled;
 
-        public SaoFilter(IntraSliceHeader slice, IntraCabacReader reader)
+        public SaoFilter(IntraSliceHeader slice)
         {
             this.slice = slice;
-            this.reader = reader;
             int ctb = 1 << slice.Picture.Sequence.Log2Ctb;
             columns = (slice.Picture.Sequence.Width + ctb - 1) / ctb;
             int rows = (slice.Picture.Sequence.Height + ctb - 1) / ctb;
@@ -36,7 +34,7 @@ namespace Heic.Net.Hevc
             parameters = enabled ? new SaoParameters[checked(columns * rows * components)] : Array.Empty<SaoParameters>();
         }
 
-        public void ReadCtb(int x, int y)
+        public void ReadCtb(int x, int y, IntraCabacReader reader)
         {
             if (!enabled)
             {
