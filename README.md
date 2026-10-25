@@ -41,6 +41,38 @@ HeicDecodeOptions limits = new HeicDecodeOptions(maxPixels: 16 * 1024 * 1024);
 HeicDocument document = HeicDocument.Load(encodedFile, limits);
 ```
 
+## Performance
+
+Cold decoding to an owned RGBA8 buffer, measured on 2026-10-25:
+
+| Decoder | 12 MP, seconds | Peak RAM, MB | 200 MP, seconds | Peak RAM, MB |
+| --- | ---: | ---: | ---: | ---: |
+| libheif 1.23.2 / libde265 1.1.1 | 0.37 | 141 | 4.70 | 1683 |
+| Openize, `1640f6e` | 6.23 | 229 | 93.76 | 2419 |
+| **Heic.NET 0.1.2**, `142088c` | **1.14** | **118** | **5.43** | **911** |
+
+On this 200-MP photograph, Heic.NET used **46% less peak memory than libheif**
+and decoded **17.3 times faster than Openize**.
+
+Times are medians of three fresh-process runs; RAM is the highest process peak,
+in decimal MB. Intel Core i5-12450H, Linux x64, .NET 10.0.13,
+`DOTNET_PROCESSOR_COUNT=4`. Other workloads remained active, so these are shared-machine
+measurements. See the [measurement conditions and ranges](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#cross-decoder-results).
+
+Across an 84-file HEVC sample set, the primary-image results were:
+
+| Decoder | Decoded with expected dimensions | Wrong dimensions | Rejected |
+| --- | ---: | ---: | ---: |
+| libheif | 82 / 84 | 0 | 2 |
+| Openize | 50 / 84 | 9 | 25 |
+| **Heic.NET** | **84 / 84** | **0** | **0** |
+
+All three decoders rejected the three negative samples (two damaged HEIC files
+and a JPEG with a `.heic` extension). AVIF was
+excluded; sequences were checked through their primary image. These are results
+for this sample set. Pixel agreement is reported separately in the
+[comparison details](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#corpus-coverage).
+
 Build and test with the .NET 10 SDK:
 
 ```sh
