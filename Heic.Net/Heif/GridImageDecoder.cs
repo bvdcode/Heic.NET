@@ -12,7 +12,7 @@ namespace Heic.Net.Heif
     internal static class GridImageDecoder
     {
         public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties,
-            Func<uint, RgbaImage> decode, bool parallel)
+            Func<uint, PixelBufferScope, RgbaImage> decode, bool parallel, PixelBufferScope buffers)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));
             if (reader.U8() != 0)
@@ -40,24 +40,33 @@ namespace Heic.Net.Heif
                 throw new InvalidDataException("Grid input count disagrees with its rows and columns.");
             }
 
-            RgbaImage first = decode(inputs[0]);
-            int tileWidth = first.Width;
-            int tileHeight = first.Height;
-            ImageColorInformation color = first.ColorInformation;
-            if ((long)tileWidth * columns < width || (long)tileWidth * (columns - 1) >= width ||
-                (long)tileHeight * rows < height || (long)tileHeight * (rows - 1) >= height)
+            int tileWidth;
+            int tileHeight;
+            ImageColorInformation color;
+            Memory<byte> pixels;
+            using (PixelBufferScope firstBuffers = new PixelBufferScope(true))
             {
-                throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
+                RgbaImage first = decode(inputs[0], firstBuffers);
+                tileWidth = first.Width;
+                tileHeight = first.Height;
+                color = first.ColorInformation;
+                if ((long)tileWidth * columns < width || (long)tileWidth * (columns - 1) >= width ||
+                    (long)tileHeight * rows < height || (long)tileHeight * (rows - 1) >= height)
+                {
+                    throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
+                }
+
+                pixels = buffers.Allocate(checked(properties.Width * properties.Height * 4));
+                CopyTile(0, first);
             }
 
-            byte[] pixels = new byte[checked(properties.Width * properties.Height * 4)];
-            CopyTile(0, first);
             int workerCount = parallel ? Math.Min(Environment.ProcessorCount, inputs.Count - 1) : 1;
             if (workerCount <= 1)
             {
                 for (int index = 1; index < inputs.Count; index++)
                 {
-                    CopyTile(index, decode(inputs[index]));
+                    using PixelBufferScope tileBuffers = new PixelBufferScope(true);
+                    CopyTile(index, decode(inputs[index], tileBuffers));
                 }
             }
             else
@@ -70,7 +79,8 @@ namespace Heic.Net.Heif
                     {
                         for (int index = firstIndex; index < inputs.Count; index += workerCount)
                         {
-                            CopyTile(index, decode(inputs[index]));
+                            using PixelBufferScope tileBuffers = new PixelBufferScope(true);
+                            CopyTile(index, decode(inputs[index], tileBuffers));
                         }
                     });
                 }
@@ -97,7 +107,7 @@ namespace Heic.Net.Heif
                 for (int y = 0; y < copyHeight; y++)
                 {
                     tile.Pixels.Span.Slice(y * tile.Stride, copyWidth * 4).CopyTo(
-                        pixels.AsSpan(((top + y) * properties.Width + left) * 4, copyWidth * 4));
+                        pixels.Span.Slice(((top + y) * properties.Width + left) * 4, copyWidth * 4));
                 }
             }
         }

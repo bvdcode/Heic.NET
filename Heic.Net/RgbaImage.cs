@@ -10,9 +10,9 @@ namespace Heic.Net
     /// </summary>
     public class RgbaImage
     {
-        private readonly byte[] pixels;
+        private readonly ReadOnlyMemory<byte> pixels;
 
-        internal RgbaImage(int width, int height, byte[] pixels, ImageColorInformation colorInformation)
+        internal RgbaImage(int width, int height, ReadOnlyMemory<byte> pixels, ImageColorInformation colorInformation)
         {
             if (width <= 0 || height <= 0 || pixels.Length != checked(width * height * 4))
             {
@@ -60,6 +60,6 @@ namespace Heic.Net
         /// </summary>
         /// <param name="destination">A buffer with room for at least Stride * Height bytes.</param>
         /// <exception cref="ArgumentException">The destination is smaller than the image buffer.</exception>
-        public void CopyTo(Span<byte> destination) => pixels.AsSpan().CopyTo(destination);
+        public void CopyTo(Span<byte> destination) => pixels.Span.CopyTo(destination);
     }
 }

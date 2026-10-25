@@ -16,12 +16,12 @@ namespace Heic.Net.Hevc
     /// </remarks>
     internal static class PictureRenderer
     {
-        public static RgbaImage Render(DecodedPicture picture, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha)
+        public static RgbaImage Render(DecodedPicture picture, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers)
         {
             SequenceParameters sequence = picture.Sequence;
             int width = sequence.VisibleWidth;
             int height = sequence.VisibleHeight;
-            byte[] pixels = new byte[checked(width * height * 4)];
+            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             ColorConversion? conversion = null;
             if (!alpha)
             {
@@ -34,7 +34,7 @@ namespace Heic.Net.Hevc
             {
                 int sy = y + sequence.CropTop;
                 ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(sequence.CropLeft, width);
-                Span<byte> row = pixels.AsSpan(y * width * 4, width * 4);
+                Span<byte> row = pixels.Span.Slice(y * width * 4, width * 4);
                 if (alpha)
                 {
                     for (int x = 0; x < width; x++)

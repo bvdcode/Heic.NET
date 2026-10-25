@@ -13,10 +13,14 @@ namespace Heic.Net.Heif
     /// </summary>
     internal class ImageItemDecoder(HeifContainer container, IReadOnlyDictionary<uint, ImageProperties> metadata, HeicDecodeOptions options)
     {
-        public RgbaImage Decode(uint id) => Decode(id, false, null, ReadOnlyMemory<byte>.Empty, null, true);
+        public RgbaImage Decode(uint id)
+        {
+            using PixelBufferScope buffers = new PixelBufferScope(false);
+            return Decode(id, false, null, ReadOnlyMemory<byte>.Empty, null, true, buffers);
+        }
 
         private RgbaImage Decode(uint id, bool alpha, ColorEncoding? inheritedColor, ReadOnlyMemory<byte> inheritedIcc,
-            ImageDecodePath? ancestors, bool parallel)
+            ImageDecodePath? ancestors, bool parallel, PixelBufferScope buffers)
         {
             ImageDecodePath path = new ImageDecodePath(id, ancestors, options.MaxDerivationDepth);
             HeifItem item = container.Items[id];
@@ -33,12 +37,12 @@ namespace Heic.Net.Heif
                 DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
                 using DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options);
                 ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
-                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha);
+                result = PictureRenderer.Render(picture, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers);
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
                 result = GridImageDecoder.Decode(container, item, properties,
-                    target => Decode(target, alpha, color, icc, path, false), parallel);
+                    (target, tileBuffers) => Decode(target, alpha, color, icc, path, false, tileBuffers), parallel, buffers);
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
@@ -47,7 +51,7 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Identity image must reference exactly one input.");
                 }
 
-                result = Decode(inputs[0], alpha, color, icc, path, parallel);
+                result = Decode(inputs[0], alpha, color, icc, path, parallel, buffers);
             }
             else
             {
@@ -61,18 +65,18 @@ namespace Heic.Net.Heif
 
             foreach (HeifBox transform in properties.Transforms)
             {
-                result = ImageTransforms.Apply(result, transform);
+                result = ImageTransforms.Apply(result, transform, buffers);
             }
 
             if (!alpha)
             {
-                result = ApplyAlpha(item, result, path, parallel);
+                result = ApplyAlpha(item, result, path, parallel, buffers);
             }
 
             return result;
         }
 
-        private RgbaImage ApplyAlpha(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel)
+        private RgbaImage ApplyAlpha(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel, PixelBufferScope buffers)
         {
             if (item.References.ContainsKey(HeifBox.Code("prem")))
             {
@@ -109,16 +113,18 @@ namespace Heic.Net.Heif
                 return color;
             }
 
-            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, path, parallel);
+            using PixelBufferScope alphaBuffers = new PixelBufferScope(true);
+            RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, path, parallel, alphaBuffers);
             if (alpha.Width != color.Width || alpha.Height != color.Height)
             {
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");
             }
 
-            byte[] pixels = color.Pixels.ToArray();
+            Memory<byte> pixels = buffers.Allocate(color.Pixels.Length);
+            color.Pixels.CopyTo(pixels);
             for (int offset = 3; offset < pixels.Length; offset += 4)
             {
-                pixels[offset] = alpha.Pixels.Span[offset - 3];
+                pixels.Span[offset] = alpha.Pixels.Span[offset - 3];
             }
 
             return new RgbaImage(color.Width, color.Height, pixels, color.ColorInformation);

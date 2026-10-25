@@ -14,11 +14,11 @@ namespace Heic.Net.Heif
     /// Rotations are counterclockwise quarter turns. HEIF 2022 mirror axis 0 reverses
     /// rows, and axis 1 reverses columns. Clean-aperture offsets locate its centre relative
     /// to the stored image centre; only exact integral sample rectangles are supported.
-    /// Each result owns its pixels and never modifies the source image.
+    /// Each result uses separate pixel storage and never modifies the source image.
     /// </remarks>
     internal static class ImageTransforms
     {
-        public static RgbaImage Apply(RgbaImage image, HeifBox property)
+        public static RgbaImage Apply(RgbaImage image, HeifBox property, PixelBufferScope buffers)
         {
             ByteReader reader = new ByteReader(property.Payload);
             RgbaImage result;
@@ -30,7 +30,7 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Nonzero image rotation reserved bits.");
                 }
 
-                result = Orient(image, turns, null);
+                result = Orient(image, turns, null, buffers);
             }
             else if (property.Type == HeifBox.Code("imir"))
             {
@@ -40,7 +40,7 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Nonzero image mirror reserved bits.");
                 }
 
-                result = Orient(image, 0, axis);
+                result = Orient(image, 0, axis, buffers);
             }
             else if (property.Type == HeifBox.Code("clap"))
             {
@@ -53,7 +53,7 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Clean aperture exceeds the image.");
                 }
 
-                result = Crop(image, (int)left, (int)top, width, height);
+                result = Crop(image, (int)left, (int)top, width, height, buffers);
             }
             else
             {
@@ -68,11 +68,11 @@ namespace Heic.Net.Heif
             return result;
         }
 
-        public static RgbaImage Orient(RgbaImage source, int turns, int? mirrorAxis)
+        public static RgbaImage Orient(RgbaImage source, int turns, int? mirrorAxis, PixelBufferScope buffers)
         {
             int width = (turns & 1) == 0 ? source.Width : source.Height;
             int height = (turns & 1) == 0 ? source.Height : source.Width;
-            byte[] pixels = new byte[checked(width * height * 4)];
+            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             for (int y = 0; y < source.Height; y++)
             {
                 for (int x = 0; x < source.Width; x++)
@@ -115,20 +115,20 @@ namespace Heic.Net.Heif
                             throw new ArgumentOutOfRangeException(nameof(mirrorAxis));
                     }
 
-                    source.Pixels.Span.Slice((y * source.Width + x) * 4, 4).CopyTo(pixels.AsSpan((ty * width + tx) * 4, 4));
+                    source.Pixels.Span.Slice((y * source.Width + x) * 4, 4).CopyTo(pixels.Span.Slice((ty * width + tx) * 4, 4));
                 }
             }
 
             return new RgbaImage(width, height, pixels, source.ColorInformation);
         }
 
-        private static RgbaImage Crop(RgbaImage source, int left, int top, int width, int height)
+        private static RgbaImage Crop(RgbaImage source, int left, int top, int width, int height, PixelBufferScope buffers)
         {
-            byte[] pixels = new byte[checked(width * height * 4)];
+            Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             for (int y = 0; y < height; y++)
             {
                 source.Pixels.Span.Slice((top + y) * source.Stride + left * 4, width * 4)
-                    .CopyTo(pixels.AsSpan(y * width * 4, width * 4));
+                    .CopyTo(pixels.Span.Slice(y * width * 4, width * 4));
             }
 
             return new RgbaImage(width, height, pixels, source.ColorInformation);

@@ -20,8 +20,9 @@ namespace Heic.Net.Tests
         [InlineData(1, 0, 2, 3, new byte[] { 1, 4, 2, 5, 3, 6 })]
         public void OrientationMatchesLabelledPixelPositions(int turns, int? axis, int width, int height, byte[] labels)
         {
+            using PixelBufferScope buffers = new PixelBufferScope(false);
             RgbaImage source = Source();
-            RgbaImage result = ImageTransforms.Orient(source, turns, axis);
+            RgbaImage result = ImageTransforms.Orient(source, turns, axis, buffers);
             Assert.Equal(width, result.Width);
             Assert.Equal(height, result.Height);
             for (int i = 0; i < labels.Length; i++)
@@ -35,14 +36,15 @@ namespace Heic.Net.Tests
         [Fact]
         public void CleanApertureUsesExactRationalCoordinates()
         {
+            using PixelBufferScope buffers = new PixelBufferScope(false);
             byte[] payload = HeifTestFile.Join(HeifTestFile.U32(1), HeifTestFile.U32(1),
                 HeifTestFile.U32(2), HeifTestFile.U32(1), HeifTestFile.U32(0), HeifTestFile.U32(1),
                 HeifTestFile.U32(0), HeifTestFile.U32(1));
-            RgbaImage result = ImageTransforms.Apply(Source(), new HeifBox(HeifBox.Code("clap"), 0, payload));
+            RgbaImage result = ImageTransforms.Apply(Source(), new HeifBox(HeifBox.Code("clap"), 0, payload), buffers);
             Assert.Equal(1, result.Width);
             Assert.Equal(new byte[] { 2, 0, 0, 255, 5, 0, 0, 255 }, result.Pixels.ToArray());
             Array.Clear(payload, 4, 4);
-            Assert.Throws<InvalidDataException>(() => ImageTransforms.Apply(Source(), new HeifBox(HeifBox.Code("clap"), 0, payload)));
+            Assert.Throws<InvalidDataException>(() => ImageTransforms.Apply(Source(), new HeifBox(HeifBox.Code("clap"), 0, payload), buffers));
         }
 
         [Fact]
