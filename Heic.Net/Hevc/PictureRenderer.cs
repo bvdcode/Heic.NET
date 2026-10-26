@@ -19,20 +19,10 @@ namespace Heic.Net.Hevc
     {
         public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
         {
-            SequenceParameters sequence = picture.Sequence;
-            if (alpha && alphaInformation is not null && (alphaInformation.BitDepth != sequence.BitDepth))
-            {
-                throw new InvalidDataException("Alpha information depth disagrees with the HEVC sequence.");
-            }
+            ColorConversion? conversion = CreateConversion(picture, color, alpha, alphaInformation);
             int width = crop.Width;
             int height = crop.Height;
             Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
-            ColorConversion? conversion = null;
-            if (!alpha)
-            {
-                int matrix = picture.Cb is null ? 1 : color.Matrix;
-                conversion = new ColorConversion(sequence.BitDepth, color.FullRange, matrix);
-            }
 
             if (!alpha && picture.Cb is not null && picture.Cr is not null)
             {
@@ -44,6 +34,23 @@ namespace Heic.Net.Hevc
             }
 
             return new RgbaImage(width, height, pixels, new ImageColorInformation(color.Primaries, color.Transfer, iccProfile));
+        }
+
+        private static ColorConversion? CreateConversion(DecodedPicture picture, ColorEncoding color, bool alpha,
+            AlphaChannelInformation? alphaInformation)
+        {
+            SequenceParameters sequence = picture.Sequence;
+            if (alpha)
+            {
+                if (alphaInformation is not null && (alphaInformation.BitDepth != sequence.BitDepth))
+                {
+                    throw new InvalidDataException("Alpha information depth disagrees with the HEVC sequence.");
+                }
+                return null;
+            }
+
+            int matrix = picture.Cb is null ? 1 : color.Matrix;
+            return new ColorConversion(sequence.BitDepth, color.FullRange, matrix);
         }
 
         private static void RenderGrayscale(DecodedPicture picture, ImageCrop crop, ColorConversion? conversion,
