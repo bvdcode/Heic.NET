@@ -28,22 +28,22 @@ namespace Heic.Net
         {
             if (maxInputBytes < 32)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
+                throw new ArgumentOutOfRangeException(nameof(maxInputBytes), maxInputBytes, "The encoded input limit must be at least 32 bytes.");
             }
 
             if ((maxPixels <= 0) || (maxPixels > (int.MaxValue / 4)))
             {
-                throw new ArgumentOutOfRangeException(nameof(maxPixels));
+                throw new ArgumentOutOfRangeException(nameof(maxPixels), maxPixels, "The pixel limit must be positive and fit in a managed RGBA8 buffer.");
             }
 
             if (maxItems <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxItems));
+                throw new ArgumentOutOfRangeException(nameof(maxItems), maxItems, "The document item limit must be positive.");
             }
 
             if (maxDerivationDepth <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(maxDerivationDepth));
+                throw new ArgumentOutOfRangeException(nameof(maxDerivationDepth), maxDerivationDepth, "The image derivation depth limit must be positive.");
             }
 
             MaxInputBytes = maxInputBytes;

@@ -28,7 +28,7 @@ namespace Heic.Net.Hevc
             int chromaWidth = width == 0 ? 0 : checked((width + chromaPhaseX + subWidth) - 1) / subWidth;
             if (chromaStride < chromaWidth)
             {
-                throw new ArgumentOutOfRangeException(nameof(chromaStride));
+                throw new ArgumentOutOfRangeException(nameof(chromaStride), chromaStride, "The chroma stride must cover the visible chroma row.");
             }
             Width = width;
             Height = height;

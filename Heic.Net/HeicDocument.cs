@@ -76,7 +76,7 @@ namespace Heic.Net
         {
             if (stream is null)
             {
-                throw new ArgumentNullException(nameof(stream));
+                throw new ArgumentNullException(nameof(stream), "A readable HEIC input stream is required.");
             }
 
             HeicDecodeOptions limits = options ?? HeicDecodeOptions.Default;

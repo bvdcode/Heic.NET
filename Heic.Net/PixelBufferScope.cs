@@ -24,7 +24,7 @@ namespace Heic.Net
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(nameof(PixelBufferScope));
+                throw new ObjectDisposedException(nameof(PixelBufferScope), "Pixel buffers cannot be allocated after their scope is disposed.");
             }
             if (!temporary)
             {

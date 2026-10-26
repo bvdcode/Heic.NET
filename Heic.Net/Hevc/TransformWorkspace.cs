@@ -25,7 +25,7 @@ namespace Heic.Net.Hevc
             {
                 if (disposed)
                 {
-                    throw new ObjectDisposedException(nameof(TransformWorkspace));
+                    throw new ObjectDisposedException(nameof(TransformWorkspace), "Transform storage has been returned to its pool.");
                 }
                 return intermediate.AsSpan(0, MaximumBlockSamples);
             }

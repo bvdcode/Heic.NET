@@ -173,7 +173,7 @@ namespace Heic.Net.Hevc
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(nameof(CodingBlockMap));
+                throw new ObjectDisposedException(nameof(CodingBlockMap), "Coding metadata has been returned to its pools.");
             }
         }
 

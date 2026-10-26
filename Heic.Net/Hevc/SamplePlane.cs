@@ -172,7 +172,7 @@ namespace Heic.Net.Hevc
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(nameof(SamplePlane));
+                throw new ObjectDisposedException(nameof(SamplePlane), "Sample storage has been returned to its pool.");
             }
         }
     }

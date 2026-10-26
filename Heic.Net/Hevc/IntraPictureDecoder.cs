@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
         {
             if (workerCount < 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(workerCount));
+                throw new ArgumentOutOfRangeException(nameof(workerCount), workerCount, "A picture requires at least one decoding worker.");
             }
             SequenceParameters sequence = slice.Picture.Sequence;
             DecodedPicture picture = new DecodedPicture(sequence);
