@@ -43,21 +43,37 @@ HeicDocument document = HeicDocument.Load(encodedFile, limits);
 
 ## Performance
 
-Cold decoding to an owned RGBA8 buffer, measured on 2026-10-25:
+First decode to an owned RGBA8 buffer on a four-vCPU server, measured on
+2026-10-26:
 
 | Decoder | 12 MP, seconds | Peak RAM, MB | 200 MP, seconds | Peak RAM, MB |
 | --- | ---: | ---: | ---: | ---: |
-| libheif 1.23.2 / libde265 1.1.1 | 0.37 | 141 | 4.70 | 1683 |
-| Openize, `1640f6e` | 6.23 | 229 | 93.76 | 2419 |
-| **Heic.NET 0.1.2**, `142088c` | **1.14** | **118** | **5.43** | **911** |
+| libheif 1.23.2 / libde265 1.1.1 | 0.440 | 141.4 | 4.925 | 1682.7 |
+| Openize, `1640f6e` | 9.954 | 226.0 | 137.460 | 2428.3 |
+| **Heic.NET**, `20b1f67` | **0.827** | **112.5** | **4.851** | **905.9** |
 
 On this 200-MP photograph, Heic.NET used **46% less peak memory than libheif**
-and decoded **17.3 times faster than Openize**.
+and decoded **28.3 times faster than Openize**. Its 200-MP time was close to
+libheif; libheif remained faster on the 12-MP photograph.
 
 Times are medians of three fresh-process runs; RAM is the highest process peak,
-in decimal MB. Intel Core i5-12450H, Linux x64, .NET 10.0.13,
-`DOTNET_PROCESSOR_COUNT=4`. Other workloads remained active, so these are shared-machine
-measurements. See the [measurement conditions and ranges](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#cross-decoder-results).
+in decimal MB. AMD EPYC, four virtual CPUs, Debian 13 x64, .NET 10.0.13,
+CPU affinity 0–3. These are results for these inputs and this virtual server.
+See the [measurement conditions and ranges](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#cross-decoder-results).
+
+For repeated decoding in a long-running process, the same Heic.NET revision measured:
+
+| Image | Decode time after warm-up, seconds |
+| --- | ---: |
+| 12 MP photograph | 0.374 |
+| iPhone 15 Pro photograph | 0.152 |
+| 8.5 MP photograph with parallel HEVC rows | 0.369 |
+| 14 MP photograph with parallel HEVC rows | 0.435 |
+
+Each result is the median of three process medians, with 25 measured decodes per
+process after at least 64 warm-up decodes and five seconds. Document loading is
+excluded; every decode reconstructs a new owned image. See the
+[repeated-decoding protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#repeated-decoding).
 
 Across an 84-file HEVC sample set, the primary-image results were:
 

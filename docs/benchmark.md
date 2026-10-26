@@ -42,16 +42,16 @@ be faster for a large image, where decoding, allocation and memory bandwidth dom
 
 ## Cross-decoder results
 
-The comparison dated 2026-10-25 uses Heic.NET 0.1.2 (`142088c`), Openize
+The server comparison dated 2026-10-26 (UTC) uses Heic.NET `20b1f67`, Openize
 commit `1640f6ed26dd4038b86ed9d548a7b34c2cdd7ba1`, and libheif 1.23.2 with
 libde265 1.1.1 through LibHeifSharp 3.2.0.
 
-The host is an Intel Core i5-12450H with 12 logical processors, Linux x64 and
-.NET 10.0.13. Processes use `DOTNET_PROCESSOR_COUNT=4`; libheif is configured
-for at most four decoding threads. Openize decodes sequentially.
-The container has a 24-GiB memory limit and an 11-CPU time quota. Unrelated
-workloads remained active. Results should not be interpreted as isolated-machine
-throughput or guarantees for other hardware.
+The host is a Debian 13 x64 KVM server with four AMD EPYC virtual CPUs and
+.NET 10.0.13. Processes use CPU affinity 0–3 and `DOTNET_PROCESSOR_COUNT=4`;
+libheif is configured for at most four decoding threads. Openize decodes
+sequentially. The server has about 8 GB of RAM, including about 2.4 GB reserved
+as huge pages, and no swap. Virtual-host scheduling and runtime tiering can still
+affect results; these measurements do not guarantee throughput on other hardware.
 
 Each decoder runs three times per input in a fresh process. Runs are sequential,
 with the decoder order rotated between files and repetitions. All decoders load
@@ -61,6 +61,10 @@ Input file I/O, output hashing and pixel comparisons are outside the timed regio
 First-use JIT and initialization are included. Peak RAM is the whole-process
 high-water mark captured before hashing, including runtime and native memory.
 MB means 1,000,000 bytes. Every output hash stayed identical across repetitions.
+Native context disposal occurs after the measurements; Heic.NET completes internal
+picture cleanup before returning. The difference in cleanup scope, along
+with overlapping timing ranges, means the close 200-MP times do not establish a
+speed advantage over libheif.
 
 The two photographs are available in [the repository corpus](../corpus/README.md):
 `20260201_164721.heic` (4000×3000) and `20260223_110514.heic` (16320×12240).
@@ -69,11 +73,58 @@ highest peak RAM observed across the three runs.
 
 | Decoder | 12 MP, seconds | Peak RAM, MB | 200 MP, seconds | Peak RAM, MB |
 | --- | ---: | ---: | ---: | ---: |
-| libheif | 0.307 / 0.371 / 0.372 | 141.2 | 3.376 / 4.699 / 4.718 | 1682.5 |
-| Openize | 6.063 / 6.225 / 7.626 | 229.4 | 78.573 / 93.756 / 106.033 | 2419.2 |
-| Heic.NET | 0.967 / 1.143 / 1.166 | 118.0 | 4.446 / 5.429 / 6.075 | 910.9 |
+| libheif | 0.336 / 0.440 / 0.792 | 141.4 | 4.887 / 4.925 / 5.006 | 1682.7 |
+| Openize | 9.157 / 9.954 / 10.640 | 226.0 | 128.094 / 137.460 / 138.898 | 2428.3 |
+| Heic.NET | 0.803 / 0.827 / 1.334 | 112.5 | 4.469 / 4.851 / 4.998 | 905.9 |
+
+The same series also measured the following inputs. Each successful cell gives
+**median seconds / maximum peak RAM in MB**. Incorrect dimensions and decode
+errors are excluded from speed comparisons.
+
+| Input | libheif | Openize | Heic.NET |
+| --- | ---: | ---: | ---: |
+| Display P3, 10-bit | 0.132 / 52.2 | Decode error | 0.351 / 56.8 |
+| iPhone 15 Pro | 0.245 / 137.1 | 8.607 / 273.9 | 0.850 / 105.3 |
+| 10-bit 4:2:2 | 0.116 / 60.4 | Decode error | 0.480 / 58.6 |
+| 8-bit 4:4:4 | 0.099 / 47.1 | Decode error | 0.299 / 52.0 |
+| Monochrome | 0.064 / 54.0 | Decode error | 0.229 / 52.0 |
+| 8.5 MP, parallel HEVC rows | 0.757 / 145.9 | Decode error | 1.046 / 115.9 |
+| 14 MP, parallel HEVC rows | 0.926 / 209.9 | Wrong dimensions | 1.047 / 145.0 |
+
+These inputs are respectively `display-p3-10bit.heic`, `iphone_15_pro.heic`,
+`camera-style-10bit-422.hif`, `chroma-444.heic`, `greyscale-monochrome.heic`,
+`1718_rotate_90_cw.HEIC` and `7765_horizontal_normal.HEIC` from the sample set
+described in [the corpus documentation](../corpus/README.md).
+
+### Repeated decoding
+
+On the same server and runtime, Heic.NET `20b1f67` was also measured after at least
+64 warm-up decodes and five elapsed seconds per process. Three independent
+processes each performed 25 measured decodes of the same loaded document. Every
+decode reconstructs its picture and returns a new owned RGBA8 array; decoded pixels
+are not cached. All warm-up and measured output hashes matched the accepted
+dimensions and complete RGBA output.
+
+| Input | Median decode, seconds | Range of process medians, seconds |
+| --- | ---: | ---: |
+| 12 MP photograph | 0.374 | 0.355–0.453 |
+| iPhone 15 Pro | 0.152 | 0.151–0.165 |
+| 8.5 MP, parallel HEVC rows | 0.369 | 0.351–0.370 |
+| 14 MP, parallel HEVC rows | 0.435 | 0.429–0.509 |
+
+Each table value is the median of the three process medians. These times exclude
+document loading and cannot be compared directly with another decoder's first
+decode. The included CLI's `warm` mode performs one preceding decode; it uses a
+different warm-up protocol. A long decoding batch's lifetime peak RSS is also a
+different measurement from the single-image peaks in the first-decode table.
 
 ### Corpus coverage
+
+The coverage and pairwise pixel comparison below were measured on 2026-10-25
+with Heic.NET `142088c` on an Intel Core i5-12450H Linux host. Heic.NET `20b1f67`
+was subsequently checked against all 84 accepted full RGBA hashes and dimensions,
+with the same three negative rejections. The aggregate timing totals below belong
+to the earlier workstation series and must not be mixed with the server timings.
 
 The complete comparison contains 84 positive HEVC samples (83 unique input hashes)
 and three negative samples: two damaged HEIC files and a JPEG with a `.heic`
