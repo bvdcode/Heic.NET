@@ -38,22 +38,11 @@ namespace Heic.Net.Heif
             RgbaImage result;
             if (item.Type == HeifBox.Code("hvc1"))
             {
-                DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
-                using DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(id), options,
-                    parallel ? Environment.ProcessorCount : 1);
-                if (properties.PixelDepthsEssential)
-                {
-                    ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
-                }
-                if ((picture.Sequence.VisibleWidth != expectedWidth) || (picture.Sequence.VisibleHeight != expectedHeight))
-                {
-                    throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
-                }
                 ImageCrop crop = ImageCrop.ReadPrefix(expectedWidth, expectedHeight, properties.Transforms);
                 expectedWidth = crop.Width;
                 expectedHeight = crop.Height;
                 transformedProperties = crop.PropertyCount;
-                result = PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
+                result = DecodeCoded(item, properties, crop, color, icc, alpha, parallel, buffers, alphaInformation);
             }
             else if (item.Type == HeifBox.Code("grid"))
             {
@@ -99,6 +88,23 @@ namespace Heic.Net.Heif
             }
 
             return result;
+        }
+
+        private RgbaImage DecodeCoded(HeifItem item, ImageProperties properties, ImageCrop crop, ColorEncoding? color,
+            ReadOnlyMemory<byte> icc, bool alpha, bool parallel, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation)
+        {
+            DecoderConfiguration configuration = properties.Configuration ?? throw new InvalidDataException("HEVC image configuration is missing.");
+            using DecodedPicture picture = HevcImageDecoder.Decode(configuration, container.ReadData(item.Id), options,
+                parallel ? Environment.ProcessorCount : 1);
+            if (properties.PixelDepthsEssential)
+            {
+                ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
+            }
+            if ((picture.Sequence.VisibleWidth != properties.Width) || (picture.Sequence.VisibleHeight != properties.Height))
+            {
+                throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
+            }
+            return PictureRenderer.Render(picture, crop, color ?? ColorEncoding.FromVideo(picture.Sequence.Video), icc, alpha, buffers, alphaInformation);
         }
 
         private RgbaImage ApplyAlpha(HeifItem item, RgbaImage color, ImageDecodePath path, bool parallel, PixelBufferScope buffers)

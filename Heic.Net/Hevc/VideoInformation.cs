@@ -21,19 +21,7 @@ namespace Heic.Net.Hevc
         public static VideoInformation Read(BitReader reader, int maxSubLayer)
         {
             VideoInformation information = new VideoInformation();
-            if (reader.ReadFlag())
-            {
-                int aspectRatioIdc = reader.Read(8);
-                if (aspectRatioIdc == ExtendedSampleAspectRatio)
-                {
-                    int sampleAspectRatioWidth = reader.Read(SampleAspectRatioComponentBits);
-                    int sampleAspectRatioHeight = reader.Read(SampleAspectRatioComponentBits);
-                    if ((sampleAspectRatioWidth == 0) || (sampleAspectRatioHeight == 0))
-                    {
-                        throw new InvalidDataException("Extended sample aspect ratio components must be nonzero.");
-                    }
-                }
-            }
+            ReadAspectRatio(reader);
 
             if (reader.ReadFlag())
             {
@@ -98,6 +86,23 @@ namespace Heic.Net.Hevc
             }
 
             return information;
+        }
+
+        private static void ReadAspectRatio(BitReader reader)
+        {
+            if (reader.ReadFlag())
+            {
+                int aspectRatioIdc = reader.Read(8);
+                if (aspectRatioIdc == ExtendedSampleAspectRatio)
+                {
+                    int sampleAspectRatioWidth = reader.Read(SampleAspectRatioComponentBits);
+                    int sampleAspectRatioHeight = reader.Read(SampleAspectRatioComponentBits);
+                    if ((sampleAspectRatioWidth == 0) || (sampleAspectRatioHeight == 0))
+                    {
+                        throw new InvalidDataException("Extended sample aspect ratio components must be nonzero.");
+                    }
+                }
+            }
         }
     }
 }

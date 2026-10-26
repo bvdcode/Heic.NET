@@ -52,6 +52,11 @@ namespace Heic.Net.Heif
                 throw new InvalidDataException("HEIF requires a file type, metadata and primary image item.");
             }
 
+            return new HeifContainer(file, itemData, primaryItemId, FreezeItems(), properties.ToArray(), limits.MaxInputBytes);
+        }
+
+        private Dictionary<uint, HeifItem> FreezeItems()
+        {
             Dictionary<uint, HeifItem> snapshot = new Dictionary<uint, HeifItem>();
             foreach (HeifItemBuilder item in items.Values)
             {
@@ -81,7 +86,7 @@ namespace Heic.Net.Heif
                 snapshot.Add(item.Id, item.Build());
             }
 
-            return new HeifContainer(file, itemData, primaryItemId, snapshot, properties.ToArray(), limits.MaxInputBytes);
+            return snapshot;
         }
 
         private HeifItemBuilder Item(uint id)

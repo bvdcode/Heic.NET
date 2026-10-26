@@ -89,20 +89,7 @@ namespace Heic.Net.Heif
             }
             else if (box.Type == HeifBox.Code("auxC"))
             {
-                FullBox(reader);
-                ReadOnlyMemory<byte> bytes = reader.Bytes(reader.Remaining);
-                int end = bytes.Span.IndexOf((byte)0);
-                if (end < 0)
-                {
-                    throw new InvalidDataException("Auxiliary type is not null terminated.");
-                }
-
-                AuxiliaryType = Encoding.UTF8.GetString(bytes.Span.Slice(0, end));
-                AuxiliarySubtype = bytes.Slice(end + 1);
-                if ((AuxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha") && !AuxiliarySubtype.IsEmpty)
-                {
-                    throw new UnsupportedHeicFeatureException("MPEG alpha auxiliary subtype");
-                }
+                ReadAuxiliary(reader);
             }
             else if ((box.Type == HeifBox.Code("irot")) || (box.Type == HeifBox.Code("imir")) || (box.Type == HeifBox.Code("clap")))
             {
@@ -121,6 +108,24 @@ namespace Heic.Net.Heif
             if (reader.Remaining != 0)
             {
                 throw new InvalidDataException("Unexpected image property data.");
+            }
+        }
+
+        private void ReadAuxiliary(ByteReader reader)
+        {
+            FullBox(reader);
+            ReadOnlyMemory<byte> bytes = reader.Bytes(reader.Remaining);
+            int end = bytes.Span.IndexOf((byte)0);
+            if (end < 0)
+            {
+                throw new InvalidDataException("Auxiliary type is not null terminated.");
+            }
+
+            AuxiliaryType = Encoding.UTF8.GetString(bytes.Span.Slice(0, end));
+            AuxiliarySubtype = bytes.Slice(end + 1);
+            if ((AuxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha") && !AuxiliarySubtype.IsEmpty)
+            {
+                throw new UnsupportedHeicFeatureException("MPEG alpha auxiliary subtype");
             }
         }
 

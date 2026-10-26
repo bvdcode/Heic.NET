@@ -11,8 +11,8 @@ namespace Heic.Net.Heif
 {
     internal static class GridImageDecoder
     {
-        public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties,
-            Func<uint, PixelBufferScope, RgbaImage> decode, bool parallel, PixelBufferScope buffers, ImageOrientation orientation)
+        private static IReadOnlyList<uint> ReadInputs(HeifContainer container, HeifItem item, ImageProperties properties,
+            out int rows, out int columns)
         {
             ByteReader reader = new ByteReader(container.ReadData(item.Id));
             if (reader.U8() != 0)
@@ -26,8 +26,8 @@ namespace Heic.Net.Heif
                 throw new UnsupportedHeicFeatureException("image grid flags");
             }
 
-            int rows = reader.U8() + 1;
-            int columns = reader.U8() + 1;
+            rows = reader.U8() + 1;
+            columns = reader.U8() + 1;
             uint width = flags == 0 ? reader.U16() : reader.U32();
             uint height = flags == 0 ? reader.U16() : reader.U32();
             if ((width != properties.Width) || (height != properties.Height) || (reader.Remaining != 0))
@@ -40,6 +40,14 @@ namespace Heic.Net.Heif
                 throw new InvalidDataException("Grid input count disagrees with its rows and columns.");
             }
 
+            return inputs;
+        }
+
+        public static RgbaImage Decode(HeifContainer container, HeifItem item, ImageProperties properties,
+            Func<uint, PixelBufferScope, RgbaImage> decode, bool parallel, PixelBufferScope buffers, ImageOrientation orientation)
+        {
+            IReadOnlyList<uint> inputs = ReadInputs(container, item, properties, out int rows, out int columns);
+
             int tileWidth;
             int tileHeight;
             ImageColorInformation color;
@@ -50,8 +58,8 @@ namespace Heic.Net.Heif
                 tileWidth = first.Width;
                 tileHeight = first.Height;
                 color = first.ColorInformation;
-                if ((((long)tileWidth * columns) < width) || (((long)tileWidth * (columns - 1)) >= width) ||
-                    (((long)tileHeight * rows) < height) || (((long)tileHeight * (rows - 1)) >= height))
+                if ((((long)tileWidth * columns) < properties.Width) || (((long)tileWidth * (columns - 1)) >= properties.Width) ||
+                    (((long)tileHeight * rows) < properties.Height) || (((long)tileHeight * (rows - 1)) >= properties.Height))
                 {
                     throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
                 }

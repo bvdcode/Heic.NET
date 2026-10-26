@@ -46,6 +46,27 @@ namespace Heic.Net.Hevc
             int columns = ((picture.Sequence.Width - 1) / (1 << picture.Sequence.Log2Ctb)) + 1;
             int rows = ((picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb)) + 1;
             int count = checked(columns * rows);
+            int start = ReadStart(reader, picture, first, count);
+            IntraSliceHeader slice = new IntraSliceHeader
+            {
+                Picture = picture,
+                Reader = reader,
+                StartCtbAddress = start,
+                EndCtbAddress = count,
+                LoopFilterAcrossSlices = picture.LoopFilterAcrossSlices,
+                DeblockingDisabled = picture.DeblockingDisabled,
+                BetaOffset = picture.BetaOffset,
+                TcOffset = picture.TcOffset
+            };
+            slice.ReadPictureInformation(nal.Type);
+            slice.ReadQuantization();
+            slice.ReadFilters();
+            slice.ReadEntryPoints(nal, rows);
+            return slice;
+        }
+
+        private static int ReadStart(BitReader reader, PictureParameters picture, bool first, int count)
+        {
             int start = 0;
             if (!first)
             {
@@ -64,17 +85,13 @@ namespace Heic.Net.Hevc
                     throw new InvalidDataException("Invalid slice segment address.");
                 }
             }
-            IntraSliceHeader slice = new IntraSliceHeader
-            {
-                Picture = picture,
-                Reader = reader,
-                StartCtbAddress = start,
-                EndCtbAddress = count,
-                LoopFilterAcrossSlices = picture.LoopFilterAcrossSlices,
-                DeblockingDisabled = picture.DeblockingDisabled,
-                BetaOffset = picture.BetaOffset,
-                TcOffset = picture.TcOffset
-            };
+            return start;
+        }
+
+        private void ReadPictureInformation(int nalType)
+        {
+            BitReader reader = Reader;
+            PictureParameters picture = Picture;
             for (int i = 0; i < picture.ExtraHeaderBits; i++)
             {
                 if (reader.ReadFlag())
@@ -91,9 +108,9 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC picture output suppression");
             }
-            if ((nal.Type != 19) && (nal.Type != 20))
+            if ((nalType != 19) && (nalType != 20))
             {
-                slice.PictureOrderCount = picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
+                this.PictureOrderCount = picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
                 if (picture.Sequence.TemporalMvpEnabled)
                 {
                     reader.ReadFlag();
@@ -101,43 +118,59 @@ namespace Heic.Net.Hevc
             }
             if (picture.Sequence.SaoEnabled)
             {
-                slice.SaoLuma = reader.ReadFlag();
+                this.SaoLuma = reader.ReadFlag();
                 if (picture.Sequence.ChromaFormat != 0)
                 {
-                    slice.SaoChroma = reader.ReadFlag();
+                    this.SaoChroma = reader.ReadFlag();
                 }
             }
+        }
 
+        private void ReadQuantization()
+        {
+            BitReader reader = Reader;
+            PictureParameters picture = Picture;
             int depthOffset = 6 * (picture.Sequence.BitDepth - 8);
-            slice.Qp = picture.InitialQp + HevcSyntax.Se(reader, -51 - depthOffset, 51 + depthOffset, "slice_qp_delta");
-            if ((slice.Qp < -depthOffset) || (slice.Qp > 51))
+            this.Qp = picture.InitialQp + HevcSyntax.Se(reader, -51 - depthOffset, 51 + depthOffset, "slice_qp_delta");
+            if ((this.Qp < -depthOffset) || (this.Qp > 51))
             {
                 throw new InvalidDataException("Invalid slice luma QP.");
             }
             if (picture.SliceChromaQpOffsets)
             {
-                slice.CbQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cb_qp_offset");
-                slice.CrQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cr_qp_offset");
-                if ((System.Math.Abs(slice.CbQpOffset + picture.CbQpOffset) > 12) || (System.Math.Abs(slice.CrQpOffset + picture.CrQpOffset) > 12))
+                this.CbQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cb_qp_offset");
+                this.CrQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cr_qp_offset");
+                if ((System.Math.Abs(this.CbQpOffset + picture.CbQpOffset) > 12) || (System.Math.Abs(this.CrQpOffset + picture.CrQpOffset) > 12))
                 {
                     throw new InvalidDataException("Combined chroma QP offset is out of range.");
                 }
             }
+        }
 
+        private void ReadFilters()
+        {
+            BitReader reader = Reader;
+            PictureParameters picture = Picture;
             if (picture.DeblockingOverride && reader.ReadFlag())
             {
-                slice.DeblockingDisabled = reader.ReadFlag();
-                if (!slice.DeblockingDisabled)
+                this.DeblockingDisabled = reader.ReadFlag();
+                if (!this.DeblockingDisabled)
                 {
-                    slice.BetaOffset = 2 * HevcSyntax.Se(reader, -6, 6, "slice_beta_offset_div2");
-                    slice.TcOffset = 2 * HevcSyntax.Se(reader, -6, 6, "slice_tc_offset_div2");
+                    this.BetaOffset = 2 * HevcSyntax.Se(reader, -6, 6, "slice_beta_offset_div2");
+                    this.TcOffset = 2 * HevcSyntax.Se(reader, -6, 6, "slice_tc_offset_div2");
                 }
             }
 
-            if (picture.LoopFilterAcrossSlices && (slice.SaoLuma || slice.SaoChroma || !slice.DeblockingDisabled))
+            if (picture.LoopFilterAcrossSlices && (this.SaoLuma || this.SaoChroma || !this.DeblockingDisabled))
             {
-                slice.LoopFilterAcrossSlices = reader.ReadFlag();
+                this.LoopFilterAcrossSlices = reader.ReadFlag();
             }
+        }
+
+        private void ReadEntryPoints(NalPayload nal, int rows)
+        {
+            BitReader reader = Reader;
+            PictureParameters picture = Picture;
             int[] entryLengths = Array.Empty<int>();
             if (picture.EntropyCodingSync)
             {
@@ -166,10 +199,9 @@ namespace Heic.Net.Hevc
             HevcSyntax.Alignment(reader);
             if (picture.EntropyCodingSync)
             {
-                slice.RowSubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
-                slice.Reader = new BitReader(slice.RowSubstreams[0]);
+                this.RowSubstreams = nal.Substreams(checked((int)(reader.GetBitPosition() / 8)), entryLengths);
+                this.Reader = new BitReader(this.RowSubstreams[0]);
             }
-            return slice;
         }
     }
 }
