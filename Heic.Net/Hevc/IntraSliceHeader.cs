@@ -8,7 +8,7 @@ using System.IO;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Describes an independent IDR I slice and positions its reader at the CABAC payload.
+    /// Describes an independent intra random-access slice and positions its reader at the CABAC payload.
     /// </summary>
     internal class IntraSliceHeader
     {
@@ -26,9 +26,9 @@ namespace Heic.Net.Hevc
 
         public static IntraSliceHeader Read(NalPayload nal, IReadOnlyDictionary<int, PictureParameters> pictures)
         {
-            if (nal.Type != 19 && nal.Type != 20)
+            if (nal.Type < 16 || nal.Type > 21)
             {
-                throw new UnsupportedHeicFeatureException("HEVC pictures other than IDR");
+                throw new UnsupportedHeicFeatureException("HEVC pictures other than intra random access");
             }
             BitReader reader = new BitReader(nal.Bytes);
             reader.SkipBits(16);
@@ -65,6 +65,14 @@ namespace Heic.Net.Hevc
             if (picture.OutputFlagPresent && !reader.ReadFlag())
             {
                 throw new UnsupportedHeicFeatureException("HEVC picture output suppression");
+            }
+            if (nal.Type != 19 && nal.Type != 20)
+            {
+                picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
+                if (picture.Sequence.TemporalMvpEnabled)
+                {
+                    reader.ReadFlag();
+                }
             }
             if (picture.Sequence.SaoEnabled)
             {

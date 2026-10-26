@@ -14,6 +14,10 @@ namespace Heic.Net.Tests
         [InlineData("basic-8bit.heic")]
         [InlineData("basic-10bit.heic")]
         [InlineData("grid-alpha.heic")]
+        [InlineData("cra-8bit.heic")]
+        [InlineData("cra-10bit.heic")]
+        [InlineData("bla-n-lp-8bit.heic")]
+        [InlineData("bla-w-radl-10bit.heic")]
         public void ValidSeedsReachBothTargets(string name)
         {
             byte[] input = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", name));

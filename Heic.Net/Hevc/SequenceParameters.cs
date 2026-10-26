@@ -48,6 +48,8 @@ namespace Heic.Net.Hevc
         public int Log2MaxTransform { get; private set; }
         public int MaxTransformDepthIntra { get; private set; }
         public bool SaoEnabled { get; private set; }
+        public ReferencePictureSyntax ReferencePictures { get; private set; } = null!;
+        public bool TemporalMvpEnabled { get; private set; }
         public bool StrongIntraSmoothing { get; private set; }
         public ScalingLists Scaling { get; private set; } = ScalingLists.Flat;
         public VideoInformation Video { get; private set; } = new VideoInformation();
@@ -97,8 +99,8 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC PCM coding");
             }
-            ReferencePictureSyntax.SkipSets(reader, log2Poc);
-            reader.ReadFlag();
+            sps.ReferencePictures = ReferencePictureSyntax.Read(reader, log2Poc);
+            sps.TemporalMvpEnabled = reader.ReadFlag();
             sps.StrongIntraSmoothing = reader.ReadFlag();
             if (reader.ReadFlag())
             {

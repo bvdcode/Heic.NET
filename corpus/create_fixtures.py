@@ -142,7 +142,7 @@ def native_pattern(path: Path, depth: int, monochrome: bool, ffmpeg: Path) -> Pa
     image_data = b"".join(
         struct.pack(">I", len(unit)) + unit
         for unit in units
-        if unit[0] >> 1 in (19, 20)
+        if 16 <= unit[0] >> 1 <= 21
     )
     sequence = next(unit for unit in parameters if unit[0] >> 1 == 33)
     unescaped = re.sub(b"\x00\x00\x03", b"\x00\x00", sequence)

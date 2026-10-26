@@ -6,7 +6,7 @@ using System;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Decodes one independent IDR picture using exclusive plane rentals.
+    /// Decodes one independent intra random-access picture using exclusive plane rentals.
     /// </summary>
     internal class IntraPictureDecoder(IntraSliceHeader slice)
     {

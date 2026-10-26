@@ -224,5 +224,101 @@
       "camera",
       "grid"
     ]
+  },
+  {
+    "file": "cra-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "1A35D9F5A84A2521F36E3E729C17FE0F6D03388E7F51CD48A48F2E12FF12BBB2",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "8bit"
+    ]
+  },
+  {
+    "file": "bla-w-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "EE5A99FB3FE0ABF0336FB5C49A7025C91D3C9C88B1A4571F6D951EF62D4B760A",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "8bit"
+    ]
+  },
+  {
+    "file": "bla-w-radl-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "7F36561D1BCD08602435791EF527E4FA7FB635FCC6DF3B54AA5F2F4F2C3FC4A1",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "8bit"
+    ]
+  },
+  {
+    "file": "bla-n-lp-8bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "FF1AD18FAD9E045F05AC3531BA3B492669BB4EE4FF3E514DF10E5129D4B26451",
+    "rgbaSha256": "E000DF0AAFA56DDD96CA6A77F88162DA5DE9C0255F8DF8C7DC4FE7AF7236498C",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "8bit"
+    ]
+  },
+  {
+    "file": "cra-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "B70ABBAE9EFDDBA98C41D6F9121E3291DDB2A813735D9C685CA41C0FAD500984",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "cra",
+      "10bit"
+    ]
+  },
+  {
+    "file": "bla-w-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "6843C1837FBAFE8B106A2A0D74E593BD0889A4C9CE68B95D7A940917CB802E2D",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-lp",
+      "10bit"
+    ]
+  },
+  {
+    "file": "bla-w-radl-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "F36B9A784584BA2A8BCBFDAA26513C0527EF48E9509C11F16B19DF6C4002696B",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-w-radl",
+      "10bit"
+    ]
+  },
+  {
+    "file": "bla-n-lp-10bit.heic",
+    "width": 64,
+    "height": 48,
+    "inputSha256": "D84D310B8E2659D8AD723460EBC10FFFA798765F1AD7C0E7AB67BD9DE174BC63",
+    "rgbaSha256": "DB20A7381CF0CC031C476302BB2CEF116E2A35BC92FDED9B576FBE034D68452D",
+    "maxPixels": 16777216,
+    "features": [
+      "bla-n-lp",
+      "10bit"
+    ]
   }
 ]

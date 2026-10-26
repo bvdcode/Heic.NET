@@ -8,7 +8,7 @@ using System.IO;
 namespace Heic.Net.Hevc
 {
     /// <summary>
-    /// Reconstructs one single-layer IDR image from configuration and item NAL units.
+    /// Reconstructs one single-layer intra random-access image from configuration and item NAL units.
     /// </summary>
     /// <remarks>
     /// Single-layer Annex A decoding may discard VPS NAL units under H.265 clause 7.4.3.1.
@@ -37,7 +37,7 @@ namespace Heic.Net.Hevc
 
                 if (result is null)
                 {
-                    throw new InvalidDataException("HEVC image contains no IDR picture.");
+                    throw new InvalidDataException("HEVC image contains no intra random-access picture.");
                 }
 
                 completed = true;
@@ -71,6 +71,10 @@ namespace Heic.Net.Hevc
                             throw new InvalidDataException("Duplicate HEVC PPS identifier.");
                         }
                         break;
+                    case 16:
+                    case 17:
+                    case 18:
+                    case 21:
                     case 19:
                     case 20:
                         if (result is not null)

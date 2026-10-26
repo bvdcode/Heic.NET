@@ -1,58 +1,86 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
+using System.IO;
+
 namespace Heic.Net.Hevc
 {
-    internal static class ReferencePictureSyntax
+    internal class ReferencePictureSyntax(int log2Poc, ShortTermReferenceSet[] shortTermSets,
+        bool longTermPresent, int longTermCount)
     {
-        public static void SkipSets(BitReader reader, int log2Poc)
+        public static ReferencePictureSyntax Read(BitReader reader, int log2Poc)
         {
             int count = HevcSyntax.Ue(reader, 64, "num_short_term_ref_pic_sets");
-            int previousCount = 0;
+            ShortTermReferenceSet[] sets = new ShortTermReferenceSet[count];
             for (int i = 0; i < count; i++)
             {
-                if (i != 0 && reader.ReadFlag())
-                {
-                    reader.ReadFlag();
-                    reader.ReadUev();
-                    int currentCount = 0;
-                    for (int j = 0; j <= previousCount; j++)
-                    {
-                        bool used = reader.ReadFlag();
-                        bool useDelta = used || reader.ReadFlag();
-                        if (useDelta)
-                        {
-                            currentCount++;
-                        }
-                    }
+                sets[i] = ShortTermReferenceSet.Read(reader, sets, i, false);
+            }
 
-                    if (currentCount > 16)
-                    {
-                        throw new System.IO.InvalidDataException("Too many reference pictures.");
-                    }
-                    previousCount = currentCount;
+            bool longTermPresent = reader.ReadFlag();
+            int longTermCount = longTermPresent ? HevcSyntax.Ue(reader, 32, "num_long_term_ref_pics_sps") : 0;
+            for (int i = 0; i < longTermCount; i++)
+            {
+                reader.SkipBits(log2Poc + 1);
+            }
+            return new ReferencePictureSyntax(log2Poc, sets, longTermPresent, longTermCount);
+        }
+
+        public void ReadIntraSlice(BitReader reader)
+        {
+            reader.SkipBits(log2Poc);
+            bool fromSequence = reader.ReadFlag();
+            if (fromSequence)
+            {
+                if (shortTermSets.Length == 0)
+                {
+                    throw new InvalidDataException("The slice selects a missing short-term reference picture set.");
+                }
+                ReadIndex(reader, shortTermSets.Length);
+            }
+            else
+            {
+                ShortTermReferenceSet.Read(reader, shortTermSets, shortTermSets.Length, true);
+            }
+
+            if (!longTermPresent)
+            {
+                return;
+            }
+            int sequenceCount = longTermCount > 0
+                ? HevcSyntax.Ue(reader, longTermCount, "num_long_term_sps") : 0;
+            int explicitCount = HevcSyntax.Ue(reader, 32 - sequenceCount, "num_long_term_pics");
+            for (int i = 0; i < sequenceCount + explicitCount; i++)
+            {
+                if (i < sequenceCount)
+                {
+                    ReadIndex(reader, longTermCount);
                 }
                 else
                 {
-                    int negative = HevcSyntax.Ue(reader, 16, "num_negative_pics");
-                    int positive = HevcSyntax.Ue(reader, 16 - negative, "num_positive_pics");
-                    previousCount = negative + positive;
-                    for (int j = 0; j < previousCount; j++)
-                    {
-                        reader.ReadUev();
-                        reader.ReadFlag();
-                    }
+                    reader.SkipBits(log2Poc);
+                    reader.ReadFlag();
                 }
-            }
-
-            if (reader.ReadFlag())
-            {
-                int longTermCount = HevcSyntax.Ue(reader, 32, "num_long_term_ref_pics_sps");
-                for (int i = 0; i < longTermCount; i++)
+                if (reader.ReadFlag())
                 {
-                    reader.SkipBits(log2Poc + 1);
+                    reader.ReadUev();
                 }
             }
+        }
+
+        private static int ReadIndex(BitReader reader, int count)
+        {
+            int bits = 0;
+            for (int maximum = count - 1; maximum > 0; maximum >>= 1)
+            {
+                bits++;
+            }
+            int index = reader.Read(bits);
+            if (index >= count)
+            {
+                throw new InvalidDataException("Reference picture set index is out of range.");
+            }
+            return index;
         }
     }
 }

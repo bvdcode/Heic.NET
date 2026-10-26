@@ -93,3 +93,11 @@ horizontal and vertical conformance-window units. The 8/10-bit `wpp-` streams
 use WPP and flat lists; `scaling-chroma422-10bit.hevc` enables default lists
 without WPP. `lossless-chroma422-8bit.hevc` enables transquant bypass without
 WPP. The encoder and reference-decoder settings otherwise match the 4:4:4 cases.
+
+## Intra random-access pictures
+
+`create_irap_fixtures.py --ffmpeg <ffmpeg>` generates an open GOP with libx265,
+extracts its first CRA picture and creates all three BLA NAL-header variants.
+Both 8-bit and 10-bit streams are decoded independently with FFmpeg before their
+HEIF containers and expected RGBA hashes are recorded. The existing IDR fixtures
+remain separate.
