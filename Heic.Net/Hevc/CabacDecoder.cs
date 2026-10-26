@@ -49,12 +49,11 @@ namespace Heic.Net.Hevc
                 offset -= range;
                 range = lpsRange;
                 value = !value;
-                context = new CabacContext(CabacTables.NextLps(context.State),
-                    context.State == 0 ? !context.MostProbableSymbol : context.MostProbableSymbol);
+                context = context.NextLeastProbable();
             }
             else
             {
-                context = new CabacContext(CabacTables.NextMps(context.State), context.MostProbableSymbol);
+                context = context.NextMostProbable();
             }
 
             Normalize();
