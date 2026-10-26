@@ -13,32 +13,7 @@ namespace Heic.Net.Tests
         [Fact]
         public void ExplicitMatricesCopyPredictionAndExpandTheirBaseCoordinates()
         {
-            TestBitWriter writer = new TestBitWriter();
-            for (int sizeId = 0; sizeId < 4; sizeId++)
-            {
-                int step = sizeId == 3 ? 3 : 1;
-                for (int matrixId = 0; matrixId < 6; matrixId += step)
-                {
-                    writer.Flag(matrixId == 0);
-                    if (matrixId == 0)
-                    {
-                        if (sizeId > 1)
-                        {
-                            writer.Se(15);
-                        }
-                        for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
-                        {
-                            writer.Se(1);
-                        }
-                    }
-                    else
-                    {
-                        writer.Ue(matrixId == step ? 1u : 0u);
-                    }
-                }
-            }
-
-            ScalingLists lists = ScalingLists.Read(new BitReader(writer.ToArray()));
+            ScalingLists lists = ReadPredictionExample();
             for (int sizeId = 0; sizeId < 4; sizeId++)
             {
                 int baseSize = sizeId == 0 ? 4 : 8;
@@ -154,6 +129,36 @@ namespace Heic.Net.Tests
             }
 
             Assert.Equal(new[] { 0, size, 1, 2 * size, size + 1, 2 }, CoefficientScan.Block(log2Size, 0).Slice(0, 6).ToArray());
+        }
+
+        private static ScalingLists ReadPredictionExample()
+        {
+            TestBitWriter writer = new TestBitWriter();
+            for (int sizeId = 0; sizeId < 4; sizeId++)
+            {
+                int step = sizeId == 3 ? 3 : 1;
+                for (int matrixId = 0; matrixId < 6; matrixId += step)
+                {
+                    writer.Flag(matrixId == 0);
+                    if (matrixId == 0)
+                    {
+                        if (sizeId > 1)
+                        {
+                            writer.Se(15);
+                        }
+                        for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
+                        {
+                            writer.Se(1);
+                        }
+                    }
+                    else
+                    {
+                        writer.Ue(matrixId == step ? 1u : 0u);
+                    }
+                }
+            }
+
+            return ScalingLists.Read(new BitReader(writer.ToArray()));
         }
     }
 }

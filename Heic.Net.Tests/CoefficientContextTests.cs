@@ -60,26 +60,7 @@ namespace Heic.Net.Tests
                                 {
                                     int offset = scan[(group * 16) + n];
                                     int local = (((offset / size) % 4) * 4) + (offset % 4);
-                                    int expected;
-                                    if (log2Size == 2)
-                                    {
-                                        expected = FourPointContexts[local];
-                                    }
-                                    else if (offset == 0)
-                                    {
-                                        expected = 0;
-                                    }
-                                    else
-                                    {
-                                        int basis = component == 0
-                                            ? log2Size == 3 ? scanIndex == 0 ? 9 : 15 : 21
-                                            : log2Size == 3 ? 9 : 12;
-                                        expected = basis + LocalContexts[pattern][local];
-                                        if ((component == 0) && (group != 0))
-                                        {
-                                            expected += 3;
-                                        }
-                                    }
+                                    int expected = ExpectedContext(log2Size, offset, local, component, group, scanIndex, pattern);
                                     Assert.Equal(expected + (component == 0 ? 0 : 27), actual[n]);
                                 }
                             }
@@ -87,6 +68,31 @@ namespace Heic.Net.Tests
                     }
                 }
             }
+        }
+
+        private static int ExpectedContext(int log2Size, int offset, int local, int component, int group, int scanIndex, int pattern)
+        {
+            int expected;
+            if (log2Size == 2)
+            {
+                expected = FourPointContexts[local];
+            }
+            else if (offset == 0)
+            {
+                expected = 0;
+            }
+            else
+            {
+                int basis = component == 0
+                    ? log2Size == 3 ? scanIndex == 0 ? 9 : 15 : 21
+                    : log2Size == 3 ? 9 : 12;
+                expected = basis + LocalContexts[pattern][local];
+                if ((component == 0) && (group != 0))
+                {
+                    expected += 3;
+                }
+            }
+            return expected;
         }
     }
 }

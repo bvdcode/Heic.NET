@@ -37,43 +37,11 @@ namespace Heic.Net.Tests
                             value = (alongRow + alongColumn) / 2;
                             break;
                         case 1:
-                            value = dc;
-                            if (luma && (size < 32))
-                            {
-                                if ((x == 0) && (y == 0))
-                                {
-                                    value = (vertical[1] + (2 * dc) + horizontal[1]) / 4.0;
-                                }
-                                else if (y == 0)
-                                {
-                                    value = (horizontal[x + 1] + (3 * dc)) / 4.0;
-                                }
-                                else if (x == 0)
-                                {
-                                    value = (vertical[y + 1] + (3 * dc)) / 4.0;
-                                }
-                            }
+                            value = Dc(horizontal, vertical, size, dc, x, y, luma);
 
                             break;
                         default:
-                            bool fromTop = mode >= 18;
-                            int[] main = fromTop ? horizontal : vertical;
-                            int[] side = fromTop ? vertical : horizontal;
-                            int along = fromTop ? x : y;
-                            int across = fromTop ? y : x;
-                            double position = along + 1 + (((across + 1) * SignedAngles[mode]) / 32.0);
-                            int lower = (int)Math.Floor(position);
-                            double fraction = position - lower;
-                            value = At(main, side, lower, SignedAngles[mode]);
-                            if (fraction != 0)
-                            {
-                                value = ((1 - fraction) * value) + (fraction * At(main, side, lower + 1, SignedAngles[mode]));
-                            }
-
-                            if ((SignedAngles[mode] == 0) && luma && (size < 32) && (along == 0))
-                            {
-                                value = Math.Clamp(main[1] + Math.Floor((side[across + 1] - side[0]) / 2.0), 0, (1 << depth) - 1);
-                            }
+                            value = Angular(horizontal, vertical, size, mode, depth, x, y, luma);
 
                             break;
                     }
@@ -136,6 +104,50 @@ namespace Heic.Net.Tests
             }
             double inverse = Math.Round(8192.0 / Math.Abs(angle), MidpointRounding.AwayFromZero);
             return side[(int)Math.Floor(((-index * inverse) / 256.0) + 0.5)];
+        }
+
+        private static double Dc(int[] horizontal, int[] vertical, int size, int dc, int x, int y, bool luma)
+        {
+            double value = dc;
+            if (luma && (size < 32))
+            {
+                if ((x == 0) && (y == 0))
+                {
+                    value = (vertical[1] + (2 * dc) + horizontal[1]) / 4.0;
+                }
+                else if (y == 0)
+                {
+                    value = (horizontal[x + 1] + (3 * dc)) / 4.0;
+                }
+                else if (x == 0)
+                {
+                    value = (vertical[y + 1] + (3 * dc)) / 4.0;
+                }
+            }
+            return value;
+        }
+
+        private static double Angular(int[] horizontal, int[] vertical, int size, int mode, int depth, int x, int y, bool luma)
+        {
+            bool fromTop = mode >= 18;
+            int[] main = fromTop ? horizontal : vertical;
+            int[] side = fromTop ? vertical : horizontal;
+            int along = fromTop ? x : y;
+            int across = fromTop ? y : x;
+            double position = along + 1 + (((across + 1) * SignedAngles[mode]) / 32.0);
+            int lower = (int)Math.Floor(position);
+            double fraction = position - lower;
+            double value = At(main, side, lower, SignedAngles[mode]);
+            if (fraction != 0)
+            {
+                value = ((1 - fraction) * value) + (fraction * At(main, side, lower + 1, SignedAngles[mode]));
+            }
+
+            if ((SignedAngles[mode] == 0) && luma && (size < 32) && (along == 0))
+            {
+                value = Math.Clamp(main[1] + Math.Floor((side[across + 1] - side[0]) / 2.0), 0, (1 << depth) - 1);
+            }
+            return value;
         }
     }
 }

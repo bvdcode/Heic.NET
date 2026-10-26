@@ -64,13 +64,22 @@ namespace Heic.Net.Benchmarks
                 }
             }
 
-            if (input is null || (repetitions <= 0) || (child && (!mode.HasValue || (repetition <= 0))))
+            if (input is null)
             {
-                throw new ArgumentException("An input file and positive repetitions are required; child runs also require a mode and repetition.");
+                throw new ArgumentException("An input file is required.");
             }
+            ValidateRepetitions(repetitions, child, mode, repetition);
 
             _ = new HeicDecodeOptions(maxPixels: maxPixels);
             return new BenchmarkOptions(input, output, repetitions, maxPixels, child, mode, repetition);
+        }
+
+        private static void ValidateRepetitions(int repetitions, bool child, BenchmarkMode? mode, int repetition)
+        {
+            if ((repetitions <= 0) || (child && (!mode.HasValue || (repetition <= 0))))
+            {
+                throw new ArgumentException("Positive repetitions are required; child runs also require a mode and repetition.");
+            }
         }
     }
 }
