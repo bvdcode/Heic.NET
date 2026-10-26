@@ -3,17 +3,18 @@
 ## Automatic releases
 
 Every push to `main` calculates a package version with GitVersion, builds and tests
-on Linux, Windows and macOS, and publishes the package and symbols to NuGet.org.
-Publication starts only after all three platforms pass. A manual workflow run on
+on Linux, Windows and macOS, then publishes the same package artifact to NuGet.org
+and GitHub Packages in parallel. Symbols are published to NuGet.org. Publication
+starts only after all three platforms pass. A manual workflow run on
 `main` follows the same process; pull requests build and test without publishing.
 
 `GitVersion.yml` sets the initial version to `0.1.0`. Successful publication creates
-a matching GitHub release and tag, starting with `v0.1.0`. Subsequent changes on
+a matching GitHub release and tag after both registries succeed, starting with `v0.1.0`. Subsequent changes on
 `main` advance the patch version. Major and minor changes follow GitVersion's
 version-increment rules. Do not create release tags before publishing.
 
 Workflow runs for the same branch are serialized. If publication fails, correct
-the reported error and rerun the failed job. Existing NuGet package versions and
+the reported error and rerun the failed job. Existing package versions in either registry and
 GitHub releases are skipped; published package versions are immutable.
 
 ## Trusted publishing
@@ -32,6 +33,18 @@ The `bvd` NuGet.org account uses a GitHub Actions trusted publishing policy:
 The publication job requests `id-token: write` and exchanges the GitHub identity
 for a short-lived key using `NuGet/login@v1`. No long-lived API key is required.
 See the [NuGet trusted publishing documentation](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing).
+
+## GitHub Packages
+
+The GitHub Packages job uses the workflow's temporary `GITHUB_TOKEN` with
+`packages: write`. It uploads the same `.nupkg` produced by the Linux build to
+`https://nuget.pkg.github.com/bvdcode/index.json`. The package's repository metadata
+links it to `bvdcode/Heic.NET`. No additional repository secret is required.
+Symbols remain available through NuGet.org and the GitHub release assets.
+
+GitHub Packages requires authentication to install NuGet packages, including public
+packages. NuGet.org remains the default installation source.
+See the [GitHub NuGet registry documentation](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry).
 
 ## Local package validation
 

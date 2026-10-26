@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/setup-dotnet@v6
@@ -119,6 +119,45 @@ jobs:
         run: >-
           dotnet nuget push artifacts/packages/*.nupkg --skip-duplicate
           --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
+
+  publish-github:
+    name: Publish to GitHub Packages
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-packages
+          path: artifacts/packages
+      - name: Publish package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PACKAGE_OWNER: ${{ github.repository_owner }}
+        run: >-
+          dotnet nuget push artifacts/packages/*.nupkg --skip-duplicate --no-symbols
+          --api-key "$GITHUB_TOKEN" --source "https://nuget.pkg.github.com/${PACKAGE_OWNER}/index.json"
+
+  release:
+    name: Create GitHub release
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [version, publish, publish-github]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-packages
+          path: artifacts/packages
       - name: Create release
         uses: ncipollo/release-action@v1
         with:

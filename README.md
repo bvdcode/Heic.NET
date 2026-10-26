@@ -5,6 +5,7 @@
 # Heic.NET
 
 [![Build](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml/badge.svg)](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/bvdcode/heic.net/badge)](https://www.codefactor.io/repository/github/bvdcode/heic.net)
 [![NuGet](https://img.shields.io/nuget/v/Heic.NET.svg)](https://www.nuget.org/packages/Heic.NET)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/bvdcode/Heic.NET/blob/main/LICENSE)
 
