@@ -4,7 +4,7 @@
 SHA-256 of the original input, SHA-256 of every returned RGBA byte, the explicit
 pixel limit and covered features. `CorpusTests` reads the manifest directly.
 
-The 18 small generated files cover 8/10 bits, monochrome, deblocking, SAO, scaling
+The 42 small generated files cover 8/10 bits, monochrome, deblocking, SAO, scaling
 lists, all rotations, both mirror axes, combined orientation, clean aperture,
 identity images, grids, alpha, rotated alpha and alpha grids. Their containers also
 open with libheif 1.23.2. The two original camera files are preserved byte-for-byte:
@@ -39,18 +39,25 @@ order (8-bit bytes or 10-bit little-endian words).
 
 ## Regeneration
 
-Normal .NET builds and tests use the committed binary files and manifest; they do
-not invoke Python or native codecs. To regenerate the small HEIF wrappers and their
-independent references, use Python 3.12, NumPy and an explicit FFmpeg executable:
+Normal .NET builds and tests use the committed binary files and manifest. They do
+not invoke native codecs. The `Heic.Net.Fixtures` console project regenerates the
+small HEIF wrappers and independent references using .NET 10 and an explicit
+FFmpeg executable with libx265 support:
 
 ```sh
-python corpus/create_fixtures.py --ffmpeg <ffmpeg executable>
+dotnet run --project Heic.Net.Fixtures --configuration Release -- all --ffmpeg <ffmpeg executable>
 ```
 
-The generator decodes the committed original elementary streams with FFmpeg, builds
-the HEIF structures, and calculates RGB through separate Decimal/NumPy arithmetic.
-It preserves the camera files and records their verified reference hashes. Camera
-reference generation uses native per-tile decoding; it is not rerun by this command.
+Use `basic` for the original patterns and transformations or `irap` for CRA/BLA
+pictures. `--corpus <directory>` selects the existing source corpus;
+`--output <directory>` writes generated files and the updated manifest elsewhere.
+Unrelated manifest entries are preserved.
+
+The tool has no dependency on the decoder project. FFmpeg reconstructs the
+committed elementary streams; separate decimal coefficient calculations and
+integer sample loops produce RGBA references. The writer constructs HEIF boxes
+independently. Camera files and their previously verified reference hashes are
+preserved; camera reference generation is not rerun by this command.
 
 ## Wavefront and quantization regression streams
 
@@ -96,7 +103,7 @@ WPP. The encoder and reference-decoder settings otherwise match the 4:4:4 cases.
 
 ## Intra random-access pictures
 
-`create_irap_fixtures.py --ffmpeg <ffmpeg>` generates an open GOP with libx265,
+The `irap` mode generates an open GOP with libx265,
 extracts its first CRA picture and creates all three BLA NAL-header variants.
 Both 8-bit and 10-bit streams are decoded independently with FFmpeg before their
 HEIF containers and expected RGBA hashes are recorded. The existing IDR fixtures
