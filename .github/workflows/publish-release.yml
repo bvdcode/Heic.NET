@@ -91,10 +91,64 @@ jobs:
           path: artifacts/test-results/*.trx
           if-no-files-found: ignore
 
+
+  browser:
+    name: Build and test browser package
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PACKAGE_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: npm/package-lock.json
+      - name: Install browser build tools
+        run: dotnet workload restore Heic.Net.Browser/Heic.Net.Browser.csproj
+      - name: Install package development dependencies
+        run: npm ci --prefix npm
+      - name: Lint and type-check browser API
+        run: npm --prefix npm run lint
+      - name: Test worker API
+        run: npm --prefix npm test
+      - name: Build AOT WebAssembly package
+        run: npm --prefix npm run build
+      - name: Pack npm artifact
+        working-directory: artifacts/npm/package
+        run: npm pack --pack-destination ..
+      - name: Unpack consumer package
+        run: |
+          mkdir -p artifacts/npm/consumer
+          tar -xzf artifacts/npm/heic-net-*.tgz -C artifacts/npm/consumer
+          node artifacts/npm/consumer/package/bin/copy-assets.mjs artifacts/npm/consumer/public/heic
+      - name: Install test browser
+        working-directory: npm
+        run: npx playwright install --with-deps chromium
+      - name: Verify packed decoder against all corpus pixels
+        env:
+          HEIC_LARGE_IMAGE: true
+          HEIC_PACKAGE_ROOT: ${{ github.workspace }}/artifacts/npm/consumer/package
+        run: npm --prefix npm run test:browser
+      - name: Upload npm package
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-package
+          path: artifacts/npm/*.tgz
+          if-no-files-found: error
+
   publish:
     name: Publish to NuGet.org
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [version, build]
+    needs: [version, build, browser]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -123,7 +177,7 @@ jobs:
   publish-github:
     name: Publish to GitHub Packages
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: build
+    needs: [build, browser]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -145,10 +199,42 @@ jobs:
           dotnet nuget push artifacts/packages/*.nupkg --skip-duplicate --no-symbols
           --api-key "$GITHUB_TOKEN" --source "https://nuget.pkg.github.com/${PACKAGE_OWNER}/index.json"
 
+
+  publish-npm:
+    name: Publish to npm
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [version, build, browser]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PACKAGE_VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Install npm with trusted publishing support
+        run: npm install --global npm@12
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-package
+          path: artifacts/npm
+      - name: Publish package
+        shell: bash
+        run: |
+          if [ "$(npm view "heic-net@$PACKAGE_VERSION" version 2>/dev/null)" = "$PACKAGE_VERSION" ]; then
+            echo "heic-net@$PACKAGE_VERSION is already published."
+          else
+            npm publish artifacts/npm/*.tgz --access public --provenance
+          fi
+
   release:
     name: Create GitHub release
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: [version, publish, publish-github]
+    needs: [version, publish, publish-github, publish-npm]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -158,13 +244,17 @@ jobs:
         with:
           name: nuget-packages
           path: artifacts/packages
+      - uses: actions/download-artifact@v8
+        with:
+          name: npm-package
+          path: artifacts/npm
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
           tag: v${{ needs.version.outputs.version }}
           commit: ${{ github.sha }}
           name: Heic.NET ${{ needs.version.outputs.version }}
-          artifacts: artifacts/packages/*.nupkg,artifacts/packages/*.snupkg
+          artifacts: artifacts/packages/*.nupkg,artifacts/packages/*.snupkg,artifacts/npm/*.tgz
           artifactErrorsFailBuild: true
           generateReleaseNotes: true
           skipIfReleaseExists: true

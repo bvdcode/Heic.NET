@@ -4,12 +4,14 @@
 
 Every push to `main` calculates a package version with GitVersion, builds and tests
 on Linux, Windows and macOS, then publishes the same package artifact to NuGet.org
-and GitHub Packages in parallel. Symbols are published to NuGet.org. Publication
+and GitHub Packages in parallel. The browser package is compiled to AOT WebAssembly,
+packed and checked in Chromium against the same independent pixel references,
+then published to npm as `heic-net` with the same GitVersion version. Symbols are published to NuGet.org. Publication
 starts only after all three platforms pass. A manual workflow run on
 `main` follows the same process; pull requests build and test without publishing.
 
 `GitVersion.yml` sets the initial version to `0.1.0`. Successful publication creates
-a matching GitHub release and tag after both registries succeed, starting with `v0.1.0`. Subsequent changes on
+a matching GitHub release and tag after all three registries succeed, starting with `v0.1.0`. Subsequent changes on
 `main` advance the patch version. Major and minor changes follow GitVersion's
 version-increment rules. Do not create release tags before publishing.
 
@@ -71,3 +73,41 @@ The library package contains `lib/netstandard2.1/Heic.Net.dll`, XML documentatio
 `README.md`, `LICENSE`, and `icon.png`. The symbol package contains portable PDBs.
 Source Link support is provided by the .NET SDK. Runtime dependencies are empty;
 the analyzer package is a private build dependency.
+
+## npm
+
+The `publish-npm` job uses GitHub Actions OIDC with `id-token: write`.
+The trusted publisher belongs to `heic-net` and authorizes owner `bvdcode`,
+repository `Heic.NET`, workflow `publish-release.yml`, with direct publishing
+enabled and no environment restriction. No npm token is stored in repository
+secrets. The first package publication must complete before the trusted publisher
+can be registered.
+
+The `browser` job publishes `Heic.Net.Browser` with AOT and invariant
+globalization, compiles the TypeScript API and packs an immutable `.tgz` artifact.
+Tests unpack that tarball and compare visible dimensions and complete RGBA SHA-256
+hashes with `corpus/manifest.json`, including the 200-MP image. Worker API tests,
+lint and TypeScript checks also gate publication.
+
+The npm package includes the decoder, Web Worker, .NET runtime, MIT license and
+runtime third-party notices. Consumers copy the prebuilt assets with
+`heic-net-assets`; they do not install a .NET workload.
+
+Build a local package:
+
+```sh
+npm ci --prefix npm
+dotnet workload restore Heic.Net.Browser/Heic.Net.Browser.csproj
+export PACKAGE_VERSION="$(dotnet gitversion /showvariable SemVer)"
+npm --prefix npm run lint
+npm --prefix npm test
+npm --prefix npm run build
+npm --prefix npm run test:browser
+cd artifacts/npm/package
+npm pack --pack-destination ..
+```
+
+Set `HEIC_LARGE_IMAGE=true` for the full browser corpus, including the 200-MP
+image. The default local browser test omits images over 20 MP. CI runs all entries.
+Install the test browser with `npx playwright install chromium` in `npm/`,
+or point `PLAYWRIGHT_CHROMIUM_EXECUTABLE` at a compatible Chromium executable.

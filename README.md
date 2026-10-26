@@ -7,6 +7,7 @@
 [![Build](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml/badge.svg)](https://github.com/bvdcode/Heic.NET/actions/workflows/publish-release.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/bvdcode/heic.net/badge)](https://www.codefactor.io/repository/github/bvdcode/heic.net)
 [![NuGet](https://img.shields.io/nuget/v/Heic.NET.svg)](https://www.nuget.org/packages/Heic.NET)
+[![npm](https://img.shields.io/npm/v/heic-net.svg)](https://www.npmjs.com/package/heic-net)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/bvdcode/Heic.NET/blob/main/LICENSE)
 
 A managed HEIC still image decoder targeting **.NET Standard 2.1**.
@@ -41,6 +42,30 @@ default options. Applications can set a smaller pixel limit to bound resource us
 HeicDecodeOptions limits = new HeicDecodeOptions(maxPixels: 16 * 1024 * 1024);
 HeicDocument document = HeicDocument.Load(encodedFile, limits);
 ```
+
+## Browser / npm
+
+[heic-net](https://www.npmjs.com/package/heic-net) compiles this decoder ahead of
+time to WebAssembly and runs it in a reusable Web Worker. The decoder core and
+JavaScript API are MIT licensed, without libheif or libde265.
+
+```sh
+npm install heic-net
+npx heic-net-assets public/heic
+```
+
+```ts
+import { HeicDecoder } from "heic-net";
+
+const decoder = new HeicDecoder({ assetsUrl: "/heic/" });
+const image = await decoder.decode(file);
+// image.pixels is an owned Uint8ClampedArray of RGBA8 bytes.
+decoder.dispose();
+```
+
+The asset-copy command runs before application builds and requires only Node.js.
+See the [browser package API and deployment instructions](https://github.com/bvdcode/Heic.NET/blob/main/npm/README.md).
+The performance measurements below refer to the .NET package.
 
 ## Performance
 
@@ -120,4 +145,4 @@ See the [decoder map](https://github.com/bvdcode/Heic.NET/blob/main/docs/decoder
 [measurement protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md), [fuzzing](https://github.com/bvdcode/Heic.NET/blob/main/docs/fuzzing.md) and [test images](https://github.com/bvdcode/Heic.NET/blob/main/corpus/README.md).
 
 Packages are versioned with GitVersion and published automatically from `main` after
-Linux, Windows and macOS checks pass. See [publishing](https://github.com/bvdcode/Heic.NET/blob/main/docs/publishing.md).
+Linux, Windows and macOS checks and browser pixel tests pass. See [publishing](https://github.com/bvdcode/Heic.NET/blob/main/docs/publishing.md).
