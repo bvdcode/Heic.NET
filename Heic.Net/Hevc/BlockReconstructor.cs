@@ -64,7 +64,7 @@ namespace Heic.Net.Hevc
                 }
             }
 
-            plane.Store(x, y, size, prediction, output, depth);
+            plane.Store(x, y, size, prediction, output);
         }
 
         private SamplePlane Plane(int component)

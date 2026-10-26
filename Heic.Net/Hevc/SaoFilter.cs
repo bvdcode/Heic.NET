@@ -88,7 +88,17 @@ namespace Heic.Net.Hevc
 
         private void ApplyPlane(SamplePlane plane, CodingBlockMap blocks, int component)
         {
-            ApplyPlane<ushort, WordSampleFormat>(plane.View, blocks, component);
+            switch (plane.BitDepth)
+            {
+                case 8:
+                    ApplyPlane<byte, ByteSampleFormat>(plane.ByteView, blocks, component);
+                    break;
+                case 10:
+                    ApplyPlane<ushort, WordSampleFormat>(plane.WordView, blocks, component);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported component sample depth.");
+            }
         }
 
         private void ApplyPlane<TSample, TFormat>(SamplePlaneView<TSample> plane, CodingBlockMap blocks, int component)

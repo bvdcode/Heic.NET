@@ -53,10 +53,24 @@ namespace Heic.Net.Tests
                         Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
                         Assert.True(source.ColorInformation.Matches(actual.ColorInformation));
                     }
-                    picture.Luma.Row(0)[0] ^= 255;
+                    ToggleFirst(picture.Luma);
                     Assert.Equal(original, source.Pixels.ToArray());
-                    picture.Luma.Row(0)[0] ^= 255;
+                    ToggleFirst(picture.Luma);
                 }
+            }
+        }
+        private static void ToggleFirst(SamplePlane plane)
+        {
+            switch (plane.BitDepth)
+            {
+                case 8:
+                    plane.ByteView.Row(0)[0] ^= 255;
+                    break;
+                case 10:
+                    plane.WordView.Row(0)[0] ^= 255;
+                    break;
+                default:
+                    throw new InvalidOperationException();
             }
         }
     }

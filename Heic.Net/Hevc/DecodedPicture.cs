@@ -10,14 +10,14 @@ namespace Heic.Net.Hevc
         public DecodedPicture(SequenceParameters sequence)
         {
             Sequence = sequence;
-            Luma = new SamplePlane(sequence.Width, sequence.Height);
+            Luma = new SamplePlane(sequence.Width, sequence.Height, sequence.BitDepth);
             bool initialized = false;
             try
             {
                 if (sequence.ChromaFormat != 0)
                 {
-                    Cb = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC);
-                    Cr = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC);
+                    Cb = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC, sequence.BitDepth);
+                    Cr = new SamplePlane(sequence.Width / sequence.SubWidthC, sequence.Height / sequence.SubHeightC, sequence.BitDepth);
                 }
 
                 initialized = true;

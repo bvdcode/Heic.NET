@@ -55,7 +55,12 @@ namespace Heic.Net.Tests
 
         private static void AddPlane(List<byte> samples, SamplePlane plane, int depth)
         {
-            foreach (ushort sample in plane.Samples.Span)
+            if (depth == 8)
+            {
+                samples.AddRange(plane.ByteView.Samples.ToArray());
+                return;
+            }
+            foreach (ushort sample in plane.WordView.Samples)
             {
                 samples.Add((byte)(sample & 255));
                 if (depth == 10)

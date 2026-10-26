@@ -12,12 +12,28 @@ namespace Heic.Net.Hevc
             for (int direction = 0; direction < 2; direction++)
             {
                 bool vertical = direction == 0;
-                LumaEdges<ushort, WordSampleFormat>(picture.Luma.View, slice, blocks, vertical);
-
-                if (picture.Cb is not null && picture.Cr is not null)
+                switch (picture.Sequence.BitDepth)
                 {
-                    ChromaEdges<ushort, WordSampleFormat>(picture.Cb.View, slice, blocks, vertical, slice.Picture.CbQpOffset);
-                    ChromaEdges<ushort, WordSampleFormat>(picture.Cr.View, slice, blocks, vertical, slice.Picture.CrQpOffset);
+                    case 8:
+                        LumaEdges<byte, ByteSampleFormat>(picture.Luma.ByteView, slice, blocks, vertical);
+
+                        if (picture.Cb is not null && picture.Cr is not null)
+                        {
+                            ChromaEdges<byte, ByteSampleFormat>(picture.Cb.ByteView, slice, blocks, vertical, slice.Picture.CbQpOffset);
+                            ChromaEdges<byte, ByteSampleFormat>(picture.Cr.ByteView, slice, blocks, vertical, slice.Picture.CrQpOffset);
+                        }
+                        break;
+                    case 10:
+                        LumaEdges<ushort, WordSampleFormat>(picture.Luma.WordView, slice, blocks, vertical);
+
+                        if (picture.Cb is not null && picture.Cr is not null)
+                        {
+                            ChromaEdges<ushort, WordSampleFormat>(picture.Cb.WordView, slice, blocks, vertical, slice.Picture.CbQpOffset);
+                            ChromaEdges<ushort, WordSampleFormat>(picture.Cr.WordView, slice, blocks, vertical, slice.Picture.CrQpOffset);
+                        }
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unsupported component sample depth.");
                 }
             }
         }

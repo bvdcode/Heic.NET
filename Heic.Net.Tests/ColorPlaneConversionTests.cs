@@ -3,6 +3,7 @@
 
 using System;
 using System.Numerics;
+using System.Linq;
 using Heic.Net.Hevc;
 using Xunit;
 
@@ -28,7 +29,7 @@ namespace Heic.Net.Tests
             const int LumaOffset = 3;
             const int ChromaOffset = 5;
             int lanes = Vector<ushort>.Count;
-            int[] widths = { 1, lanes - 1, lanes, lanes + 1, 2 * lanes + 1, 65 };
+            int[] widths = { 1, lanes - 1, lanes, lanes + 1, 2 * lanes - 1, 2 * lanes, 2 * lanes + 1, 4 * lanes - 1, 4 * lanes, 4 * lanes + 1, 65 };
             Random random = new Random(5107);
             foreach (int matrix in new[] { 1, 2, 5, 6, 9 })
             {
@@ -74,6 +75,20 @@ namespace Heic.Net.Tests
                                 Assert.Equal(savedY, y);
                                 Assert.Equal(savedCb, cb);
                                 Assert.Equal(savedCr, cr);
+                                if (depth == 8)
+                                {
+                                    byte[] yBytes = y.Select(value => (byte)value).ToArray();
+                                    byte[] cbBytes = cb.Select(value => (byte)value).ToArray();
+                                    byte[] crBytes = cr.Select(value => (byte)value).ToArray();
+                                    Array.Fill(actual, (byte)173);
+                                    conversion.ConvertRows(yBytes.AsSpan(LumaOffset, layout.LumaLength),
+                                        cbBytes.AsSpan(ChromaOffset, layout.ChromaLength), crBytes.AsSpan(ChromaOffset, layout.ChromaLength),
+                                        layout, actual.AsSpan(3, layout.OutputLength));
+                                    Assert.Equal(expected, actual);
+                                    Assert.Equal(savedY.Select(value => (byte)value), yBytes);
+                                    Assert.Equal(savedCb.Select(value => (byte)value), cbBytes);
+                                    Assert.Equal(savedCr.Select(value => (byte)value), crBytes);
+                                }
                             }
                         }
                     }
@@ -86,8 +101,8 @@ namespace Heic.Net.Tests
         {
             ColorConversion conversion = new ColorConversion(8, false, 1);
             byte[] output = { 11, 22, 33 };
-            conversion.ConvertRows([], [], [], new ColorPlaneLayout(0, 0, 0, 0, 2, 2), output);
-            conversion.ConvertRows([], [], [], new ColorPlaneLayout(0, 1, 0, 0, 2, 2), output);
+            conversion.ConvertRows(ReadOnlySpan<ushort>.Empty, ReadOnlySpan<ushort>.Empty, ReadOnlySpan<ushort>.Empty, new ColorPlaneLayout(0, 0, 0, 0, 2, 2), output);
+            conversion.ConvertRows(ReadOnlySpan<ushort>.Empty, ReadOnlySpan<ushort>.Empty, ReadOnlySpan<ushort>.Empty, new ColorPlaneLayout(0, 1, 0, 0, 2, 2), output);
             Assert.Equal(new byte[] { 11, 22, 33 }, output);
             Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(-1, 1, 0, 0, 1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => new ColorPlaneLayout(1, -1, 1, 1, 1, 1));
@@ -106,6 +121,23 @@ namespace Heic.Net.Tests
             Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new ushort[21], new ushort[6], new ushort[7], layout, new byte[60]));
             Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new ushort[21], new ushort[7], new ushort[6], layout, new byte[60]));
             Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new ushort[21], new ushort[7], new ushort[7], layout, new byte[59]));
+        }
+
+        [Fact]
+        public void BytePlanesRejectShortBuffersBeforeWritingOutput()
+        {
+            ColorConversion conversion = new ColorConversion(8, false, 1);
+            ColorPlaneLayout layout = new ColorPlaneLayout(6, 3, 8, 4, 2, 2, 1, 1);
+            byte[] output = new byte[72];
+            Array.Fill(output, (byte)173);
+            Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new byte[21], new byte[8], new byte[8], layout, output));
+            Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new byte[22], new byte[7], new byte[8], layout, output));
+            Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new byte[22], new byte[8], new byte[7], layout, output));
+            Assert.Throws<ArgumentException>(() => conversion.ConvertRows(new byte[22], new byte[8], new byte[8], layout, output.AsSpan(0, 71)));
+            Assert.All(output, value => Assert.Equal((byte)173, value));
+            conversion.ConvertRows(ReadOnlySpan<byte>.Empty, ReadOnlySpan<byte>.Empty, ReadOnlySpan<byte>.Empty,
+                new ColorPlaneLayout(0, 1, 0, 0, 2, 2, 1, 1), output);
+            Assert.All(output, value => Assert.Equal((byte)173, value));
         }
 
         private static ushort[] Plane(int width, int height, int stride, int offset, int depth, Random random)

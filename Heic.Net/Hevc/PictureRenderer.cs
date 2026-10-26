@@ -44,38 +44,67 @@ namespace Heic.Net.Hevc
                     picture.Cb.Stride, subWidth, subHeight, left % subWidth, top % subHeight);
                 int lumaOffset = top * picture.Luma.Stride + left;
                 int chromaOffset = top / subHeight * picture.Cb.Stride + left / subWidth;
-                conversion!.ConvertRows(picture.Luma.Samples.Span.Slice(lumaOffset),
-                    picture.Cb.Samples.Span.Slice(chromaOffset), picture.Cr.Samples.Span.Slice(chromaOffset), layout, pixels.Span);
+                switch (sequence.BitDepth)
+                {
+                    case 8:
+                        conversion!.ConvertRows(picture.Luma.ByteView.Samples.Slice(lumaOffset),
+                            picture.Cb.ByteView.Samples.Slice(chromaOffset), picture.Cr.ByteView.Samples.Slice(chromaOffset), layout, pixels.Span);
+                        break;
+                    case 10:
+                        conversion!.ConvertRows(picture.Luma.WordView.Samples.Slice(lumaOffset),
+                            picture.Cb.WordView.Samples.Slice(chromaOffset), picture.Cr.WordView.Samples.Slice(chromaOffset), layout, pixels.Span);
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unsupported component sample depth.");
+                }
             }
             else
             {
-                int maximum = (1 << sequence.BitDepth) - 1;
-                for (int y = 0; y < height; y++)
+                switch (sequence.BitDepth)
                 {
-                    int sy = y + top;
-                    ReadOnlySpan<ushort> luma = picture.Luma.Row(sy).Slice(left, width);
-                    Span<byte> row = pixels.Span.Slice(y * width * 4, width * 4);
-                    if (alpha)
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            byte value = alphaInformation is null
-                                ? (byte)((luma[x] * 255 + maximum / 2) / maximum)
-                                : alphaInformation.Convert(luma[x]);
-                            WriteGray(value, row.Slice(x * 4, 4));
-                        }
-                    }
-                    else
-                    {
-                        for (int x = 0; x < width; x++)
-                        {
-                            WriteGray(conversion!.Gray(luma[x]), row.Slice(x * 4, 4));
-                        }
-                    }
+                    case 8:
+                        RenderGray<byte, ByteSampleFormat>(picture.Luma.ByteView, sequence, crop, conversion, pixels.Span, alpha, alphaInformation);
+                        break;
+                    case 10:
+                        RenderGray<ushort, WordSampleFormat>(picture.Luma.WordView, sequence, crop, conversion, pixels.Span, alpha, alphaInformation);
+                        break;
+                    default:
+                        throw new InvalidOperationException("Unsupported component sample depth.");
                 }
             }
 
             return new RgbaImage(width, height, pixels, new ImageColorInformation(color.Primaries, color.Transfer, iccProfile));
+        }
+
+        private static void RenderGray<TSample, TFormat>(SamplePlaneView<TSample> plane, SequenceParameters sequence,
+            ImageCrop crop, ColorConversion? conversion, Span<byte> pixels, bool alpha, AlphaChannelInformation? alphaInformation)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
+        {
+            int maximum = (1 << sequence.BitDepth) - 1;
+            for (int y = 0; y < crop.Height; y++)
+            {
+                ReadOnlySpan<TSample> luma = plane.Row(y + sequence.CropTop + crop.Top).Slice(sequence.CropLeft + crop.Left, crop.Width);
+                Span<byte> row = pixels.Slice(y * crop.Width * 4, crop.Width * 4);
+                if (alpha)
+                {
+                    for (int x = 0; x < crop.Width; x++)
+                    {
+                        int sample = default(TFormat).Read(luma[x]);
+                        byte value = alphaInformation is null
+                            ? (byte)((sample * 255 + maximum / 2) / maximum)
+                            : alphaInformation.Convert(sample);
+                        WriteGray(value, row.Slice(x * 4, 4));
+                    }
+                }
+                else
+                {
+                    for (int x = 0; x < crop.Width; x++)
+                    {
+                        WriteGray(conversion!.Gray(default(TFormat).Read(luma[x])), row.Slice(x * 4, 4));
+                    }
+                }
+            }
         }
 
         private static void WriteGray(byte value, Span<byte> target)

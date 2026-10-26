@@ -23,6 +23,7 @@ namespace Heic.Net.Hevc
             Height = height;
         }
 
+        public Span<TSample> Samples => samples;
         public int Width { get; }
         public int Height { get; }
         public Span<TSample> Row(int y) => samples.Slice(checked(y * Width), Width);
