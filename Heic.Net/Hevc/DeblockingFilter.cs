@@ -12,30 +12,39 @@ namespace Heic.Net.Hevc
             for (int direction = 0; direction < 2; direction++)
             {
                 bool vertical = direction == 0;
-                int acrossEnd = vertical ? picture.Sequence.Width : picture.Sequence.Height;
-                int alongEnd = vertical ? picture.Sequence.Height : picture.Sequence.Width;
-                for (int across = 8; across < acrossEnd; across += 8)
-                {
-                    for (int along = 0; along < alongEnd; along += 4)
-                    {
-                        int x = vertical ? across : along;
-                        int y = vertical ? along : across;
-                        if (blocks.Boundary(x, y, vertical))
-                        {
-                            LumaEdge(picture.Luma, slice, blocks, x, y, vertical);
-                        }
-                    }
-                }
+                LumaEdges<ushort, WordSampleFormat>(picture.Luma.View, slice, blocks, vertical);
 
                 if (picture.Cb is not null && picture.Cr is not null)
                 {
-                    ChromaEdges(picture.Cb, slice, blocks, vertical, slice.Picture.CbQpOffset);
-                    ChromaEdges(picture.Cr, slice, blocks, vertical, slice.Picture.CrQpOffset);
+                    ChromaEdges<ushort, WordSampleFormat>(picture.Cb.View, slice, blocks, vertical, slice.Picture.CbQpOffset);
+                    ChromaEdges<ushort, WordSampleFormat>(picture.Cr.View, slice, blocks, vertical, slice.Picture.CrQpOffset);
                 }
             }
         }
 
-        private static void LumaEdge(SamplePlane plane, IntraSliceHeader slice, CodingBlockMap blocks, int x, int y, bool vertical)
+        private static void LumaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, bool vertical)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
+        {
+            int acrossEnd = vertical ? plane.Width : plane.Height;
+            int alongEnd = vertical ? plane.Height : plane.Width;
+            for (int across = 8; across < acrossEnd; across += 8)
+            {
+                for (int along = 0; along < alongEnd; along += 4)
+                {
+                    int x = vertical ? across : along;
+                    int y = vertical ? along : across;
+                    if (blocks.Boundary(x, y, vertical))
+                    {
+                        LumaEdge<TSample, TFormat>(plane, slice, blocks, x, y, vertical);
+                    }
+                }
+            }
+        }
+
+        private static void LumaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, int x, int y, bool vertical)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
         {
             int px = vertical ? x - 1 : x;
             int py = vertical ? y : y - 1;
@@ -49,21 +58,23 @@ namespace Heic.Net.Hevc
             }
 
             Span<int> samples = stackalloc int[32];
-            ReadLumaEdge(plane, samples, x, y, vertical);
+            ReadLumaEdge<TSample, TFormat>(plane, samples, x, y, vertical);
             DeblockingKernel.Luma(samples, beta, tc, depth, !blocks.Bypass(px, py), !blocks.Bypass(x, y));
-            WriteLumaEdge(plane, samples, x, y, vertical);
+            WriteLumaEdge<TSample, TFormat>(plane, samples, x, y, vertical);
         }
 
-        private static void ReadLumaEdge(SamplePlane plane, Span<int> samples, int x, int y, bool vertical)
+        private static void ReadLumaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, Span<int> samples, int x, int y, bool vertical)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
         {
             if (vertical)
             {
                 for (int k = 0; k < 4; k++)
                 {
-                    ReadOnlySpan<ushort> row = plane.Row(y + k).Slice(x - 4, 8);
+                    ReadOnlySpan<TSample> row = plane.Row(y + k).Slice(x - 4, 8);
                     for (int i = 0; i < 8; i++)
                     {
-                        samples[k * 8 + i] = row[i];
+                        samples[k * 8 + i] = default(TFormat).Read(row[i]);
                     }
                 }
             }
@@ -71,25 +82,27 @@ namespace Heic.Net.Hevc
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    ReadOnlySpan<ushort> row = plane.Row(y + i - 4).Slice(x, 4);
+                    ReadOnlySpan<TSample> row = plane.Row(y + i - 4).Slice(x, 4);
                     for (int k = 0; k < 4; k++)
                     {
-                        samples[k * 8 + i] = row[k];
+                        samples[k * 8 + i] = default(TFormat).Read(row[k]);
                     }
                 }
             }
         }
 
-        private static void WriteLumaEdge(SamplePlane plane, ReadOnlySpan<int> samples, int x, int y, bool vertical)
+        private static void WriteLumaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, ReadOnlySpan<int> samples, int x, int y, bool vertical)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
         {
             if (vertical)
             {
                 for (int k = 0; k < 4; k++)
                 {
-                    Span<ushort> row = plane.Row(y + k).Slice(x - 3, 6);
+                    Span<TSample> row = plane.Row(y + k).Slice(x - 3, 6);
                     for (int i = 0; i < 6; i++)
                     {
-                        row[i] = (ushort)samples[k * 8 + i + 1];
+                        row[i] = default(TFormat).Write(samples[k * 8 + i + 1]);
                     }
                 }
             }
@@ -97,16 +110,18 @@ namespace Heic.Net.Hevc
             {
                 for (int i = 1; i <= 6; i++)
                 {
-                    Span<ushort> row = plane.Row(y + i - 4).Slice(x, 4);
+                    Span<TSample> row = plane.Row(y + i - 4).Slice(x, 4);
                     for (int k = 0; k < 4; k++)
                     {
-                        row[k] = (ushort)samples[k * 8 + i];
+                        row[k] = default(TFormat).Write(samples[k * 8 + i]);
                     }
                 }
             }
         }
 
-        private static void ChromaEdges(SamplePlane plane, IntraSliceHeader slice, CodingBlockMap blocks, bool vertical, int qpOffset)
+        private static void ChromaEdges<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice, CodingBlockMap blocks, bool vertical, int qpOffset)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
         {
             int acrossEnd = vertical ? plane.Width : plane.Height;
             int alongEnd = vertical ? plane.Height : plane.Width;
@@ -136,7 +151,7 @@ namespace Heic.Net.Hevc
                     {
                         for (int i = 0; i < 4; i++)
                         {
-                            samples[i] = plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)];
+                            samples[i] = default(TFormat).Read(plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)]);
                         }
 
                         bool writeP = !blocks.Bypass(px + (vertical ? 0 : k * scaleX), py + (vertical ? k * scaleY : 0));
@@ -144,7 +159,7 @@ namespace Heic.Net.Hevc
                         DeblockingKernel.Chroma(samples, tc, depth, writeP, writeQ);
                         for (int i = 1; i <= 2; i++)
                         {
-                            plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)] = (ushort)samples[i];
+                            plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)] = default(TFormat).Write(samples[i]);
                         }
                     }
                 }

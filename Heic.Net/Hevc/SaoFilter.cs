@@ -88,21 +88,28 @@ namespace Heic.Net.Hevc
 
         private void ApplyPlane(SamplePlane plane, CodingBlockMap blocks, int component)
         {
+            ApplyPlane<ushort, WordSampleFormat>(plane.View, blocks, component);
+        }
+
+        private void ApplyPlane<TSample, TFormat>(SamplePlaneView<TSample> plane, CodingBlockMap blocks, int component)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
+        {
             int depth = slice.Picture.Sequence.BitDepth;
             int scaleX = component == 0 ? 1 : slice.Picture.Sequence.SubWidthC;
             int scaleY = component == 0 ? 1 : slice.Picture.Sequence.SubHeightC;
             int ctbWidth = (1 << slice.Picture.Sequence.Log2Ctb) / scaleX;
             int ctbHeight = (1 << slice.Picture.Sequence.Log2Ctb) / scaleY;
-            ushort[] buffer = ArrayPool<ushort>.Shared.Rent(checked(plane.Width * 2));
+            TSample[] buffer = ArrayPool<TSample>.Shared.Rent(checked(plane.Width * 2));
             try
             {
                 for (int y = 0; y < plane.Height; y++)
                 {
-                    Span<ushort> current = buffer.AsSpan((y & 1) * plane.Width, plane.Width);
+                    Span<TSample> current = buffer.AsSpan((y & 1) * plane.Width, plane.Width);
                     plane.Row(y).CopyTo(current);
-                    ReadOnlySpan<ushort> above = y == 0 ? ReadOnlySpan<ushort>.Empty : buffer.AsSpan(((y - 1) & 1) * plane.Width, plane.Width);
-                    ReadOnlySpan<ushort> below = y + 1 == plane.Height ? ReadOnlySpan<ushort>.Empty : plane.Row(y + 1);
-                    Span<ushort> output = plane.Row(y);
+                    ReadOnlySpan<TSample> above = y == 0 ? ReadOnlySpan<TSample>.Empty : buffer.AsSpan(((y - 1) & 1) * plane.Width, plane.Width);
+                    ReadOnlySpan<TSample> below = y + 1 == plane.Height ? ReadOnlySpan<TSample>.Empty : plane.Row(y + 1);
+                    Span<TSample> output = plane.Row(y);
                     int parameterRow = y / ctbHeight * columns * components + component;
                     for (int start = 0, index = parameterRow; start < plane.Width; start += ctbWidth, index += components)
                     {
@@ -119,7 +126,7 @@ namespace Heic.Net.Hevc
                             {
                                 if (!blocks.Bypass(x * scaleX, y * scaleY))
                                 {
-                                    output[x] = (ushort)SaoKernel.Band(current[x], depth, parameter);
+                                    output[x] = default(TFormat).Write(SaoKernel.Band(default(TFormat).Read(current[x]), depth, parameter));
                                 }
                             }
                         }
@@ -131,15 +138,16 @@ namespace Heic.Net.Hevc
                                 continue;
                             }
 
-                            ReadOnlySpan<ushort> first = NeighbourRow(above, current, below, dy);
-                            ReadOnlySpan<ushort> second = NeighbourRow(above, current, below, -dy);
+                            ReadOnlySpan<TSample> first = NeighbourRow<TSample>(above, current, below, dy);
+                            ReadOnlySpan<TSample> second = NeighbourRow<TSample>(above, current, below, -dy);
                             int firstX = Math.Max(start, Math.Abs(dx));
                             int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
                             for (int x = firstX; x < lastX; x++)
                             {
                                 if (!blocks.Bypass(x * scaleX, y * scaleY))
                                 {
-                                    output[x] = (ushort)SaoKernel.Edge(current[x], first[x + dx], second[x - dx], depth, parameter);
+                                    output[x] = default(TFormat).Write(SaoKernel.Edge(default(TFormat).Read(current[x]),
+                                        default(TFormat).Read(first[x + dx]), default(TFormat).Read(second[x - dx]), depth, parameter));
                                 }
                             }
                         }
@@ -148,11 +156,12 @@ namespace Heic.Net.Hevc
             }
             finally
             {
-                ArrayPool<ushort>.Shared.Return(buffer);
+                ArrayPool<TSample>.Shared.Return(buffer);
             }
         }
 
-        private static ReadOnlySpan<ushort> NeighbourRow(ReadOnlySpan<ushort> above, ReadOnlySpan<ushort> current, ReadOnlySpan<ushort> below, int dy)
+        private static ReadOnlySpan<TSample> NeighbourRow<TSample>(ReadOnlySpan<TSample> above, ReadOnlySpan<TSample> current, ReadOnlySpan<TSample> below, int dy)
+            where TSample : unmanaged
         {
             switch (dy)
             {

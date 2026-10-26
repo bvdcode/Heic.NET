@@ -52,6 +52,14 @@ namespace Heic.Net.Hevc
         public int Width { get; }
         public int Height { get; }
         public int Stride => Width;
+        public SamplePlaneView<ushort> View
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return new SamplePlaneView<ushort>(samples, Width, Height);
+            }
+        }
         public ReadOnlyMemory<ushort> Samples
         {
             get
