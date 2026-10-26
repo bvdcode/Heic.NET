@@ -47,25 +47,7 @@ namespace Heic.Net.Hevc
             {
                 int gx = x / 4;
                 int gy = y / 4;
-                int px = x & 3;
-                int py = y & 3;
-                switch (pattern)
-                {
-                    case 0:
-                        context = (px + py) == 0 ? 2 : (px + py) < 3 ? 1 : 0;
-                        break;
-                    case 1:
-                        context = py == 0 ? 2 : py == 1 ? 1 : 0;
-                        break;
-                    case 2:
-                        context = px == 0 ? 2 : px == 1 ? 1 : 0;
-                        break;
-                    case 3:
-                        context = 2;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(pattern));
-                }
+                context = LocalSignificant(x & 3, y & 3, pattern);
 
                 if (component == 0)
                 {
@@ -124,6 +106,23 @@ namespace Heic.Net.Hevc
                 neighbours += codedGroups[((gy + 1) * width) + gx];
             }
             return (component == 0 ? 0 : 2) + Math.Min(neighbours, 1);
+        }
+
+        private static int LocalSignificant(int px, int py, int pattern)
+        {
+            switch (pattern)
+            {
+                case 0:
+                    return (px + py) == 0 ? 2 : (px + py) < 3 ? 1 : 0;
+                case 1:
+                    return py == 0 ? 2 : py == 1 ? 1 : 0;
+                case 2:
+                    return px == 0 ? 2 : px == 1 ? 1 : 0;
+                case 3:
+                    return 2;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(pattern));
+            }
         }
     }
 }

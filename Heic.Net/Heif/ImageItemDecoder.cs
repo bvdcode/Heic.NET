@@ -60,27 +60,14 @@ namespace Heic.Net.Heif
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
-                if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || (inputs.Count != 1))
-                {
-                    throw new InvalidDataException("Identity image must reference exactly one input.");
-                }
-
-                result = Decode(inputs[0], alpha, color, icc, alphaInformation, path, parallel, buffers);
+                result = Decode(IdentityInput(item), alpha, color, icc, alphaInformation, path, parallel, buffers);
             }
             else
             {
                 throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            if ((result.Width != expectedWidth) || (result.Height != expectedHeight))
-            {
-                throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
-            }
-
-            for (int index = transformedProperties; index < properties.Transforms.Count; index++)
-            {
-                result = ImageTransforms.Apply(result, properties.Transforms[index], buffers);
-            }
+            result = ApplyTransforms(result, expectedWidth, expectedHeight, properties.Transforms, transformedProperties, buffers);
 
             if (!alpha)
             {
@@ -181,6 +168,30 @@ namespace Heic.Net.Heif
                     throw new InvalidDataException("Pixel information depth disagrees with the HEVC sequence.");
                 }
             }
+        }
+
+        private static uint IdentityInput(HeifItem item)
+        {
+            if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || (inputs.Count != 1))
+            {
+                throw new InvalidDataException("Identity image must reference exactly one input.");
+            }
+            return inputs[0];
+        }
+
+        private static RgbaImage ApplyTransforms(RgbaImage result, int expectedWidth, int expectedHeight, IReadOnlyList<HeifBox> transforms,
+            int transformedProperties, PixelBufferScope buffers)
+        {
+            if ((result.Width != expectedWidth) || (result.Height != expectedHeight))
+            {
+                throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
+            }
+
+            for (int index = transformedProperties; index < transforms.Count; index++)
+            {
+                result = ImageTransforms.Apply(result, transforms[index], buffers);
+            }
+            return result;
         }
     }
 }

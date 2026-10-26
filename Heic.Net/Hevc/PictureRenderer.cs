@@ -26,8 +26,6 @@ namespace Heic.Net.Hevc
             }
             int width = crop.Width;
             int height = crop.Height;
-            int left = sequence.CropLeft + crop.Left;
-            int top = sequence.CropTop + crop.Top;
             Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             ColorConversion? conversion = null;
             if (!alpha)
@@ -38,25 +36,7 @@ namespace Heic.Net.Hevc
 
             if (!alpha && picture.Cb is not null && picture.Cr is not null)
             {
-                int subWidth = sequence.SubWidthC;
-                int subHeight = sequence.SubHeightC;
-                ColorPlaneLayout layout = new ColorPlaneLayout(width, height, picture.Luma.Stride,
-                    picture.Cb.Stride, subWidth, subHeight, left % subWidth, top % subHeight);
-                int lumaOffset = (top * picture.Luma.Stride) + left;
-                int chromaOffset = ((top / subHeight) * picture.Cb.Stride) + (left / subWidth);
-                switch (sequence.BitDepth)
-                {
-                    case 8:
-                        conversion!.ConvertRows(picture.Luma.ByteView.Samples.Slice(lumaOffset),
-                            picture.Cb.ByteView.Samples.Slice(chromaOffset), picture.Cr.ByteView.Samples.Slice(chromaOffset), layout, pixels.Span);
-                        break;
-                    case 10:
-                        conversion!.ConvertRows(picture.Luma.WordView.Samples.Slice(lumaOffset),
-                            picture.Cb.WordView.Samples.Slice(chromaOffset), picture.Cr.WordView.Samples.Slice(chromaOffset), layout, pixels.Span);
-                        break;
-                    default:
-                        throw new InvalidOperationException("Unsupported component sample depth.");
-                }
+                RenderColor(picture, crop, conversion!, pixels.Span);
             }
             else
             {
@@ -113,6 +93,34 @@ namespace Heic.Net.Hevc
             target[1] = value;
             target[2] = value;
             target[3] = 255;
+        }
+
+        private static void RenderColor(DecodedPicture picture, ImageCrop crop, ColorConversion conversion, Span<byte> pixels)
+        {
+            SequenceParameters sequence = picture.Sequence;
+            int width = crop.Width;
+            int height = crop.Height;
+            int left = sequence.CropLeft + crop.Left;
+            int top = sequence.CropTop + crop.Top;
+            int subWidth = sequence.SubWidthC;
+            int subHeight = sequence.SubHeightC;
+            ColorPlaneLayout layout = new ColorPlaneLayout(width, height, picture.Luma.Stride,
+                picture.Cb!.Stride, subWidth, subHeight, left % subWidth, top % subHeight);
+            int lumaOffset = (top * picture.Luma.Stride) + left;
+            int chromaOffset = ((top / subHeight) * picture.Cb!.Stride) + (left / subWidth);
+            switch (sequence.BitDepth)
+            {
+                case 8:
+                    conversion!.ConvertRows(picture.Luma.ByteView.Samples.Slice(lumaOffset),
+                        picture.Cb!.ByteView.Samples.Slice(chromaOffset), picture.Cr!.ByteView.Samples.Slice(chromaOffset), layout, pixels);
+                    break;
+                case 10:
+                    conversion!.ConvertRows(picture.Luma.WordView.Samples.Slice(lumaOffset),
+                        picture.Cb!.WordView.Samples.Slice(chromaOffset), picture.Cr!.WordView.Samples.Slice(chromaOffset), layout, pixels);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported component sample depth.");
+            }
         }
     }
 }

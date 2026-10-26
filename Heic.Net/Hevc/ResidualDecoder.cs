@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Runtime.CompilerServices;
 using System.IO;
 
 namespace Heic.Net.Hevc
@@ -24,19 +25,7 @@ namespace Heic.Net.Hevc
             Span<int> output = coefficients.Slice(0, size * size);
             output.Clear();
             bool skip = transformSkipEnabled && !bypass && (log2Size == 2) && reader.Read(CabacElement.TransformSkip, component == 0 ? 0 : 1);
-            int scanIndex = 0;
-            if ((log2Size == 2) || ((log2Size == 3) && ((component == 0) || fullResolutionChroma)))
-            {
-                if ((intraMode >= 6) && (intraMode <= 14))
-                {
-                    scanIndex = 2;
-                }
-                else if ((intraMode >= 22) && (intraMode <= 30))
-                {
-                    scanIndex = 1;
-                }
-            }
-
+            int scanIndex = ScanIndex(log2Size, component, intraMode);
             int prefixX = LastPrefix(log2Size, component, CabacElement.LastX);
             int prefixY = LastPrefix(log2Size, component, CabacElement.LastY);
             int lastX = LastPosition(prefixX);
@@ -69,20 +58,8 @@ namespace Heic.Net.Hevc
                 {
                     continue;
                 }
-                int count = 0;
-                bool inferDc = (group != 0) && (group != (last / 16));
-                int upper = group == (last / 16) ? last % 16 : 15;
                 ReadOnlySpan<byte> contexts = CoefficientContexts.SignificantGroup(gx, gy, log2Size, scanIndex, component, codedGroups);
-                for (int n = upper; n >= 0; n--)
-                {
-                    bool significant = (((group * 16) + n) == last) || ((n == 0) && inferDc) ||
-                        reader.Read(CabacElement.SignificantCoefficient, contexts[n]);
-                    if (significant)
-                    {
-                        positions[count++] = n;
-                        inferDc = false;
-                    }
-                }
+                int count = ReadSignificantPositions(positions, contexts, group, last);
 
                 if (count != 0)
                 {
@@ -96,38 +73,7 @@ namespace Heic.Net.Hevc
         private void ReadLevels(Span<int> output, ReadOnlySpan<int> scan, ReadOnlySpan<int> positions,
             int group, int component, bool bypass, ref int previousGreater)
         {
-            uint levels = InitialGroupLevels;
-            int contextSet = (component == 0) && (group != 0) ? 2 : 0;
-            if (previousGreater == 0)
-            {
-                contextSet++;
-            }
-            int greaterContext = 1;
-            int firstGreater = -1;
-            for (int i = 0; i < Math.Min(positions.Length, 8); i++)
-            {
-                int context = (contextSet * 4) + Math.Min(3, greaterContext) + (component == 0 ? 0 : 16);
-                bool greater = reader.Read(CabacElement.GreaterOne, context);
-                if (greater)
-                {
-                    levels += 1u << (2 * i);
-                    if (firstGreater == -1)
-                    {
-                        firstGreater = i;
-                    }
-                    greaterContext = 0;
-                }
-                else if (greaterContext > 0)
-                {
-                    greaterContext++;
-                }
-            }
-
-            previousGreater = greaterContext;
-            if ((firstGreater >= 0) && reader.Read(CabacElement.GreaterTwo, contextSet + (component == 0 ? 0 : 4)))
-            {
-                levels += 1u << (2 * firstGreater);
-            }
+            uint levels = ReadGreaterFlags(positions.Length, group, component, ref previousGreater, out int firstGreater);
 
             bool hidden = signDataHiding && !bypass && ((positions[0] - positions[positions.Length - 1]) > 3);
             int signCount = positions.Length - (hidden ? 1 : 0);
@@ -186,6 +132,81 @@ namespace Heic.Net.Hevc
             }
             int suffixLength = (prefix >> 1) - 1;
             return ((2 + (prefix & 1)) << suffixLength) + reader.Bits(suffixLength);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int ScanIndex(int log2Size, int component, int intraMode)
+        {
+            int scanIndex = 0;
+            if ((log2Size == 2) || ((log2Size == 3) && ((component == 0) || fullResolutionChroma)))
+            {
+                if ((intraMode >= 6) && (intraMode <= 14))
+                {
+                    scanIndex = 2;
+                }
+                else if ((intraMode >= 22) && (intraMode <= 30))
+                {
+                    scanIndex = 1;
+                }
+            }
+            return scanIndex;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int ReadSignificantPositions(Span<int> positions, ReadOnlySpan<byte> contexts, int group, int last)
+        {
+            int count = 0;
+            bool inferDc = (group != 0) && (group != (last / 16));
+            int upper = group == (last / 16) ? last % 16 : 15;
+            for (int n = upper; n >= 0; n--)
+            {
+                bool significant = (((group * 16) + n) == last) || ((n == 0) && inferDc) ||
+                    reader.Read(CabacElement.SignificantCoefficient, contexts[n]);
+                if (significant)
+                {
+                    positions[count++] = n;
+                    inferDc = false;
+                }
+            }
+            return count;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private uint ReadGreaterFlags(int count, int group, int component, ref int previousGreater, out int firstGreater)
+        {
+            uint levels = InitialGroupLevels;
+            int contextSet = (component == 0) && (group != 0) ? 2 : 0;
+            if (previousGreater == 0)
+            {
+                contextSet++;
+            }
+            int greaterContext = 1;
+            firstGreater = -1;
+            for (int i = 0; i < Math.Min(count, 8); i++)
+            {
+                int context = (contextSet * 4) + Math.Min(3, greaterContext) + (component == 0 ? 0 : 16);
+                bool greater = reader.Read(CabacElement.GreaterOne, context);
+                if (greater)
+                {
+                    levels += 1u << (2 * i);
+                    if (firstGreater == -1)
+                    {
+                        firstGreater = i;
+                    }
+                    greaterContext = 0;
+                }
+                else if (greaterContext > 0)
+                {
+                    greaterContext++;
+                }
+            }
+
+            previousGreater = greaterContext;
+            if ((firstGreater >= 0) && reader.Read(CabacElement.GreaterTwo, contextSet + (component == 0 ? 0 : 4)))
+            {
+                levels += 1u << (2 * firstGreater);
+            }
+            return levels;
         }
     }
 }

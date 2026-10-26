@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers;
+using System.Runtime.CompilerServices;
 
 namespace Heic.Net.Hevc
 {
@@ -61,15 +62,7 @@ namespace Heic.Net.Hevc
                 return;
             }
             int current = ((y * columns) + x) * components;
-            int previous = -1;
-            if ((x > 0) && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
-            {
-                previous = current - components;
-            }
-            else if ((y > 0) && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
-            {
-                previous = current - (columns * components);
-            }
+            int previous = ReadMerge(x, y, current, ctb, reader);
             if (previous >= 0)
             {
                 Array.Copy(parameters, previous, parameters, current, components);
@@ -162,27 +155,8 @@ namespace Heic.Net.Hevc
                         }
                         else
                         {
-                            Direction(parameter.Edge, out int dx, out int dy);
-                            if ((y < Math.Abs(dy)) || (y >= (plane.Height - Math.Abs(dy))))
-                            {
-                                continue;
-                            }
-
-                            ReadOnlySpan<TSample> first = NeighbourRow<TSample>(above, current, below, dy);
-                            ReadOnlySpan<TSample> second = NeighbourRow<TSample>(above, current, below, -dy);
-                            int firstX = Math.Max(start, Math.Abs(dx));
-                            int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
-                            for (int x = firstX; x < lastX; x++)
-                            {
-                                if (!blocks.Bypass(x * scaleX, y * scaleY) &&
-                                    (partitions is null ||
-                                        (partitions.CanFilter(x * scaleX, y * scaleY, (x + dx) * scaleX, (y + dy) * scaleY) &&
-                                         partitions.CanFilter(x * scaleX, y * scaleY, (x - dx) * scaleX, (y - dy) * scaleY))))
-                                {
-                                    output[x] = default(TFormat).Write(SaoKernel.Edge(default(TFormat).Read(current[x]),
-                                        default(TFormat).Read(first[x + dx]), default(TFormat).Read(second[x - dx]), depth, parameter));
-                                }
-                            }
+                            ApplyEdge<TSample, TFormat>(plane, blocks, parameter, output, above, current, below,
+                                y, start, end, scaleX, scaleY, depth);
                         }
                     }
                 }
@@ -231,6 +205,50 @@ namespace Heic.Net.Hevc
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(edge));
+            }
+        }
+
+        private int ReadMerge(int x, int y, int current, int ctb, IntraCabacReader reader)
+        {
+            int previous = -1;
+            if ((x > 0) && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            {
+                previous = current - components;
+            }
+            else if ((y > 0) && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            {
+                previous = current - (columns * components);
+            }
+            return previous;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void ApplyEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, CodingBlockMap blocks, SaoParameters parameter,
+            Span<TSample> output, ReadOnlySpan<TSample> above, ReadOnlySpan<TSample> current, ReadOnlySpan<TSample> below,
+            int y, int start, int end, int scaleX, int scaleY, int depth)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
+        {
+            Direction(parameter.Edge, out int dx, out int dy);
+            if ((y < Math.Abs(dy)) || (y >= (plane.Height - Math.Abs(dy))))
+            {
+                return;
+            }
+
+            ReadOnlySpan<TSample> first = NeighbourRow<TSample>(above, current, below, dy);
+            ReadOnlySpan<TSample> second = NeighbourRow<TSample>(above, current, below, -dy);
+            int firstX = Math.Max(start, Math.Abs(dx));
+            int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
+            for (int x = firstX; x < lastX; x++)
+            {
+                if (!blocks.Bypass(x * scaleX, y * scaleY) &&
+                    (partitions is null ||
+                        (partitions.CanFilter(x * scaleX, y * scaleY, (x + dx) * scaleX, (y + dy) * scaleY) &&
+                         partitions.CanFilter(x * scaleX, y * scaleY, (x - dx) * scaleX, (y - dy) * scaleY))))
+                {
+                    output[x] = default(TFormat).Write(SaoKernel.Edge(default(TFormat).Read(current[x]),
+                        default(TFormat).Read(first[x + dx]), default(TFormat).Read(second[x - dx]), depth, parameter));
+                }
             }
         }
     }

@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Numerics;
 using System.Runtime.InteropServices;
 
@@ -55,22 +56,7 @@ namespace Heic.Net.Hevc
                 return;
             }
 
-            int activeWidth = 0;
-            int activeHeight = 0;
-            for (int i = 0; i < count; i++)
-            {
-                int value = coefficients[i];
-                if ((value < short.MinValue) || (value > short.MaxValue))
-                {
-                    throw new ArgumentOutOfRangeException(nameof(coefficients));
-                }
-
-                if (value != 0)
-                {
-                    activeWidth = Math.Max(activeWidth, (i % size) + 1);
-                    activeHeight = (i / size) + 1;
-                }
-            }
+            (int activeWidth, int activeHeight) = ActiveExtent(coefficients, size);
 
             Span<int> intermediate = workspace.Intermediate.Slice(0, count);
             intermediate.Clear();
@@ -171,6 +157,28 @@ namespace Heic.Net.Hevc
                 angle = 128 - angle;
             }
             return angle > 32 ? -CosineMagnitudes[64 - angle] : CosineMagnitudes[angle];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static (int Width, int Height) ActiveExtent(ReadOnlySpan<int> coefficients, int size)
+        {
+            int activeWidth = 0;
+            int activeHeight = 0;
+            for (int i = 0; i < (size * size); i++)
+            {
+                int value = coefficients[i];
+                if ((value < short.MinValue) || (value > short.MaxValue))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(coefficients));
+                }
+
+                if (value != 0)
+                {
+                    activeWidth = Math.Max(activeWidth, (i % size) + 1);
+                    activeHeight = (i / size) + 1;
+                }
+            }
+            return (activeWidth, activeHeight);
         }
     }
 }

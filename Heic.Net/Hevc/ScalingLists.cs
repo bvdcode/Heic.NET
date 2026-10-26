@@ -59,11 +59,7 @@ namespace Heic.Net.Hevc
 
         public int Factor(int log2Size, int matrixId, int x, int y)
         {
-            if ((log2Size < 2) || (log2Size > 5) || (matrixId < 0) || (matrixId > 5) ||
-                (x < 0) || (y < 0) || (x >= (1 << log2Size)) || (y >= (1 << log2Size)))
-            {
-                throw new ArgumentOutOfRangeException(nameof(log2Size));
-            }
+            ValidateCoordinates(log2Size, matrixId, x, y);
 
             if (!enabled)
             {
@@ -157,6 +153,15 @@ namespace Heic.Net.Hevc
             }
 
             matrices[index] = values;
+        }
+
+        private static void ValidateCoordinates(int log2Size, int matrixId, int x, int y)
+        {
+            if ((log2Size < 2) || (log2Size > 5) || (matrixId < 0) || (matrixId > 5) ||
+                (x < 0) || (y < 0) || (x >= (1 << log2Size)) || (y >= (1 << log2Size)))
+            {
+                throw new ArgumentOutOfRangeException(nameof(log2Size));
+            }
         }
     }
 }

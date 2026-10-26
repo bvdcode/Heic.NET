@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Heic.Net.Hevc
 {
@@ -147,7 +148,6 @@ namespace Heic.Net.Hevc
         {
             int acrossEnd = vertical ? plane.Width : plane.Height;
             int alongEnd = vertical ? plane.Height : plane.Width;
-            int depth = slice.Picture.Sequence.BitDepth;
             int scaleX = slice.Picture.Sequence.SubWidthC;
             int scaleY = slice.Picture.Sequence.SubHeightC;
             Span<int> samples = stackalloc int[4];
@@ -161,34 +161,50 @@ namespace Heic.Net.Hevc
                     {
                         continue;
                     }
-                    int px = vertical ? (x * scaleX) - 1 : x * scaleX;
-                    int py = vertical ? y * scaleY : (y * scaleY) - 1;
-                    IntraSliceHeader current = blocks.Partitions?.SliceAt(x * scaleX, y * scaleY) ?? slice;
-                    if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x * scaleX, y * scaleY, px, py)))
-                    {
-                        continue;
-                    }
-                    int qp = ((blocks.Qp(x * scaleX, y * scaleY) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
-                    int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, current.Picture.Sequence.ChromaFormat) + 2 + current.TcOffset, depth);
-                    if (tc == 0)
-                    {
-                        continue;
-                    }
-                    for (int k = 0; k < 4; k++)
-                    {
-                        for (int i = 0; i < 4; i++)
-                        {
-                            samples[i] = default(TFormat).Read(plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)]);
-                        }
+                    ChromaEdge<TSample, TFormat>(plane, slice, blocks, vertical, qpOffset, x, y, samples);
+                }
+            }
+        }
 
-                        bool writeP = !blocks.Bypass(px + (vertical ? 0 : k * scaleX), py + (vertical ? k * scaleY : 0));
-                        bool writeQ = !blocks.Bypass((x + (vertical ? 0 : k)) * scaleX, (y + (vertical ? k : 0)) * scaleY);
-                        DeblockingKernel.Chroma(samples, tc, depth, writeP, writeQ);
-                        for (int i = 1; i <= 2; i++)
-                        {
-                            plane.Row(y + (vertical ? k : i - 2))[x + (vertical ? i - 2 : k)] = default(TFormat).Write(samples[i]);
-                        }
-                    }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ChromaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice,
+            CodingBlockMap blocks, bool vertical, int qpOffset, int x, int y, Span<int> samples)
+            where TSample : unmanaged
+            where TFormat : struct, ISampleFormat<TSample>
+        {
+            int depth = slice.Picture.Sequence.BitDepth;
+            int scaleX = slice.Picture.Sequence.SubWidthC;
+            int scaleY = slice.Picture.Sequence.SubHeightC;
+            int px = vertical ? (x * scaleX) - 1 : x * scaleX;
+            int py = vertical ? y * scaleY : (y * scaleY) - 1;
+            IntraSliceHeader current = blocks.Partitions?.SliceAt(x * scaleX, y * scaleY) ?? slice;
+            if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x * scaleX, y * scaleY, px, py)))
+            {
+                return;
+            }
+            int qp = ((blocks.Qp(x * scaleX, y * scaleY) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
+            int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, current.Picture.Sequence.ChromaFormat) + 2 + current.TcOffset, depth);
+            if (tc == 0)
+            {
+                return;
+            }
+            int alongX = vertical ? 0 : 1;
+            int alongY = vertical ? 1 : 0;
+            int acrossX = 1 - alongX;
+            int acrossY = 1 - alongY;
+            for (int k = 0; k < 4; k++)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    samples[i] = default(TFormat).Read(plane.Row(y + (k * alongY) + ((i - 2) * acrossY))[x + (k * alongX) + ((i - 2) * acrossX)]);
+                }
+
+                bool writeP = !blocks.Bypass(px + (k * alongX * scaleX), py + (k * alongY * scaleY));
+                bool writeQ = !blocks.Bypass((x + (k * alongX)) * scaleX, (y + (k * alongY)) * scaleY);
+                DeblockingKernel.Chroma(samples, tc, depth, writeP, writeQ);
+                for (int i = 1; i <= 2; i++)
+                {
+                    plane.Row(y + (k * alongY) + ((i - 2) * acrossY))[x + (k * alongX) + ((i - 2) * acrossX)] = default(TFormat).Write(samples[i]);
                 }
             }
         }
