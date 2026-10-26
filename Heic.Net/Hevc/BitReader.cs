@@ -13,10 +13,10 @@ namespace Heic.Net.Hevc
     /// Positions count bits after removal of emulation-prevention bytes. A 32-bit field
     /// is returned as the same signed bit pattern, without arithmetic overflow.
     /// </remarks>
-    internal class BitReader(ReadOnlyMemory<byte> data)
+    internal class BitReader(ArraySegment<byte> data)
     {
         private int position;
-        public int BitsRemaining => checked(data.Length * 8 - position);
+        public int BitsRemaining => checked(data.Count * 8 - position);
         public bool ByteAligned() => (position & 7) == 0;
         public ulong GetBitPosition() => (ulong)position;
 
@@ -35,7 +35,7 @@ namespace Heic.Net.Hevc
             while (remaining > 0)
             {
                 int take = Math.Min(remaining, 8 - (position & 7));
-                result = (result << take) | (uint)((data.Span[position >> 3] >> (8 - (position & 7) - take)) & ((1 << take) - 1));
+                result = (result << take) | (uint)((data.Array![data.Offset + (position >> 3)] >> (8 - (position & 7) - take)) & ((1 << take) - 1));
                 position += take;
                 remaining -= take;
             }
@@ -46,12 +46,12 @@ namespace Heic.Net.Hevc
         public int ReadBit()
         {
             int byteIndex = position >> 3;
-            if (byteIndex >= data.Length)
+            if (byteIndex >= data.Count)
             {
                 throw new InvalidDataException("Truncated HEVC bitstream.");
             }
 
-            int value = (data.Span[byteIndex] >> (7 - (position & 7))) & 1;
+            int value = (data.Array![data.Offset + byteIndex] >> (7 - (position & 7))) & 1;
             position++;
             return value;
         }

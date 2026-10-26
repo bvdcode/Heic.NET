@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
     {
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
-        public IReadOnlyList<ReadOnlyMemory<byte>> RowSubstreams { get; private set; } = Array.Empty<ReadOnlyMemory<byte>>();
+        public IReadOnlyList<ArraySegment<byte>> RowSubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
         public int Qp { get; private set; }
         public int CbQpOffset { get; private set; }
         public int CrQpOffset { get; private set; }

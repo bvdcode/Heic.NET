@@ -34,7 +34,7 @@ namespace Heic.Net.Hevc
             return (byte)Math.Min(255, Math.Max(0, (numerator * 255 + range / 2) / range));
         }
 
-        public static AlphaChannelInformation? Read(ReadOnlyMemory<byte> payload)
+        public static AlphaChannelInformation? Read(ArraySegment<byte> payload)
         {
             BitReader header = new BitReader(payload);
             if (header.ReadFlag())
@@ -56,7 +56,7 @@ namespace Heic.Net.Hevc
             return information ?? throw new InvalidDataException("Invalid alpha channel information.");
         }
 
-        private static AlphaChannelInformation? ReadValues(ReadOnlyMemory<byte> payload, int depth, int valueBits)
+        private static AlphaChannelInformation? ReadValues(ArraySegment<byte> payload, int depth, int valueBits)
         {
             BitReader reader = new BitReader(payload);
             reader.SkipBits(7);

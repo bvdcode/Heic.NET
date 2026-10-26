@@ -50,7 +50,7 @@ namespace Heic.Net.Tests
             }
             Assert.Throws<InvalidDataException>(() => reader.ReadBit());
             Assert.Equal((ulong)(data.Length * 8), reader.GetBitPosition());
-            Assert.Throws<InvalidDataException>(() => new BitReader(ReadOnlyMemory<byte>.Empty).ReadBit());
+            Assert.Throws<InvalidDataException>(() => new BitReader(ArraySegment<byte>.Empty).ReadBit());
         }
 
         [Fact]
@@ -62,6 +62,75 @@ namespace Heic.Net.Tests
             Assert.Equal(359, reader.Read(9));
             Assert.Equal(1, reader.Read(4));
             Assert.Throws<InvalidDataException>(() => reader.Read(1));
+        }
+
+        [Fact]
+        public void SegmentReadsHonorOffsetAndLengthWithoutConsumingPadding()
+        {
+            byte[] data = { 0xff, 0xb6, 0x71, 0xff };
+            BitReader reader = new BitReader(new ArraySegment<byte>(data, 1, 2));
+            Assert.Equal(16, reader.BitsRemaining);
+            Assert.Equal(1, reader.ReadBit());
+            Assert.Equal(13, reader.Peek(5));
+            Assert.Equal(1ul, reader.GetBitPosition());
+            Assert.Equal(13, reader.Read(5));
+            reader.SkipBits(2);
+            Assert.Equal(0x71, reader.Read(8));
+            Assert.Equal(0, reader.BitsRemaining);
+            Assert.Throws<InvalidDataException>(() => reader.ReadBit());
+            Assert.Throws<InvalidDataException>(() => reader.Peek(1));
+            Assert.Throws<InvalidDataException>(() => reader.SkipBits(1));
+            Assert.Equal(16ul, reader.GetBitPosition());
+            Assert.Equal(0, reader.Read(0));
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void EmptySegmentsRemainReadableOnlyForZeroBits(bool hasBackingArray)
+        {
+            ArraySegment<byte> data = default;
+            if (hasBackingArray)
+            {
+                data = new ArraySegment<byte>(new byte[] { 0xff, 0xff }, 1, 0);
+            }
+            BitReader reader = new BitReader(data);
+            Assert.Equal(0, reader.BitsRemaining);
+            Assert.Equal(0, reader.Read(0));
+            Assert.Equal(0, reader.Peek(0));
+            reader.SkipBits(0);
+            Assert.Throws<InvalidDataException>(() => reader.ReadBit());
+            Assert.Throws<InvalidDataException>(() => reader.Read(1));
+            Assert.Throws<InvalidDataException>(() => reader.SkipBits(1));
+            Assert.Equal(0ul, reader.GetBitPosition());
+        }
+
+        [Fact]
+        public void RejectedSegmentReadsPreservePosition()
+        {
+            BitReader reader = new BitReader(new ArraySegment<byte>(new byte[] { 0xff, 0xb6, 0xff }, 1, 1));
+            Assert.Equal(5, reader.Read(3));
+            Assert.Throws<InvalidDataException>(() => reader.Read(6));
+            Assert.Throws<InvalidDataException>(() => reader.Peek(6));
+            Assert.Throws<InvalidDataException>(() => reader.SkipBits(6));
+            Assert.Throws<InvalidDataException>(() => reader.SkipBits(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => reader.Read(-1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => reader.Read(33));
+            Assert.Equal(3ul, reader.GetBitPosition());
+            Assert.Equal(22, reader.Read(5));
+        }
+
+        [Fact]
+        public void NalPayloadOwnsDecodedBytesFromManagedMemory()
+        {
+            byte[] encoded = { 0x40, 1, 0, 0, 3, 1, 0x80 };
+            using ManagedByteMemory memory = new ManagedByteMemory(encoded);
+            NalPayload nal = new NalPayload(memory.Memory);
+            Array.Clear(encoded);
+            BitReader reader = new BitReader(nal.Bytes.Slice(2));
+            Assert.Equal(1, reader.Read(24));
+            Assert.Equal(0x80, reader.Read(8));
+            Assert.Equal(0, reader.BitsRemaining);
         }
 
         [Fact]
@@ -84,13 +153,13 @@ namespace Heic.Net.Tests
                 0, 0, 3, 0, 0x80,
                 1, 2
             });
-            ReadOnlyMemory<byte>[] streams = nal.Substreams(6, new[] { 5, 5 });
+            ArraySegment<byte>[] streams = nal.Substreams(6, new[] { 5, 5 });
             Assert.Equal(3, streams.Length);
             Assert.Equal(new byte[] { 0, 0, 2, 0x80 }, streams[0].ToArray());
             Assert.Equal(new byte[] { 0, 0, 0, 0x80 }, streams[1].ToArray());
             Assert.Equal(new byte[] { 1, 2 }, streams[2].ToArray());
             Assert.Throws<InvalidDataException>(() => nal.Substreams(-1, Array.Empty<int>()));
-            Assert.Throws<InvalidDataException>(() => nal.Substreams(nal.Bytes.Length, Array.Empty<int>()));
+            Assert.Throws<InvalidDataException>(() => nal.Substreams(nal.Bytes.Count, Array.Empty<int>()));
             Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { 0 }));
             Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { 5, 7 }));
             Assert.Throws<InvalidDataException>(() => nal.Substreams(6, new[] { int.MaxValue }));

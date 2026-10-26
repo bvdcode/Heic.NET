@@ -51,15 +51,15 @@ namespace Heic.Net.Hevc
                 zeros = value == 0 ? zeros + 1 : 0;
             }
 
-            Bytes = rbsp.AsMemory(0, target);
+            Bytes = new ArraySegment<byte>(rbsp, 0, target);
         }
 
         public int Type { get; }
-        public ReadOnlyMemory<byte> Bytes { get; }
+        public ArraySegment<byte> Bytes { get; }
 
-        public ReadOnlyMemory<byte>[] Substreams(int rbspOffset, int[] encodedLengths)
+        public ArraySegment<byte>[] Substreams(int rbspOffset, int[] encodedLengths)
         {
-            if (rbspOffset < 0 || rbspOffset >= Bytes.Length)
+            if (rbspOffset < 0 || rbspOffset >= Bytes.Count)
             {
                 throw new InvalidDataException("HEVC entropy data offset exceeds the NAL payload.");
             }
@@ -71,7 +71,7 @@ namespace Heic.Net.Hevc
                 Advance();
             }
 
-            ReadOnlyMemory<byte>[] streams = new ReadOnlyMemory<byte>[encodedLengths.Length + 1];
+            ArraySegment<byte>[] streams = new ArraySegment<byte>[encodedLengths.Length + 1];
             for (int i = 0; i < encodedLengths.Length; i++)
             {
                 int length = encodedLengths[i];

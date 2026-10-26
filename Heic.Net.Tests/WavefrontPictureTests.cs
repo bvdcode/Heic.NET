@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Heic.Net.Hevc;
 using Xunit;
@@ -45,7 +44,7 @@ namespace Heic.Net.Tests
         {
             IntraSliceHeader slice = IntraPictureFixture.ReadSlice("wpp-quantization-10bit.hevc");
             int index = row < 0 ? slice.RowSubstreams.Count - 1 : row;
-            Assert.True(MemoryMarshal.TryGetArray(slice.RowSubstreams[index], out ArraySegment<byte> bytes));
+            ArraySegment<byte> bytes = slice.RowSubstreams[index];
             bytes.Array![bytes.Offset] = 255;
             bytes.Array[bytes.Offset + 1] |= 128;
 

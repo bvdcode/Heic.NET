@@ -14,6 +14,23 @@ namespace Heic.Net.Tests
     {
         [Theory]
         [InlineData("basic-8bit.heic")]
+        [InlineData("basic-10bit.heic")]
+        [InlineData("grid-alpha.heic")]
+        public async Task ManagedMemoryInputProducesTheSamePixelsAsArrayInput(string file)
+        {
+            byte[] encoded = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "corpus", file));
+            RgbaImage expected = HeicDocument.Load(encoded).DecodePrimary();
+            using ManagedByteMemory memory = new ManagedByteMemory(encoded);
+            HeicDocument document = HeicDocument.Load(memory.Memory);
+            Array.Clear(encoded);
+            RgbaImage actual = document.DecodePrimary();
+            Assert.Equal(expected.Width, actual.Width);
+            Assert.Equal(expected.Height, actual.Height);
+            Assert.True(expected.Pixels.Span.SequenceEqual(actual.Pixels.Span));
+        }
+
+        [Theory]
+        [InlineData("basic-8bit.heic")]
         [InlineData("grid.heic")]
         [InlineData("grid-alpha.heic")]
         public async Task DocumentOwnsInputAndConcurrentCallsOwnTheirOutput(string file)

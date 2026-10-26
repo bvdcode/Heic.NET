@@ -31,7 +31,8 @@ namespace Heic.Net.Heif
                 {
                     throw new InvalidDataException("Auxiliary configuration contains a non-SEI NAL unit.");
                 }
-                ByteReader messages = new ByteReader(nal.Bytes.Slice(2));
+                ArraySegment<byte> messageData = nal.Bytes.Slice(2);
+                ByteReader messages = new ByteReader(messageData.AsMemory());
                 while (messages.Remaining > 0)
                 {
                     int type = ReadExtended(messages);
@@ -40,10 +41,11 @@ namespace Heic.Net.Heif
                         break;
                     }
                     int size = ReadExtended(messages);
-                    ReadOnlyMemory<byte> payload = messages.Bytes(size);
+                    int payloadOffset = messages.Position;
+                    messages.Skip(size);
                     if (type == AlphaChannelPayloadType)
                     {
-                        information = AlphaChannelInformation.Read(payload);
+                        information = AlphaChannelInformation.Read(messageData.Slice(payloadOffset, size));
                     }
                 }
             }
