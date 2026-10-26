@@ -16,6 +16,8 @@ namespace Heic.Net.Hevc
     /// </remarks>
     internal class ResidualDecoder(IntraCabacReader reader, bool transformSkipEnabled, bool signDataHiding, bool fullResolutionChroma = false)
     {
+        private const uint InitialGroupLevels = 0x55555555;
+
         public bool Read(Span<int> coefficients, int log2Size, int component, int intraMode, bool bypass)
         {
             int size = 1 << log2Size;
@@ -94,9 +96,7 @@ namespace Heic.Net.Hevc
         private void ReadLevels(Span<int> output, ReadOnlySpan<int> scan, ReadOnlySpan<int> positions,
             int group, int component, bool bypass, ref int previousGreater)
         {
-            Span<int> levels = stackalloc int[16];
-            Span<bool> signs = stackalloc bool[16];
-            levels.Fill(1);
+            uint levels = InitialGroupLevels;
             int contextSet = component == 0 && group != 0 ? 2 : 0;
             if (previousGreater == 0)
             {
@@ -110,7 +110,7 @@ namespace Heic.Net.Hevc
                 bool greater = reader.Read(CabacElement.GreaterOne, context);
                 if (greater)
                 {
-                    levels[i] = 2;
+                    levels += 1u << (2 * i);
                     if (firstGreater == -1)
                     {
                         firstGreater = i;
@@ -126,37 +126,38 @@ namespace Heic.Net.Hevc
             previousGreater = greaterContext;
             if (firstGreater >= 0 && reader.Read(CabacElement.GreaterTwo, contextSet + (component == 0 ? 0 : 4)))
             {
-                levels[firstGreater]++;
+                levels += 1u << (2 * firstGreater);
             }
 
             bool hidden = signDataHiding && !bypass && positions[0] - positions[positions.Length - 1] > 3;
-            for (int i = 0; i < positions.Length; i++)
-            {
-                signs[i] = !(hidden && i == positions.Length - 1) && reader.Bypass();
-            }
+            int signCount = positions.Length - (hidden ? 1 : 0);
+            int signs = reader.Bits(signCount) << (32 - signCount);
             int rice = 0;
             int previousAbsolute = 0;
             int sum = 0;
             for (int i = 0; i < positions.Length; i++)
             {
+                int level = (int)(levels & 3);
+                levels >>= 2;
                 int threshold = i < 8 ? (i == firstGreater ? 3 : 2) : 1;
-                if (levels[i] == threshold)
+                if (level == threshold)
                 {
                     if (previousAbsolute > 3 << rice)
                     {
                         rice = Math.Min(4, rice + 1);
                     }
-                    levels[i] += reader.RemainingLevel(rice);
-                    previousAbsolute = levels[i];
+                    level += reader.RemainingLevel(rice);
+                    previousAbsolute = level;
                 }
 
-                sum += levels[i];
-                bool negative = signs[i];
+                sum += level;
+                bool negative = signs < 0;
+                signs <<= 1;
                 if (hidden && i == positions.Length - 1 && (sum & 1) != 0)
                 {
                     negative = !negative;
                 }
-                int signed = negative ? -levels[i] : levels[i];
+                int signed = negative ? -level : level;
                 if (signed < short.MinValue || signed > short.MaxValue)
                 {
                     throw new InvalidDataException("Transform coefficient exceeds signed 16-bit precision.");
