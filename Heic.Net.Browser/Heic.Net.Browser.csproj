@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmEnableHotReload>false</WasmEnableHotReload>
+    <RunAOTCompilation>true</RunAOTCompilation>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Heic.Net/Heic.Net.csproj" />
+  </ItemGroup>
+  <Target Name="PublishRuntimeLicenses" AfterTargets="Publish">
+    <ItemGroup>
+      <RuntimeLicense Include="@(ResolvedRuntimePack -> '%(PackageDirectory)/LICENSE.TXT')" />
+      <RuntimeLicense Include="@(ResolvedRuntimePack -> '%(PackageDirectory)/THIRD-PARTY-NOTICES.TXT')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(RuntimeLicense)" DestinationFolder="$(PublishDir)wwwroot/Licenses/dotnet" />
+  </Target>
+</Project>

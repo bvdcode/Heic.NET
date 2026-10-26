@@ -6,3 +6,7 @@
 /artifacts/
 .vs/
 *.user
+
+**/node_modules/
+/npm/dist/
+!/npm/bin/

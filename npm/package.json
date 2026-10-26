@@ -1,0 +1,63 @@
+{
+  "name": "heic-net",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An independent MIT-licensed HEIC decoder for browsers. .NET compiled to WebAssembly, with no libheif or libde265.",
+  "author": "Vadim Belov <https://belov.us>",
+  "license": "MIT",
+  "homepage": "https://github.com/bvdcode/Heic.NET",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bvdcode/Heic.NET.git",
+    "directory": "npm"
+  },
+  "bugs": {
+    "url": "https://github.com/bvdcode/Heic.NET/issues"
+  },
+  "keywords": [
+    "heic",
+    "heif",
+    "hevc",
+    "decoder",
+    "webassembly",
+    "wasm",
+    "browser",
+    "mit"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "heic-net-assets": "./bin/copy-assets.mjs"
+  },
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "bin",
+    "runtime",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "lint": "eslint . && tsc --noEmit",
+    "test": "vitest run",
+    "test:browser": "node tests/browser.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^26.6.5",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}
