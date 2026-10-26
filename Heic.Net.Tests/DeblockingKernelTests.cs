@@ -34,7 +34,7 @@ namespace Heic.Net.Tests
                     int q = p + random.Next(-3, 4);
                     for (int i = 0; i < 8; i++)
                     {
-                        original[row * 8 + i] = i < 4 ? p : q;
+                        original[(row * 8) + i] = i < 4 ? p : q;
                     }
                 }
 
@@ -48,12 +48,12 @@ namespace Heic.Net.Tests
                         int denominator = 0;
                         for (int input = 0; input < 8; input++)
                         {
-                            sum += original[row * 8 + input] * StrongWeights[output, input];
+                            sum += original[(row * 8) + input] * StrongWeights[output, input];
                             denominator += StrongWeights[output, input];
                         }
 
-                        int position = row * 8 + output + 1;
-                        int rounded = (int)Math.Floor(sum / (double)denominator + 0.5);
+                        int position = (row * 8) + output + 1;
+                        int rounded = (int)Math.Floor((sum / (double)denominator) + 0.5);
                         Assert.Equal(Math.Clamp(rounded, original[position] - 40, original[position] + 40), actual[position]);
                     }
                 }
@@ -85,7 +85,7 @@ namespace Heic.Net.Tests
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    rows[row * 8 + i] = i < 4 ? 100 : 104;
+                    rows[(row * 8) + i] = i < 4 ? 100 : 104;
                 }
             }
 
@@ -94,9 +94,9 @@ namespace Heic.Net.Tests
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    Assert.Equal(100, rows[row * 8 + i]);
+                    Assert.Equal(100, rows[(row * 8) + i]);
                 }
-                Assert.Equal(103, rows[row * 8 + 4]);
+                Assert.Equal(103, rows[(row * 8) + 4]);
             }
         }
 
@@ -111,7 +111,7 @@ namespace Heic.Net.Tests
                 int[] original = new int[32];
                 for (int i = 0; i < original.Length; i++)
                 {
-                    original[i] = repetition < 100 ? random.Next(1 << depth) : (1 << depth) / 2 + (i % 8 < 4 ? 0 : 1);
+                    original[i] = repetition < 100 ? random.Next(1 << depth) : ((1 << depth) / 2) + ((i % 8) < 4 ? 0 : 1);
                 }
 
                 int[] zeroBeta = (int[])original.Clone();
@@ -141,7 +141,7 @@ namespace Heic.Net.Tests
                     row[i] = random.Next(1 << depth);
                 }
                 int[] original = (int[])row.Clone();
-                int delta = Math.Clamp((int)Math.Floor((4.0 * (row[2] - row[1]) + row[0] - row[3]) / 8 + 0.5), -12, 12);
+                int delta = Math.Clamp((int)Math.Floor(((((4.0 * (row[2] - row[1])) + row[0]) - row[3]) / 8) + 0.5), -12, 12);
                 DeblockingKernel.Chroma(row, 12, depth, true, true);
                 Assert.Equal(Math.Clamp(original[1] + delta, 0, (1 << depth) - 1), row[1]);
                 Assert.Equal(Math.Clamp(original[2] - delta, 0, (1 << depth) - 1), row[2]);

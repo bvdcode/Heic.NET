@@ -25,7 +25,7 @@ namespace Heic.Net.Hevc
             int dq3 = Curvature(rows, 3, true);
             int dp = dp0 + dp3;
             int dq = dq0 + dq3;
-            if (dp + dq >= beta)
+            if ((dp + dq) >= beta)
             {
                 return;
             }
@@ -49,7 +49,7 @@ namespace Heic.Net.Hevc
 
         public static void Chroma(Span<int> row, int tc, int depth, bool writeP, bool writeQ)
         {
-            int delta = Clip((((row[2] - row[1]) << 2) + row[0] - row[3] + 4) >> 3, -tc, tc);
+            int delta = Clip((((((row[2] - row[1]) << 2) + row[0]) - row[3]) + 4) >> 3, -tc, tc);
             if (writeP)
             {
                 row[1] = CoefficientMath.ClipSample(row[1] + delta, depth);
@@ -63,13 +63,13 @@ namespace Heic.Net.Hevc
         private static int Curvature(ReadOnlySpan<int> rows, int row, bool q)
         {
             int start = row * 8;
-            return q ? Math.Abs(rows[start + 6] - 2 * rows[start + 5] + rows[start + 4]) :
-                Math.Abs(rows[start + 1] - 2 * rows[start + 2] + rows[start + 3]);
+            return q ? Math.Abs((rows[start + 6] - (2 * rows[start + 5])) + rows[start + 4]) :
+                Math.Abs((rows[start + 1] - (2 * rows[start + 2])) + rows[start + 3]);
         }
 
         private static bool Strong(ReadOnlySpan<int> row, int dpq, int beta, int tc) =>
-            dpq < (beta >> 2) && Math.Abs(row[0] - row[3]) + Math.Abs(row[4] - row[7]) < (beta >> 3) &&
-            Math.Abs(row[3] - row[4]) < ((5 * tc + 1) >> 1);
+            (dpq < (beta >> 2)) && ((Math.Abs(row[0] - row[3]) + Math.Abs(row[4] - row[7])) < (beta >> 3)) &&
+            (Math.Abs(row[3] - row[4]) < (((5 * tc) + 1) >> 1));
 
         private static void StrongLine(Span<int> row, int tc, bool writeP, bool writeQ)
         {
@@ -78,16 +78,16 @@ namespace Heic.Net.Hevc
             int limit = 2 * tc;
             if (writeP)
             {
-                row[3] = Clip((p2 + 2 * p1 + 2 * p0 + 2 * q0 + q1 + 4) >> 3, p0 - limit, p0 + limit);
+                row[3] = Clip((p2 + (2 * p1) + (2 * p0) + (2 * q0) + q1 + 4) >> 3, p0 - limit, p0 + limit);
                 row[2] = Clip((p2 + p1 + p0 + q0 + 2) >> 2, p1 - limit, p1 + limit);
-                row[1] = Clip((2 * p3 + 3 * p2 + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit);
+                row[1] = Clip(((2 * p3) + (3 * p2) + p1 + p0 + q0 + 4) >> 3, p2 - limit, p2 + limit);
             }
 
             if (writeQ)
             {
-                row[4] = Clip((p1 + 2 * p0 + 2 * q0 + 2 * q1 + q2 + 4) >> 3, q0 - limit, q0 + limit);
+                row[4] = Clip((p1 + (2 * p0) + (2 * q0) + (2 * q1) + q2 + 4) >> 3, q0 - limit, q0 + limit);
                 row[5] = Clip((p0 + q0 + q1 + q2 + 2) >> 2, q1 - limit, q1 + limit);
-                row[6] = Clip((p0 + q0 + q1 + 3 * q2 + 2 * q3 + 4) >> 3, q2 - limit, q2 + limit);
+                row[6] = Clip((p0 + q0 + q1 + (3 * q2) + (2 * q3) + 4) >> 3, q2 - limit, q2 + limit);
             }
         }
 
@@ -95,8 +95,8 @@ namespace Heic.Net.Hevc
         {
             int p2 = row[1], p1 = row[2], p0 = row[3];
             int q0 = row[4], q1 = row[5], q2 = row[6];
-            int delta = (9 * (q0 - p0) - 3 * (q1 - p1) + 8) >> 4;
-            if (Math.Abs(delta) >= 10 * tc)
+            int delta = (((9 * (q0 - p0)) - (3 * (q1 - p1))) + 8) >> 4;
+            if (Math.Abs(delta) >= (10 * tc))
             {
                 return;
             }
@@ -106,7 +106,7 @@ namespace Heic.Net.Hevc
                 row[3] = CoefficientMath.ClipSample(p0 + delta, depth);
                 if (secondP)
                 {
-                    int change = Clip(((((p2 + p0 + 1) >> 1) - p1 + delta) >> 1), -(tc >> 1), tc >> 1);
+                    int change = Clip((((((p2 + p0 + 1) >> 1) - p1) + delta) >> 1), -(tc >> 1), tc >> 1);
                     row[2] = CoefficientMath.ClipSample(p1 + change, depth);
                 }
             }

@@ -64,7 +64,7 @@ namespace Heic.Net.Benchmarks
                 }
             }
 
-            if (input is null || repetitions <= 0 || child && (!mode.HasValue || repetition <= 0))
+            if (input is null || (repetitions <= 0) || (child && (!mode.HasValue || (repetition <= 0))))
             {
                 throw new ArgumentException("An input file and positive repetitions are required; child runs also require a mode and repetition.");
             }

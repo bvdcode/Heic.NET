@@ -46,9 +46,9 @@ namespace Heic.Net.Hevc
             Vector<int> luma = yFactor * (y - yOffset);
             Vector<int> blue = cb - chromaOffset;
             Vector<int> red = cr - chromaOffset;
-            Vector<int> r = Channel(luma + redCr * red) * RedWeight;
-            Vector<int> g = Channel(luma + greenCb * blue + greenCr * red) * GreenWeight;
-            Vector<int> b = Channel(luma + blueCb * blue) * BlueWeight;
+            Vector<int> r = Channel(luma + (redCr * red)) * RedWeight;
+            Vector<int> g = Channel(luma + (greenCb * blue) + (greenCr * red)) * GreenWeight;
+            Vector<int> b = Channel(luma + (blueCb * blue)) * BlueWeight;
             return r | g | b | Alpha;
         }
 

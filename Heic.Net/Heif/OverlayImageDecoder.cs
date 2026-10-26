@@ -26,17 +26,17 @@ namespace Heic.Net.Heif
             Span<byte> fill = stackalloc byte[4];
             for (int channel = 0; channel < fill.Length; channel++)
             {
-                fill[channel] = (byte)((reader.U16() * 255 + ushort.MaxValue / 2) / ushort.MaxValue);
+                fill[channel] = (byte)(((reader.U16() * 255) + (ushort.MaxValue / 2)) / ushort.MaxValue);
             }
             int fieldBytes = (flags + 1) * 2;
             ulong width = reader.UInt(fieldBytes);
             ulong height = reader.UInt(fieldBytes);
-            if (width != (ulong)properties.Width || height != (ulong)properties.Height)
+            if ((width != (ulong)properties.Width) || (height != (ulong)properties.Height))
             {
                 throw new InvalidDataException("Overlay header disagrees with image spatial extents.");
             }
-            if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count == 0 ||
-                reader.Remaining / (fieldBytes * 2) != inputs.Count || reader.Remaining % (fieldBytes * 2) != 0)
+            if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || (inputs.Count == 0) ||
+                ((reader.Remaining / (fieldBytes * 2)) != inputs.Count) || ((reader.Remaining % (fieldBytes * 2)) != 0))
             {
                 throw new InvalidDataException("Overlay offsets disagree with its input count.");
             }
@@ -81,12 +81,12 @@ namespace Heic.Net.Heif
 
         private static void ValidateFillColor(ReadOnlySpan<byte> fill, ImageColorInformation color)
         {
-            if (fill[3] == 0 || (fill[0] == 0 && fill[1] == 0 && fill[2] == 0))
+            if ((fill[3] == 0) || ((fill[0] == 0) && (fill[1] == 0) && (fill[2] == 0)))
             {
                 return;
             }
-            bool srgb = color.ColorPrimaries == 1 && color.TransferCharacteristics == 13;
-            bool unspecified = color.ColorPrimaries == 2 && color.TransferCharacteristics == 2;
+            bool srgb = (color.ColorPrimaries == 1) && (color.TransferCharacteristics == 13);
+            bool unspecified = (color.ColorPrimaries == 2) && (color.TransferCharacteristics == 2);
             if (!color.IccProfile.IsEmpty || (!srgb && !unspecified))
             {
                 throw new UnsupportedHeicFeatureException("overlay canvas colour conversion");
@@ -99,19 +99,19 @@ namespace Heic.Net.Heif
             int startY = (int)Math.Min(height, Math.Max(0L, top));
             int endX = (int)Math.Max(0L, Math.Min(width, (long)left + image.Width));
             int endY = (int)Math.Max(0L, Math.Min(height, (long)top + image.Height));
-            if (startX >= endX || startY >= endY)
+            if ((startX >= endX) || (startY >= endY))
             {
                 return;
             }
             for (int y = startY; y < endY; y++)
             {
-                ReadOnlySpan<byte> source = image.Pixels.Span.Slice(checked(((y - top) * image.Width + startX - left) * 4));
-                Span<byte> target = output.Slice((y * width + startX) * 4, (endX - startX) * 4);
+                ReadOnlySpan<byte> source = image.Pixels.Span.Slice(checked(((((y - top) * image.Width) + startX) - left) * 4));
+                Span<byte> target = output.Slice(((y * width) + startX) * 4, (endX - startX) * 4);
                 for (int offset = 0; offset < target.Length; offset += 4)
                 {
                     int sourceAlpha = source[offset + 3];
                     int targetWeight = target[offset + 3] * (255 - sourceAlpha);
-                    int alpha = sourceAlpha * 255 + targetWeight;
+                    int alpha = (sourceAlpha * 255) + targetWeight;
                     if (alpha == 0)
                     {
                         target.Slice(offset, 4).Clear();
@@ -119,8 +119,8 @@ namespace Heic.Net.Heif
                     }
                     for (int channel = 0; channel < 3; channel++)
                     {
-                        int value = source[offset + channel] * sourceAlpha * 255 + target[offset + channel] * targetWeight;
-                        target[offset + channel] = (byte)((value + alpha / 2) / alpha);
+                        int value = (source[offset + channel] * sourceAlpha * 255) + (target[offset + channel] * targetWeight);
+                        target[offset + channel] = (byte)((value + (alpha / 2)) / alpha);
                     }
                     target[offset + 3] = (byte)((alpha + 127) / 255);
                 }

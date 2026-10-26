@@ -11,7 +11,7 @@ namespace Heic.Net.Fixtures
     {
         public async Task<int> RunAsync(string[] args)
         {
-            if (args.Length < 3 || args.Length % 2 != 1)
+            if ((args.Length < 3) || ((args.Length % 2) != 1))
             {
                 await Console.Error.WriteLineAsync("Usage: <all|basic|irap> --ffmpeg <executable> [--corpus <source>] [--output <directory>]");
                 return 1;

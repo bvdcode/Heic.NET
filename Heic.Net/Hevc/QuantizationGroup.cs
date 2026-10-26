@@ -22,7 +22,7 @@ namespace Heic.Net.Hevc
         {
             PictureParameters pps = slice.Picture;
             SequenceParameters sps = pps.Sequence;
-            if (!pps.CuQpDelta || log2Size < sps.Log2Ctb - pps.QpDeltaDepth)
+            if (!pps.CuQpDelta || (log2Size < (sps.Log2Ctb - pps.QpDeltaDepth)))
             {
                 return;
             }
@@ -40,11 +40,11 @@ namespace Heic.Net.Hevc
             }
             int offset = 6 * (slice.Picture.Sequence.BitDepth - 8);
             int delta = reader.QpDelta();
-            if (delta < -26 - offset / 2 || delta > 25 + offset / 2)
+            if ((delta < (-26 - (offset / 2))) || (delta > (25 + (offset / 2))))
             {
                 throw new InvalidDataException("Invalid luma QP delta.");
             }
-            currentQp = (currentQp + delta + 52 + 2 * offset) % (52 + offset) - offset;
+            currentQp = ((currentQp + delta + 52 + (2 * offset)) % (52 + offset)) - offset;
             deltaCoded = true;
         }
 
@@ -81,7 +81,7 @@ namespace Heic.Net.Hevc
         private int NeighbourQp(int x, int y, int currentX, int currentY)
         {
             int log2Ctb = slice.Picture.Sequence.Log2Ctb;
-            if (x < 0 || y < 0 || x >> log2Ctb != currentX >> log2Ctb || y >> log2Ctb != currentY >> log2Ctb)
+            if ((x < 0) || (y < 0) || ((x >> log2Ctb) != (currentX >> log2Ctb)) || ((y >> log2Ctb) != (currentY >> log2Ctb)))
             {
                 return previousQp;
             }

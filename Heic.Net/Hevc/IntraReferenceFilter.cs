@@ -30,26 +30,26 @@ namespace Heic.Net.Hevc
                     throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            if (mode == 1 || Math.Min(Math.Abs(mode - 26), Math.Abs(mode - 10)) <= threshold)
+            if ((mode == 1) || (Math.Min(Math.Abs(mode - 26), Math.Abs(mode - 10)) <= threshold))
             {
                 return;
             }
             int end = 2 * size;
             int corner = top[0];
-            bool linear = strongSmoothing && size == 32 &&
-                Math.Abs(corner + top[end] - 2 * top[size]) < 1 << (bitDepth - 5) &&
-                Math.Abs(corner + left[end] - 2 * left[size]) < 1 << (bitDepth - 5);
+            bool linear = strongSmoothing && (size == 32) &&
+                (Math.Abs((corner + top[end]) - (2 * top[size])) < (1 << (bitDepth - 5))) &&
+                (Math.Abs((corner + left[end]) - (2 * left[size])) < (1 << (bitDepth - 5)));
             if (linear)
             {
                 for (int i = 1; i < end; i++)
                 {
-                    top[i] = ((end - i) * corner + i * top[end] + 32) >> 6;
-                    left[i] = ((end - i) * corner + i * left[end] + 32) >> 6;
+                    top[i] = (((end - i) * corner) + (i * top[end]) + 32) >> 6;
+                    left[i] = (((end - i) * corner) + (i * left[end]) + 32) >> 6;
                 }
             }
             else
             {
-                int filteredCorner = (left[1] + 2 * corner + top[1] + 2) >> 2;
+                int filteredCorner = (left[1] + (2 * corner) + top[1] + 2) >> 2;
                 Smooth(top, end);
                 Smooth(left, end);
                 top[0] = filteredCorner;
@@ -63,7 +63,7 @@ namespace Heic.Net.Hevc
             for (int i = 1; i < end; i++)
             {
                 int current = border[i];
-                border[i] = (previous + 2 * current + border[i + 1] + 2) >> 2;
+                border[i] = (previous + (2 * current) + border[i + 1] + 2) >> 2;
                 previous = current;
             }
         }

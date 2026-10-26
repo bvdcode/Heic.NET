@@ -29,7 +29,7 @@ namespace Heic.Net.Tests
             const int LumaOffset = 3;
             const int ChromaOffset = 5;
             int lanes = Vector<ushort>.Count;
-            int[] widths = { 1, lanes - 1, lanes, lanes + 1, 2 * lanes - 1, 2 * lanes, 2 * lanes + 1, 4 * lanes - 1, 4 * lanes, 4 * lanes + 1, 65 };
+            int[] widths = { 1, lanes - 1, lanes, lanes + 1, (2 * lanes) - 1, 2 * lanes, (2 * lanes) + 1, (4 * lanes) - 1, 4 * lanes, (4 * lanes) + 1, 65 };
             Random random = new Random(5107);
             foreach (int matrix in new[] { 1, 2, 5, 6, 9 })
             {
@@ -38,7 +38,7 @@ namespace Heic.Net.Tests
                 {
                     foreach (int subHeight in new[] { 1, 2 })
                     {
-                        if (phaseX >= subWidth || phaseY >= subHeight)
+                        if ((phaseX >= subWidth) || (phaseY >= subHeight))
                         {
                             continue;
                         }
@@ -46,8 +46,8 @@ namespace Heic.Net.Tests
                         {
                             foreach (int height in new[] { 1, 2, 3, 17 })
                             {
-                                int chromaWidth = (width + phaseX + subWidth - 1) / subWidth;
-                                int chromaHeight = (height + phaseY + subHeight - 1) / subHeight;
+                                int chromaWidth = ((width + phaseX + subWidth) - 1) / subWidth;
+                                int chromaHeight = ((height + phaseY + subHeight) - 1) / subHeight;
                                 ColorPlaneLayout layout = new ColorPlaneLayout(width, height, width + 7, chromaWidth + 5, subWidth, subHeight, phaseX, phaseY);
                                 ushort[] y = Plane(width, height, layout.LumaStride, LumaOffset, depth, random);
                                 ushort[] cb = Plane(chromaWidth, chromaHeight, layout.ChromaStride, ChromaOffset, depth, random);
@@ -63,9 +63,9 @@ namespace Heic.Net.Tests
                                 {
                                     for (int x = 0; x < width; x++)
                                     {
-                                        int chroma = ChromaOffset + (row + phaseY) / subHeight * layout.ChromaStride + (x + phaseX) / subWidth;
-                                        conversion.Convert(y[LumaOffset + row * layout.LumaStride + x], cb[chroma], cr[chroma],
-                                            expected.AsSpan(3 + (row * width + x) * 4, 4));
+                                        int chroma = ChromaOffset + (((row + phaseY) / subHeight) * layout.ChromaStride) + ((x + phaseX) / subWidth);
+                                        conversion.Convert(y[LumaOffset + (row * layout.LumaStride) + x], cb[chroma], cr[chroma],
+                                            expected.AsSpan(3 + (((row * width) + x) * 4), 4));
                                     }
                                 }
                                 conversion.ConvertRows(y.AsSpan(LumaOffset, layout.LumaLength),
@@ -142,13 +142,13 @@ namespace Heic.Net.Tests
 
         private static ushort[] Plane(int width, int height, int stride, int offset, int depth, Random random)
         {
-            ushort[] samples = new ushort[offset + height * stride + 7];
+            ushort[] samples = new ushort[offset + (height * stride) + 7];
             Array.Fill(samples, ushort.MaxValue);
             for (int row = 0; row < height; row++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    samples[offset + row * stride + x] = (ushort)random.Next(1 << depth);
+                    samples[offset + (row * stride) + x] = (ushort)random.Next(1 << depth);
                 }
             }
             return samples;

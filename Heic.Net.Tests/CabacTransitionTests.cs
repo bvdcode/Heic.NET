@@ -37,7 +37,7 @@ namespace Heic.Net.Tests
                 {
                     expectedState = LeastProbableStates[state];
                 }
-                bool expectedSymbol = symbol != (state == 0 && leastProbable);
+                bool expectedSymbol = symbol != ((state == 0) && leastProbable);
                 int expectedRange = leastProbable ? lpsRange : 510 - lpsRange;
                 int expectedOffset = leastProbable ? initialOffset - (510 - lpsRange) : initialOffset;
                 ulong expectedPosition = 9;

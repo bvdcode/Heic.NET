@@ -23,8 +23,8 @@ namespace Heic.Net.Tests
             Random random = new Random(109 + size + depth);
             for (int repetition = 0; repetition < 6; repetition++)
             {
-                int[] top = new int[2 * size + 1];
-                int[] left = new int[2 * size + 1];
+                int[] top = new int[(2 * size) + 1];
+                int[] left = new int[(2 * size) + 1];
                 for (int i = 0; i < top.Length; i++)
                 {
                     top[i] = random.Next(1 << depth);
@@ -52,8 +52,8 @@ namespace Heic.Net.Tests
             int[] left = new int[65];
             for (int i = 0; i <= 64; i++)
             {
-                top[i] = 100 + i * 3 + (i % 4 == 0 ? 1 : 0);
-                left[i] = 100 + i * 2 + (i % 3 == 0 ? 1 : 0);
+                top[i] = 100 + (i * 3) + ((i % 4) == 0 ? 1 : 0);
+                left[i] = 100 + (i * 2) + ((i % 3) == 0 ? 1 : 0);
             }
 
             int[] expectedTop = (int[])top.Clone();

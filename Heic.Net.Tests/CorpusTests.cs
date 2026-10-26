@@ -44,7 +44,7 @@ namespace Heic.Net.Tests
             foreach (JsonElement entry in manifest.RootElement.EnumerateArray())
             {
                 int maxPixels = entry.GetProperty("maxPixels").GetInt32();
-                if ((maxPixels > 16 * 1024 * 1024) != large)
+                if ((maxPixels > (16 * 1024 * 1024)) != large)
                 {
                     continue;
                 }

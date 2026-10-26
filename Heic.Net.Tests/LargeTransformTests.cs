@@ -27,8 +27,8 @@ namespace Heic.Net.Tests
             {
                 positions.Add(frequency);
                 positions.Add(frequency * size);
-                positions.Add(frequency * size + size - 1);
-                positions.Add((size - 1) * size + frequency);
+                positions.Add(((frequency * size) + size) - 1);
+                positions.Add(((size - 1) * size) + frequency);
             }
 
             using TransformWorkspace workspace = new TransformWorkspace();

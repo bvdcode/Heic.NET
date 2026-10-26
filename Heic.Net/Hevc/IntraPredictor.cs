@@ -27,17 +27,17 @@ namespace Heic.Net.Hevc
             int size, int mode, int bitDepth, bool luma, bool strongSmoothing, bool fullResolutionChroma = false)
         {
             IntraReferenceSamples.Validate(top, left, size, bitDepth);
-            if (mode < 0 || mode > 34)
+            if ((mode < 0) || (mode > 34))
             {
                 throw new ArgumentOutOfRangeException(nameof(mode));
             }
-            if (destination.Length < size * size)
+            if (destination.Length < (size * size))
             {
                 throw new ArgumentException("Prediction destination is too short.", nameof(destination));
             }
-            for (int i = 0; i <= 2 * size; i++)
+            for (int i = 0; i <= (2 * size); i++)
             {
-                if (top[i] < 0 || left[i] < 0)
+                if ((top[i] < 0) || (left[i] < 0))
                 {
                     throw new ArgumentException("Intra reference substitution is required.");
                 }
@@ -45,8 +45,8 @@ namespace Heic.Net.Hevc
 
             Span<int> filteredTop = stackalloc int[65];
             Span<int> filteredLeft = stackalloc int[65];
-            top.Slice(0, 2 * size + 1).CopyTo(filteredTop);
-            left.Slice(0, 2 * size + 1).CopyTo(filteredLeft);
+            top.Slice(0, (2 * size) + 1).CopyTo(filteredTop);
+            left.Slice(0, (2 * size) + 1).CopyTo(filteredLeft);
             if (luma || fullResolutionChroma)
             {
                 IntraReferenceFilter.Apply(filteredTop, filteredLeft, size, mode, bitDepth, strongSmoothing && luma);
@@ -71,9 +71,9 @@ namespace Heic.Net.Hevc
             {
                 for (int x = 0; x < size; x++)
                 {
-                    int horizontal = (size - 1 - x) * left[y + 1] + (x + 1) * top[size + 1];
-                    int vertical = (size - 1 - y) * top[x + 1] + (y + 1) * left[size + 1];
-                    output[y * size + x] = (horizontal + vertical + size) / (2 * size);
+                    int horizontal = ((size - 1 - x) * left[y + 1]) + ((x + 1) * top[size + 1]);
+                    int vertical = ((size - 1 - y) * top[x + 1]) + ((y + 1) * left[size + 1]);
+                    output[(y * size) + x] = (horizontal + vertical + size) / (2 * size);
                 }
             }
         }
@@ -87,13 +87,13 @@ namespace Heic.Net.Hevc
             }
             int dc = sum / (2 * size);
             output.Slice(0, size * size).Fill(dc);
-            if (luma && size < 32)
+            if (luma && (size < 32))
             {
-                output[0] = (left[1] + 2 * dc + top[1] + 2) >> 2;
+                output[0] = (left[1] + (2 * dc) + top[1] + 2) >> 2;
                 for (int i = 1; i < size; i++)
                 {
-                    output[i] = (top[i + 1] + 3 * dc + 2) >> 2;
-                    output[i * size] = (left[i + 1] + 3 * dc + 2) >> 2;
+                    output[i] = (top[i + 1] + (3 * dc) + 2) >> 2;
+                    output[i * size] = (left[i + 1] + (3 * dc) + 2) >> 2;
                 }
             }
         }
@@ -106,14 +106,14 @@ namespace Heic.Net.Hevc
             ReadOnlySpan<int> side = vertical ? left : top;
             Span<int> reference = stackalloc int[97];
             const int origin = 32;
-            main.Slice(0, 2 * size + 1).CopyTo(reference.Slice(origin));
+            main.Slice(0, (2 * size) + 1).CopyTo(reference.Slice(origin));
             int angle = Angles[mode];
             if (angle < 0)
             {
                 int inverse = InverseAngle(-angle);
-                for (int k = -1; k >= (size * angle >> 5); k--)
+                for (int k = -1; k >= ((size * angle) >> 5); k--)
                 {
-                    reference[origin + k] = side[(-k * inverse + 128) >> 8];
+                    reference[origin + k] = side[((-k * inverse) + 128) >> 8];
                 }
             }
 
@@ -128,14 +128,14 @@ namespace Heic.Net.Hevc
                     int value = first;
                     if (fraction != 0)
                     {
-                        value = ((32 - fraction) * first + fraction * reference[origin + column + index + 2] + 16) >> 5;
+                        value = (((32 - fraction) * first) + (fraction * reference[origin + column + index + 2]) + 16) >> 5;
                     }
 
-                    output[vertical ? row * size + column : column * size + row] = value;
+                    output[vertical ? (row * size) + column : (column * size) + row] = value;
                 }
             }
 
-            if (angle == 0 && luma && size < 32)
+            if ((angle == 0) && luma && (size < 32))
             {
                 for (int i = 0; i < size; i++)
                 {

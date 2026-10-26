@@ -49,7 +49,7 @@ namespace Heic.Net.Hevc
             reader.ReadFlag();
             HevcSyntax.Ue(reader, 14, "num_ref_idx_l0_default_active_minus1");
             HevcSyntax.Ue(reader, 14, "num_ref_idx_l1_default_active_minus1");
-            pps.InitialQp = 26 + HevcSyntax.Se(reader, -26 - 6 * (sequence.BitDepth - 8), 25, "init_qp_minus26");
+            pps.InitialQp = 26 + HevcSyntax.Se(reader, -26 - (6 * (sequence.BitDepth - 8)), 25, "init_qp_minus26");
             reader.ReadFlag();
             pps.TransformSkip = reader.ReadFlag();
             pps.CuQpDelta = reader.ReadFlag();
@@ -87,7 +87,7 @@ namespace Heic.Net.Hevc
             reader.ReadFlag();
             HevcSyntax.Ue(reader, sequence.Log2Ctb - 2, "log2_parallel_merge_level_minus2");
             pps.HeaderExtension = reader.ReadFlag();
-            if (reader.ReadFlag() && reader.Read(8) != 0)
+            if (reader.ReadFlag() && (reader.Read(8) != 0))
             {
                 throw new UnsupportedHeicFeatureException("HEVC picture extensions");
             }

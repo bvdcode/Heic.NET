@@ -22,8 +22,8 @@ namespace Heic.Net
             IccProfile = iccProfile.ToArray();
         }
 
-        internal bool Matches(ImageColorInformation other) => ColorPrimaries == other.ColorPrimaries &&
-            TransferCharacteristics == other.TransferCharacteristics && IccProfile.Span.SequenceEqual(other.IccProfile.Span);
+        internal bool Matches(ImageColorInformation other) => (ColorPrimaries == other.ColorPrimaries) &&
+            (TransferCharacteristics == other.TransferCharacteristics) && IccProfile.Span.SequenceEqual(other.IccProfile.Span);
 
         /// <summary>
         /// Gets an owned copy of the embedded RGB ICC profile, or empty memory when absent.

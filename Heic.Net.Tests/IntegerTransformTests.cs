@@ -36,9 +36,9 @@ namespace Heic.Net.Tests
                         2 => short.MaxValue,
                         3 => (i & 1) == 0 ? short.MinValue : short.MaxValue,
                         4 => i == 0 ? short.MinValue : 0,
-                        5 => i == coefficients.Length - 1 ? short.MaxValue : 0,
+                        5 => i == (coefficients.Length - 1) ? short.MaxValue : 0,
                         6 => i < size ? random.Next(short.MinValue, short.MaxValue + 1) : 0,
-                        7 => i % size == size - 1 ? random.Next(short.MinValue, short.MaxValue + 1) : 0,
+                        7 => (i % size) == (size - 1) ? random.Next(short.MinValue, short.MaxValue + 1) : 0,
                         _ => random.Next(short.MinValue, short.MaxValue + 1)
                     };
                 }
@@ -87,15 +87,15 @@ namespace Heic.Net.Tests
             int[] factors = { 40, 45, 51, 57, 64, 72 };
             foreach (int depth in new[] { 8, 10 })
             {
-                for (int qp = 0; qp <= 51 + 6 * (depth - 8); qp++)
+                for (int qp = 0; qp <= (51 + (6 * (depth - 8))); qp++)
                 {
                     for (int log2 = 2; log2 <= 5; log2++)
                     {
                         foreach (int value in new[] { -32768, -1, 0, 1, 32767 })
                         {
-                            decimal divisor = (decimal)Math.Pow(2, depth + log2 - 5);
+                            decimal divisor = (decimal)Math.Pow(2, (depth + log2) - 5);
                             decimal product = value * 255m * factors[qp % 6] * (decimal)Math.Pow(2, qp / 6);
-                            int expected = (int)Math.Clamp(decimal.Floor((product + divisor / 2) / divisor), short.MinValue, short.MaxValue);
+                            int expected = (int)Math.Clamp(decimal.Floor((product + (divisor / 2)) / divisor), short.MinValue, short.MaxValue);
                             Assert.Equal(expected, CoefficientMath.Dequantize(value, 255, qp, log2, depth));
                         }
                     }
@@ -119,7 +119,7 @@ namespace Heic.Net.Tests
         {
             const int Guard = 123456789;
             using TransformWorkspace workspace = new TransformWorkspace();
-            int[] result = new int[32 * 32 + 8];
+            int[] result = new int[(32 * 32) + 8];
             foreach (int size in new[] { 32, 16, 8, 4, 8, 16, 32 })
             {
                 int count = size * size;
@@ -131,7 +131,7 @@ namespace Heic.Net.Tests
                     {
                         for (int x = 0; x < extent; x++)
                         {
-                            coefficients[y * size + x] = ((x + y) & 1) == 0 ? short.MaxValue : short.MinValue;
+                            coefficients[(y * size) + x] = ((x + y) & 1) == 0 ? short.MaxValue : short.MinValue;
                         }
                     }
                     Array.Fill(result, Guard);

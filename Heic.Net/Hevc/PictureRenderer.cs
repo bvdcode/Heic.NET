@@ -20,7 +20,7 @@ namespace Heic.Net.Hevc
         public static RgbaImage Render(DecodedPicture picture, ImageCrop crop, ColorEncoding color, ReadOnlyMemory<byte> iccProfile, bool alpha, PixelBufferScope buffers, AlphaChannelInformation? alphaInformation = null)
         {
             SequenceParameters sequence = picture.Sequence;
-            if (alpha && alphaInformation is not null && alphaInformation.BitDepth != sequence.BitDepth)
+            if (alpha && alphaInformation is not null && (alphaInformation.BitDepth != sequence.BitDepth))
             {
                 throw new InvalidDataException("Alpha information depth disagrees with the HEVC sequence.");
             }
@@ -42,8 +42,8 @@ namespace Heic.Net.Hevc
                 int subHeight = sequence.SubHeightC;
                 ColorPlaneLayout layout = new ColorPlaneLayout(width, height, picture.Luma.Stride,
                     picture.Cb.Stride, subWidth, subHeight, left % subWidth, top % subHeight);
-                int lumaOffset = top * picture.Luma.Stride + left;
-                int chromaOffset = top / subHeight * picture.Cb.Stride + left / subWidth;
+                int lumaOffset = (top * picture.Luma.Stride) + left;
+                int chromaOffset = ((top / subHeight) * picture.Cb.Stride) + (left / subWidth);
                 switch (sequence.BitDepth)
                 {
                     case 8:
@@ -92,7 +92,7 @@ namespace Heic.Net.Hevc
                     {
                         int sample = default(TFormat).Read(luma[x]);
                         byte value = alphaInformation is null
-                            ? (byte)((sample * 255 + maximum / 2) / maximum)
+                            ? (byte)(((sample * 255) + (maximum / 2)) / maximum)
                             : alphaInformation.Convert(sample);
                         WriteGray(value, row.Slice(x * 4, 4));
                     }

@@ -20,7 +20,7 @@ namespace Heic.Net.Hevc
         public static int Se(BitReader reader, int minimum, int maximum, string field)
         {
             int value = reader.ReadSev();
-            if (value < minimum || value > maximum)
+            if ((value < minimum) || (value > maximum))
             {
                 throw new InvalidDataException("HEVC field is out of range: " + field + ".");
             }
@@ -67,7 +67,7 @@ namespace Heic.Net.Hevc
             reader.SkipBits(3);
             int profile = reader.Read(5);
             reader.SkipBits(32 + 48 + 8);
-            if (profile < 1 || profile > 4)
+            if ((profile < 1) || (profile > 4))
             {
                 throw new UnsupportedHeicFeatureException("HEVC profile " + profile);
             }
@@ -106,7 +106,7 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC sequence extensions");
             }
-            if (range && reader.Read(9) != 0)
+            if (range && (reader.Read(9) != 0))
             {
                 throw new UnsupportedHeicFeatureException("HEVC range extension tools");
             }

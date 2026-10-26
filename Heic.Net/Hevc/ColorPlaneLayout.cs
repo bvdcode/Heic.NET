@@ -13,19 +13,19 @@ namespace Heic.Net.Hevc
         public ColorPlaneLayout(int width, int height, int lumaStride, int chromaStride, int subWidth, int subHeight,
             int chromaPhaseX = 0, int chromaPhaseY = 0)
         {
-            if (width < 0 || height < 0 || lumaStride < width)
+            if ((width < 0) || (height < 0) || (lumaStride < width))
             {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if ((subWidth != 1 && subWidth != 2) || (subHeight != 1 && subHeight != 2))
+            if (((subWidth != 1) && (subWidth != 2)) || ((subHeight != 1) && (subHeight != 2)))
             {
                 throw new ArgumentOutOfRangeException(nameof(subWidth));
             }
-            if (chromaPhaseX < 0 || chromaPhaseX >= subWidth || chromaPhaseY < 0 || chromaPhaseY >= subHeight)
+            if ((chromaPhaseX < 0) || (chromaPhaseX >= subWidth) || (chromaPhaseY < 0) || (chromaPhaseY >= subHeight))
             {
                 throw new ArgumentOutOfRangeException(nameof(chromaPhaseX));
             }
-            int chromaWidth = width == 0 ? 0 : checked(width + chromaPhaseX + subWidth - 1) / subWidth;
+            int chromaWidth = width == 0 ? 0 : checked((width + chromaPhaseX + subWidth) - 1) / subWidth;
             if (chromaStride < chromaWidth)
             {
                 throw new ArgumentOutOfRangeException(nameof(chromaStride));
@@ -39,9 +39,9 @@ namespace Heic.Net.Hevc
             ChromaPhaseX = chromaPhaseX;
             ChromaPhaseY = chromaPhaseY;
             ChromaWidth = chromaWidth;
-            int chromaHeight = height == 0 ? 0 : checked(height + chromaPhaseY + subHeight - 1) / subHeight;
-            LumaLength = height == 0 ? 0 : checked((height - 1) * lumaStride + width);
-            ChromaLength = chromaHeight == 0 ? 0 : checked((chromaHeight - 1) * chromaStride + chromaWidth);
+            int chromaHeight = height == 0 ? 0 : checked((height + chromaPhaseY + subHeight) - 1) / subHeight;
+            LumaLength = height == 0 ? 0 : checked(((height - 1) * lumaStride) + width);
+            ChromaLength = chromaHeight == 0 ? 0 : checked(((chromaHeight - 1) * chromaStride) + chromaWidth);
             OutputLength = checked(width * height * 4);
         }
 

@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
 
         public SamplePlaneView(Span<TSample> samples, int width, int height)
         {
-            if (width <= 0 || height <= 0)
+            if ((width <= 0) || (height <= 0))
             {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }

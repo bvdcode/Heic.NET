@@ -9,6 +9,11 @@ csharp_style_namespace_declarations = block_scoped:error
 csharp_preserve_single_line_blocks = true
 csharp_preserve_single_line_statements = false
 
+csharp_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:warning
+csharp_style_parentheses_in_relational_binary_operators = always_for_clarity:warning
+csharp_style_parentheses_in_other_binary_operators = always_for_clarity:warning
+dotnet_diagnostic.IDE0048.severity = warning
+
 [*.{csproj,props,slnx}]
 indent_style = space
 indent_size = 2

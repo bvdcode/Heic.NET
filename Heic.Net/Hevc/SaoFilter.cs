@@ -31,8 +31,8 @@ namespace Heic.Net.Hevc
             this.slice = slice;
             this.partitions = partitions;
             int ctb = 1 << slice.Picture.Sequence.Log2Ctb;
-            columns = (slice.Picture.Sequence.Width + ctb - 1) / ctb;
-            int rows = (slice.Picture.Sequence.Height + ctb - 1) / ctb;
+            columns = ((slice.Picture.Sequence.Width + ctb) - 1) / ctb;
+            int rows = ((slice.Picture.Sequence.Height + ctb) - 1) / ctb;
             components = slice.Picture.Sequence.ChromaFormat == 0 ? 1 : 3;
             lumaEnabled = slice.SaoLuma;
             chromaEnabled = slice.SaoChroma;
@@ -60,15 +60,15 @@ namespace Heic.Net.Hevc
             {
                 return;
             }
-            int current = (y * columns + x) * components;
+            int current = ((y * columns) + x) * components;
             int previous = -1;
-            if (x > 0 && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            if ((x > 0) && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
                 previous = current - components;
             }
-            else if (y > 0 && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
+            else if ((y > 0) && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
-                previous = current - columns * components;
+                previous = current - (columns * components);
             }
             if (previous >= 0)
             {
@@ -138,9 +138,9 @@ namespace Heic.Net.Hevc
                     Span<TSample> current = buffer.AsSpan((y & 1) * plane.Width, plane.Width);
                     plane.Row(y).CopyTo(current);
                     ReadOnlySpan<TSample> above = y == 0 ? ReadOnlySpan<TSample>.Empty : buffer.AsSpan(((y - 1) & 1) * plane.Width, plane.Width);
-                    ReadOnlySpan<TSample> below = y + 1 == plane.Height ? ReadOnlySpan<TSample>.Empty : plane.Row(y + 1);
+                    ReadOnlySpan<TSample> below = (y + 1) == plane.Height ? ReadOnlySpan<TSample>.Empty : plane.Row(y + 1);
                     Span<TSample> output = plane.Row(y);
-                    int parameterRow = y / ctbHeight * columns * components + component;
+                    int parameterRow = ((y / ctbHeight) * columns * components) + component;
                     for (int start = 0, index = parameterRow; start < plane.Width; start += ctbWidth, index += components)
                     {
                         SaoParameters parameter = parameters[index];
@@ -163,7 +163,7 @@ namespace Heic.Net.Hevc
                         else
                         {
                             Direction(parameter.Edge, out int dx, out int dy);
-                            if (y < Math.Abs(dy) || y >= plane.Height - Math.Abs(dy))
+                            if ((y < Math.Abs(dy)) || (y >= (plane.Height - Math.Abs(dy))))
                             {
                                 continue;
                             }

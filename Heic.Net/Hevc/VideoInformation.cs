@@ -28,7 +28,7 @@ namespace Heic.Net.Hevc
                 {
                     int sampleAspectRatioWidth = reader.Read(SampleAspectRatioComponentBits);
                     int sampleAspectRatioHeight = reader.Read(SampleAspectRatioComponentBits);
-                    if (sampleAspectRatioWidth == 0 || sampleAspectRatioHeight == 0)
+                    if ((sampleAspectRatioWidth == 0) || (sampleAspectRatioHeight == 0))
                     {
                         throw new InvalidDataException("Extended sample aspect ratio components must be nonzero.");
                     }

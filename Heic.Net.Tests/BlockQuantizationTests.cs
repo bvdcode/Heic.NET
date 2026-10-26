@@ -26,20 +26,20 @@ namespace Heic.Net.Tests
             {
                 int size = 1 << log2Size;
                 int count = size * size;
-                decimal divisor = (decimal)Math.Pow(2, depth + log2Size - 5);
+                decimal divisor = (decimal)Math.Pow(2, (depth + log2Size) - 5);
                 for (int matrixId = 0; matrixId < 6; matrixId++)
                 {
-                    for (int qp = 0; qp <= 51 + 6 * (depth - 8); qp++)
+                    for (int qp = 0; qp <= (51 + (6 * (depth - 8))); qp++)
                     {
                         int[] coefficients = new int[count + 1];
                         int[] expected = new int[count + 1];
                         decimal multiplier = scales[qp % 6] * (decimal)Math.Pow(2, qp / 6);
                         for (int i = 0; i < count; i++)
                         {
-                            int coefficient = i % 7 < extremes.Length ? extremes[i % 7] : random.Next(short.MinValue, short.MaxValue + 1);
+                            int coefficient = (i % 7) < extremes.Length ? extremes[i % 7] : random.Next(short.MinValue, short.MaxValue + 1);
                             coefficients[i] = coefficient;
                             decimal product = coefficient * multiplier * lists.Factor(log2Size, matrixId, i % size, i / size);
-                            expected[i] = (int)Math.Clamp(decimal.Floor((product + divisor / 2) / divisor), short.MinValue, short.MaxValue);
+                            expected[i] = (int)Math.Clamp(decimal.Floor((product + (divisor / 2)) / divisor), short.MinValue, short.MaxValue);
                         }
                         expected[count] = coefficients[count] = int.MaxValue;
                         CoefficientMath.Dequantize(coefficients, lists, matrixId, qp, log2Size, depth);
@@ -95,7 +95,7 @@ namespace Heic.Net.Tests
                             }
                             for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
                             {
-                                writer.Se(i == 0 ? (sizeId > 1 ? 1 : -8) : (i % 2 == 0 ? -128 : 127));
+                                writer.Se(i == 0 ? (sizeId > 1 ? 1 : -8) : ((i % 2) == 0 ? -128 : 127));
                             }
                         }
                     }

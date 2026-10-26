@@ -75,7 +75,7 @@ namespace Heic.Net.Tests
             int start = 4;
             for (int i = 4; i <= data.Length; i++)
             {
-                if (i == data.Length || i + 4 <= data.Length && data[i] == 0 && data[i + 1] == 0 && data[i + 2] == 0 && data[i + 3] == 1)
+                if ((i == data.Length) || (((i + 4) <= data.Length) && (data[i] == 0) && (data[i + 1] == 0) && (data[i + 2] == 0) && (data[i + 3] == 1)))
                 {
                     yield return new NalPayload(data.AsMemory(start, i - start));
                     start = i + 4;

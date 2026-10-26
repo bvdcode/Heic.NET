@@ -31,7 +31,7 @@ namespace Heic.Net
                 throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
             }
 
-            if (maxPixels <= 0 || maxPixels > int.MaxValue / 4)
+            if ((maxPixels <= 0) || (maxPixels > (int.MaxValue / 4)))
             {
                 throw new ArgumentOutOfRangeException(nameof(maxPixels));
             }

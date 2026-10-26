@@ -81,7 +81,7 @@ namespace Heic.Net.Hevc
             33, 33, 34, 34, 35, 35, 35, 36, 36, 36, 37, 37, 37, 38, 38, 63
         };
 
-        public static int LpsRange(int state, int range) => LpsRanges[state * 4 + ((range >> 6) & 3)];
+        public static int LpsRange(int state, int range) => LpsRanges[(state * 4) + ((range >> 6) & 3)];
         public static byte NextLps(int state) => LpsTransitions[state];
         public static byte NextMps(int state) => (byte)(state < 62 ? state + 1 : state);
     }

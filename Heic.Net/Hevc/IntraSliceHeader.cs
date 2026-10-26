@@ -30,7 +30,7 @@ namespace Heic.Net.Hevc
 
         public static IntraSliceHeader Read(NalPayload nal, IReadOnlyDictionary<int, PictureParameters> pictures)
         {
-            if (nal.Type < 16 || nal.Type > 21)
+            if ((nal.Type < 16) || (nal.Type > 21))
             {
                 throw new UnsupportedHeicFeatureException("HEVC pictures other than intra random access");
             }
@@ -43,8 +43,8 @@ namespace Heic.Net.Hevc
             {
                 throw new InvalidDataException("Missing picture parameter set.");
             }
-            int columns = (picture.Sequence.Width - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
-            int rows = (picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
+            int columns = ((picture.Sequence.Width - 1) / (1 << picture.Sequence.Log2Ctb)) + 1;
+            int rows = ((picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb)) + 1;
             int count = checked(columns * rows);
             int start = 0;
             if (!first)
@@ -59,7 +59,7 @@ namespace Heic.Net.Hevc
                     bits++;
                 }
                 start = reader.Read(bits);
-                if (start <= 0 || start >= count)
+                if ((start <= 0) || (start >= count))
                 {
                     throw new InvalidDataException("Invalid slice segment address.");
                 }
@@ -91,7 +91,7 @@ namespace Heic.Net.Hevc
             {
                 throw new UnsupportedHeicFeatureException("HEVC picture output suppression");
             }
-            if (nal.Type != 19 && nal.Type != 20)
+            if ((nal.Type != 19) && (nal.Type != 20))
             {
                 slice.PictureOrderCount = picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
                 if (picture.Sequence.TemporalMvpEnabled)
@@ -110,7 +110,7 @@ namespace Heic.Net.Hevc
 
             int depthOffset = 6 * (picture.Sequence.BitDepth - 8);
             slice.Qp = picture.InitialQp + HevcSyntax.Se(reader, -51 - depthOffset, 51 + depthOffset, "slice_qp_delta");
-            if (slice.Qp < -depthOffset || slice.Qp > 51)
+            if ((slice.Qp < -depthOffset) || (slice.Qp > 51))
             {
                 throw new InvalidDataException("Invalid slice luma QP.");
             }
@@ -118,7 +118,7 @@ namespace Heic.Net.Hevc
             {
                 slice.CbQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cb_qp_offset");
                 slice.CrQpOffset = HevcSyntax.Se(reader, -12, 12, "slice_cr_qp_offset");
-                if (System.Math.Abs(slice.CbQpOffset + picture.CbQpOffset) > 12 || System.Math.Abs(slice.CrQpOffset + picture.CrQpOffset) > 12)
+                if ((System.Math.Abs(slice.CbQpOffset + picture.CbQpOffset) > 12) || (System.Math.Abs(slice.CrQpOffset + picture.CrQpOffset) > 12))
                 {
                     throw new InvalidDataException("Combined chroma QP offset is out of range.");
                 }

@@ -20,7 +20,7 @@ namespace Heic.Net.Tests
                 {
                     for (int x = 0; x < 20; x++)
                     {
-                        int expected = x >= 4 && x < 16 && y >= 4 && y < 12 ? qp : int.MinValue;
+                        int expected = (x >= 4) && (x < 16) && (y >= 4) && (y < 12) ? qp : int.MinValue;
                         Assert.Equal(expected, blocks.Qp(x, y));
                     }
                 }

@@ -31,7 +31,7 @@ namespace Heic.Net.Hevc
 
         public ColorConversion(int depth, bool fullRange, int matrix)
         {
-            if (depth != 8 && depth != 10)
+            if ((depth != 8) && (depth != 10))
             {
                 throw new ArgumentOutOfRangeException(nameof(depth));
             }
@@ -64,17 +64,17 @@ namespace Heic.Net.Hevc
             yOffset = fullRange ? 0 : 16 * unit;
             chromaOffset = 1 << (depth - 1);
             yFactor = Fixed(255.0 / yRange);
-            redCr = Fixed(255.0 / cRange * 2 * (1 - kr));
-            blueCb = Fixed(255.0 / cRange * 2 * (1 - kb));
-            greenCb = Fixed(-255.0 / cRange * 2 * kb * (1 - kb) / (1 - kr - kb));
-            greenCr = Fixed(-255.0 / cRange * 2 * kr * (1 - kr) / (1 - kr - kb));
+            redCr = Fixed((255.0 / cRange) * 2 * (1 - kr));
+            blueCb = Fixed((255.0 / cRange) * 2 * (1 - kb));
+            greenCb = Fixed(((-255.0 / cRange) * 2 * kb * (1 - kb)) / (1 - kr - kb));
+            greenCr = Fixed(((-255.0 / cRange) * 2 * kr * (1 - kr)) / (1 - kr - kb));
         }
 
         public void ConvertRows(ReadOnlySpan<ushort> luma, ReadOnlySpan<ushort> cb, ReadOnlySpan<ushort> cr,
             ColorPlaneLayout layout, Span<byte> rgba)
         {
-            if (luma.Length < layout.LumaLength || cb.Length < layout.ChromaLength ||
-                cr.Length < layout.ChromaLength || rgba.Length < layout.OutputLength)
+            if ((luma.Length < layout.LumaLength) || (cb.Length < layout.ChromaLength) ||
+                (cr.Length < layout.ChromaLength) || (rgba.Length < layout.OutputLength))
             {
                 throw new ArgumentException("Colour plane buffers are shorter than the visible image.");
             }
@@ -84,12 +84,12 @@ namespace Heic.Net.Hevc
             for (int row = 0; row < layout.Height; row++)
             {
                 ReadOnlySpan<ushort> ySamples = luma.Slice(row * layout.LumaStride, layout.Width);
-                int chromaOffset = (row + layout.ChromaPhaseY) / layout.SubHeight * layout.ChromaStride;
+                int chromaOffset = ((row + layout.ChromaPhaseY) / layout.SubHeight) * layout.ChromaStride;
                 ReadOnlySpan<ushort> cbSamples = cb.Slice(chromaOffset, layout.ChromaWidth);
                 ReadOnlySpan<ushort> crSamples = cr.Slice(chromaOffset, layout.ChromaWidth);
                 Span<byte> destination = rgba.Slice(row * bytes, bytes);
                 int x = 0;
-                if (layout.ChromaPhaseX != 0 && layout.Width != 0)
+                if ((layout.ChromaPhaseX != 0) && (layout.Width != 0))
                 {
                     Convert(ySamples[0], cbSamples[0], crSamples[0], destination.Slice(0, 4));
                     x = 1;
@@ -118,8 +118,8 @@ namespace Heic.Net.Hevc
                             Vector.Widen(crRows[i], out Vector<uint> crFirst, out Vector<uint> crSecond);
                             ConvertSamples(in vectors, yRows[i * 2], Vector.AsVectorUInt16(cbFirst * duplicate),
                                 Vector.AsVectorUInt16(crFirst * duplicate), output.Slice(i * 4, 2));
-                            ConvertSamples(in vectors, yRows[i * 2 + 1], Vector.AsVectorUInt16(cbSecond * duplicate),
-                                Vector.AsVectorUInt16(crSecond * duplicate), output.Slice(i * 4 + 2, 2));
+                            ConvertSamples(in vectors, yRows[(i * 2) + 1], Vector.AsVectorUInt16(cbSecond * duplicate),
+                                Vector.AsVectorUInt16(crSecond * duplicate), output.Slice((i * 4) + 2, 2));
                         }
                     }
                     x += count * Vector<ushort>.Count * subWidth;
@@ -135,8 +135,8 @@ namespace Heic.Net.Hevc
         public void ConvertRows(ReadOnlySpan<byte> luma, ReadOnlySpan<byte> cb, ReadOnlySpan<byte> cr,
             ColorPlaneLayout layout, Span<byte> rgba)
         {
-            if (luma.Length < layout.LumaLength || cb.Length < layout.ChromaLength ||
-                cr.Length < layout.ChromaLength || rgba.Length < layout.OutputLength)
+            if ((luma.Length < layout.LumaLength) || (cb.Length < layout.ChromaLength) ||
+                (cr.Length < layout.ChromaLength) || (rgba.Length < layout.OutputLength))
             {
                 throw new ArgumentException("Colour plane buffers are shorter than the visible image.");
             }
@@ -146,12 +146,12 @@ namespace Heic.Net.Hevc
             for (int row = 0; row < layout.Height; row++)
             {
                 ReadOnlySpan<byte> ySamples = luma.Slice(row * layout.LumaStride, layout.Width);
-                int chromaOffset = (row + layout.ChromaPhaseY) / layout.SubHeight * layout.ChromaStride;
+                int chromaOffset = ((row + layout.ChromaPhaseY) / layout.SubHeight) * layout.ChromaStride;
                 ReadOnlySpan<byte> cbSamples = cb.Slice(chromaOffset, layout.ChromaWidth);
                 ReadOnlySpan<byte> crSamples = cr.Slice(chromaOffset, layout.ChromaWidth);
                 Span<byte> destination = rgba.Slice(row * bytes, bytes);
                 int x = 0;
-                if (layout.ChromaPhaseX != 0 && layout.Width != 0)
+                if ((layout.ChromaPhaseX != 0) && (layout.Width != 0))
                 {
                     Convert(ySamples[0], cbSamples[0], crSamples[0], destination.Slice(0, 4));
                     x = 1;
@@ -172,12 +172,12 @@ namespace Heic.Net.Hevc
                         {
                             Vector.Widen(yRows[i], out Vector<ushort> yFirst, out Vector<ushort> ySecond);
                             ConvertSamples(in vectors, yFirst, cbFirst, crFirst, output.Slice(i * 4, 2));
-                            ConvertSamples(in vectors, ySecond, cbSecond, crSecond, output.Slice(i * 4 + 2, 2));
+                            ConvertSamples(in vectors, ySecond, cbSecond, crSecond, output.Slice((i * 4) + 2, 2));
                         }
                         else
                         {
                             ConvertSubsampledBytes(in vectors, yRows[i * 2], cbFirst, crFirst, output.Slice(i * 8, 4));
-                            ConvertSubsampledBytes(in vectors, yRows[i * 2 + 1], cbSecond, crSecond, output.Slice(i * 8 + 4, 4));
+                            ConvertSubsampledBytes(in vectors, yRows[(i * 2) + 1], cbSecond, crSecond, output.Slice((i * 8) + 4, 4));
                         }
                     }
                     x += count * Vector<byte>.Count * subWidth;
@@ -209,9 +209,9 @@ namespace Heic.Net.Hevc
             long luma = yFactor * (y - yOffset);
             int blue = cb - chromaOffset;
             int red = cr - chromaOffset;
-            rgba[0] = Channel(luma + redCr * red);
-            rgba[1] = Channel(luma + greenCb * blue + greenCr * red);
-            rgba[2] = Channel(luma + blueCb * blue);
+            rgba[0] = Channel(luma + (redCr * red));
+            rgba[1] = Channel(luma + (greenCb * blue) + (greenCr * red));
+            rgba[2] = Channel(luma + (blueCb * blue));
             rgba[3] = 255;
         }
 
@@ -229,6 +229,6 @@ namespace Heic.Net.Hevc
         }
 
         private static long Fixed(double value) => (long)Math.Round(value * Scale, MidpointRounding.AwayFromZero);
-        private static byte Channel(long value) => (byte)Math.Min(255L, Math.Max(0L, (value + Scale / 2) >> FractionBits));
+        private static byte Channel(long value) => (byte)Math.Min(255L, Math.Max(0L, (value + (Scale / 2)) >> FractionBits));
     }
 }

@@ -17,7 +17,7 @@ namespace Heic.Net.Fixtures
         {
             int sampleBytes = depth == 8 ? 1 : 2;
             int sampleCount = monochrome ? Width * Height : (Width * Height * 3) / 2;
-            if (raw.Length != sampleCount * sampleBytes)
+            if (raw.Length != (sampleCount * sampleBytes))
             {
                 throw new InvalidDataException("FFmpeg output does not match the fixture dimensions and depth.");
             }

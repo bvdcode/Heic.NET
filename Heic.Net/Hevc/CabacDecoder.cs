@@ -74,7 +74,7 @@ namespace Heic.Net.Hevc
 
         public uint ReadBypassBits(int count)
         {
-            if (count < 0 || count > 32)
+            if ((count < 0) || (count > 32))
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }

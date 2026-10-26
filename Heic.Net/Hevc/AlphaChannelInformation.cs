@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
         {
             int minimum = Math.Min(transparent, opaque);
             int maximum = Math.Max(transparent, opaque);
-            if (increment && sample > minimum)
+            if (increment && (sample > minimum))
             {
                 sample++;
             }
@@ -26,12 +26,12 @@ namespace Heic.Net.Hevc
                 }
                 else
                 {
-                    sample = sample * 2 > transparent + opaque ? maximum : minimum;
+                    sample = (sample * 2) > (transparent + opaque) ? maximum : minimum;
                 }
             }
             int numerator = opaque > transparent ? sample - transparent : transparent - sample;
             int range = maximum - minimum;
-            return (byte)Math.Min(255, Math.Max(0, (numerator * 255 + range / 2) / range));
+            return (byte)Math.Min(255, Math.Max(0, ((numerator * 255) + (range / 2)) / range));
         }
 
         public static AlphaChannelInformation? Read(ArraySegment<byte> payload)
@@ -49,7 +49,7 @@ namespace Heic.Net.Hevc
                 return null;
             }
             AlphaChannelInformation? information = ReadValues(payload, depth, depth + 1);
-            if (information is null && depth == 8)
+            if (information is null && (depth == 8))
             {
                 information = ReadValues(payload, depth, depth);
             }
@@ -60,7 +60,7 @@ namespace Heic.Net.Hevc
         {
             BitReader reader = new BitReader(payload);
             reader.SkipBits(7);
-            if (reader.BitsRemaining < valueBits * 2 + 3)
+            if (reader.BitsRemaining < ((valueBits * 2) + 3))
             {
                 return null;
             }
@@ -70,8 +70,8 @@ namespace Heic.Net.Hevc
             bool clip = reader.ReadFlag();
             bool clipToRange = clip && reader.ReadFlag();
             int range = Math.Abs(opaque - transparent);
-            if (range == 0 || (increment && (range & (range - 1)) != 0) ||
-                reader.BitsRemaining == 0 || reader.BitsRemaining > 7 || !reader.ReadFlag())
+            if ((range == 0) || (increment && ((range & (range - 1)) != 0)) ||
+                (reader.BitsRemaining == 0) || (reader.BitsRemaining > 7) || !reader.ReadFlag())
             {
                 return null;
             }

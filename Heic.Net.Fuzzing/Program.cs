@@ -12,7 +12,7 @@ namespace Heic.Net.Fuzzing
     {
         private static async Task<int> Main(string[] args)
         {
-            if (args.Length == 3 && args[0] == "replay")
+            if ((args.Length == 3) && (args[0] == "replay"))
             {
                 bool decode = DecodeMode(args[1]);
                 byte[] input = await File.ReadAllBytesAsync(args[2]);

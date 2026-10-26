@@ -55,9 +55,9 @@ namespace Heic.Net.Tests
                     {
                         for (int dx = 0; dx < scale; dx++)
                         {
-                            int px = x * scale + dx;
-                            int py = y * scale + dy;
-                            int expected = sizeId > 1 && px == 0 && py == 0 ? 23 : factor;
+                            int px = (x * scale) + dx;
+                            int py = (y * scale) + dy;
+                            int expected = (sizeId > 1) && (px == 0) && (py == 0) ? 23 : factor;
                             Assert.Equal(expected, lists.Factor(sizeId + 2, 0, px, py));
                             Assert.Equal(expected, lists.Factor(sizeId + 2, sizeId == 3 ? 3 : 1, px, py));
                         }
@@ -77,7 +77,7 @@ namespace Heic.Net.Tests
                     writer.Flag(true);
                     if (sizeId > 1)
                     {
-                        writer.Se(10 * sizeId + matrixId);
+                        writer.Se((10 * sizeId) + matrixId);
                     }
                     for (int i = 0; i < (sizeId == 0 ? 16 : 64); i++)
                     {
@@ -92,7 +92,7 @@ namespace Heic.Net.Tests
                 {
                     for (int x = 0; x < 32; x++)
                     {
-                        int expected = x == 0 && y == 0 ? 28 + matrixId : 29 + matrixId + DiagonalIndex(x / 4, y / 4);
+                        int expected = (x == 0) && (y == 0) ? 28 + matrixId : 29 + matrixId + DiagonalIndex(x / 4, y / 4);
                         Assert.Equal(expected, lists.Factor(5, matrixId, x, y));
                     }
                 }
@@ -107,9 +107,9 @@ namespace Heic.Net.Tests
                 for (int px = 0; px < 8; px++)
                 {
                     int py = sum - px;
-                    if (py >= 0 && py < 8)
+                    if ((py >= 0) && (py < 8))
                     {
-                        if (px == x && py == y)
+                        if ((px == x) && (py == y))
                         {
                             return index;
                         }
@@ -141,13 +141,13 @@ namespace Heic.Net.Tests
             {
                 int[] actual = CoefficientScan.Block(log2Size, scan).ToArray();
                 Assert.Equal(Enumerable.Range(0, size * size), actual.Order());
-                for (int group = 0; group < size * size / 16; group++)
+                for (int group = 0; group < ((size * size) / 16); group++)
                 {
-                    int groupX = actual[group * 16] % size / 4;
+                    int groupX = (actual[group * 16] % size) / 4;
                     int groupY = actual[group * 16] / size / 4;
                     Assert.All(actual.Skip(group * 16).Take(16), offset =>
                     {
-                        Assert.Equal(groupX, offset % size / 4);
+                        Assert.Equal(groupX, (offset % size) / 4);
                         Assert.Equal(groupY, offset / size / 4);
                     });
                 }

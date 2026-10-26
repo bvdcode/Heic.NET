@@ -16,12 +16,12 @@ namespace Heic.Net.Hevc
 
         public static ReadOnlySpan<int> Block(int log2Size, int scanIndex)
         {
-            if (log2Size < 2 || log2Size > 5 || scanIndex < 0 || scanIndex > 2)
+            if ((log2Size < 2) || (log2Size > 5) || (scanIndex < 0) || (scanIndex > 2))
             {
                 throw new ArgumentOutOfRangeException(nameof(log2Size));
             }
 
-            return BlockOrders[(log2Size - 2) * 3 + scanIndex];
+            return BlockOrders[((log2Size - 2) * 3) + scanIndex];
         }
 
         public static ReadOnlySpan<int> Matrix(int size)
@@ -55,11 +55,11 @@ namespace Heic.Net.Hevc
                         int gy = groupOrder[group] / groups;
                         for (int i = 0; i < 16; i++)
                         {
-                            order[group * 16 + i] = (gy * 4 + within[i] / 4) * size + gx * 4 + within[i] % 4;
+                            order[(group * 16) + i] = (((gy * 4) + (within[i] / 4)) * size) + (gx * 4) + (within[i] % 4);
                         }
                     }
 
-                    orders[(log2Size - 2) * 3 + scan] = order;
+                    orders[((log2Size - 2) * 3) + scan] = order;
                 }
             }
 
@@ -75,7 +75,7 @@ namespace Heic.Net.Hevc
             int[] result = new int[size * size];
             for (int i = 0; i < result.Length; i++)
             {
-                result[i] = scan == 1 ? i : i % size * size + i / size;
+                result[i] = scan == 1 ? i : ((i % size) * size) + (i / size);
             }
 
             return result;
@@ -85,11 +85,11 @@ namespace Heic.Net.Hevc
         {
             int[] result = new int[size * size];
             int index = 0;
-            for (int sum = 0; sum <= 2 * (size - 1); sum++)
+            for (int sum = 0; sum <= (2 * (size - 1)); sum++)
             {
-                for (int x = Math.Max(0, sum - size + 1); x <= Math.Min(size - 1, sum); x++)
+                for (int x = Math.Max(0, (sum - size) + 1); x <= Math.Min(size - 1, sum); x++)
                 {
-                    result[index++] = (sum - x) * size + x;
+                    result[index++] = ((sum - x) * size) + x;
                 }
             }
 

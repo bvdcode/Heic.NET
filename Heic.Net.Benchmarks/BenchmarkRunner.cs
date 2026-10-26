@@ -18,7 +18,7 @@ namespace Heic.Net.Benchmarks
     {
         public static async Task RunAsync(string[] arguments)
         {
-            if (arguments.Length == 0 || Array.IndexOf(arguments, "--help") >= 0)
+            if ((arguments.Length == 0) || (Array.IndexOf(arguments, "--help") >= 0))
             {
                 Console.WriteLine("--input <HEIC file> [--repetitions 5] [--output artifacts/benchmarks] [--max-pixels <limit>]");
                 return;
@@ -53,7 +53,7 @@ namespace Heic.Net.Benchmarks
                 foreach (BenchmarkMode mode in new[] { BenchmarkMode.Cold, BenchmarkMode.Warm })
                 {
                     BenchmarkSample sample = await RunChildAsync(executable, options, mode, repetition);
-                    if (samples.Count > 0 && sample.OutputSha256 != samples[0].OutputSha256)
+                    if ((samples.Count > 0) && (sample.OutputSha256 != samples[0].OutputSha256))
                     {
                         throw new InvalidOperationException("Benchmark repetitions produced different image hashes.");
                     }

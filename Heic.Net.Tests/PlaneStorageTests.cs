@@ -56,17 +56,17 @@ namespace Heic.Net.Tests
             int[] residual = new int[16];
             for (int i = 0; i < 16; i++)
             {
-                prediction[i] = i * maximum / 15;
-                residual[i] = i % 2 == 0 ? -100 : 100;
+                prediction[i] = (i * maximum) / 15;
+                residual[i] = (i % 2) == 0 ? -100 : 100;
             }
             plane.Store(4, 4, 4, prediction, residual);
             for (int y = 0; y < 12; y++)
             {
                 for (int x = 0; x < 12; x++)
                 {
-                    if (x >= 4 && x < 8 && y >= 4 && y < 8)
+                    if ((x >= 4) && (x < 8) && (y >= 4) && (y < 8))
                     {
-                        int index = (y - 4) * 4 + x - 4;
+                        int index = (((y - 4) * 4) + x) - 4;
                         int expected = Math.Clamp(prediction[index] + residual[index], 0, maximum);
                         Assert.Equal(expected, Read(plane, x, y));
                         Assert.Equal(expected, plane.Neighbour(x, y));

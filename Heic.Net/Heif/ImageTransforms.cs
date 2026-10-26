@@ -19,7 +19,7 @@ namespace Heic.Net.Heif
     {
         public static RgbaImage Apply(RgbaImage image, HeifBox property, PixelBufferScope buffers)
         {
-            if (property.Type == HeifBox.Code("irot") || property.Type == HeifBox.Code("imir"))
+            if ((property.Type == HeifBox.Code("irot")) || (property.Type == HeifBox.Code("imir")))
             {
                 return Orient(image, ImageOrientation.Read(image.Width, image.Height, property), buffers);
             }
@@ -49,12 +49,11 @@ namespace Heic.Net.Heif
             Memory<byte> pixels = buffers.Allocate(checked(width * height * 4));
             for (int y = 0; y < height; y++)
             {
-                source.Pixels.Span.Slice((top + y) * source.Stride + left * 4, width * 4)
+                source.Pixels.Span.Slice(((top + y) * source.Stride) + (left * 4), width * 4)
                     .CopyTo(pixels.Span.Slice(y * width * 4, width * 4));
             }
 
             return new RgbaImage(width, height, pixels, source.ColorInformation);
         }
-
     }
 }

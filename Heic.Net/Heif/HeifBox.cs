@@ -30,7 +30,7 @@ namespace Heic.Net.Heif
                 size = (ulong)reader.Remaining + (ulong)header;
             }
 
-            if (size < (ulong)header || size - (ulong)header > (ulong)reader.Remaining)
+            if ((size < (ulong)header) || ((size - (ulong)header) > (ulong)reader.Remaining))
             {
                 throw new InvalidDataException("Box exceeds its parent extent.");
             }

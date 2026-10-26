@@ -18,14 +18,14 @@ namespace Heic.Net.Tests
             random.NextBytes(data);
             BitReader reader = new BitReader(data);
             int position = 0;
-            while (position < data.Length * 8)
+            while (position < (data.Length * 8))
             {
-                int count = Math.Min(random.Next(1, 33), data.Length * 8 - position);
+                int count = Math.Min(random.Next(1, 33), (data.Length * 8) - position);
                 uint expected = 0;
                 for (int bit = 0; bit < count; bit++)
                 {
                     int at = position + bit;
-                    expected = (expected << 1) | (uint)((data[at / 8] >> (7 - at % 8)) & 1);
+                    expected = (expected << 1) | (uint)((data[at / 8] >> (7 - (at % 8))) & 1);
                 }
                 Assert.Equal(unchecked((int)expected), reader.Peek(count));
                 Assert.Equal((ulong)position, reader.GetBitPosition());
@@ -46,7 +46,7 @@ namespace Heic.Net.Tests
                 }
                 position += count;
                 Assert.Equal((ulong)position, reader.GetBitPosition());
-                Assert.Equal(data.Length * 8 - position, reader.BitsRemaining);
+                Assert.Equal((data.Length * 8) - position, reader.BitsRemaining);
             }
             Assert.Throws<InvalidDataException>(() => reader.ReadBit());
             Assert.Equal((ulong)(data.Length * 8), reader.GetBitPosition());

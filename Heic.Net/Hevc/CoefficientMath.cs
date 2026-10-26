@@ -27,12 +27,12 @@ namespace Heic.Net.Hevc
         public static int Dequantize(int coefficient, int scalingFactor, int qp, int log2Size, int bitDepth)
         {
             ValidateQuantizer(qp, log2Size, bitDepth);
-            if (scalingFactor < 0 || scalingFactor > 255)
+            if ((scalingFactor < 0) || (scalingFactor > 255))
             {
                 throw new ArgumentOutOfRangeException(nameof(scalingFactor));
             }
             long multiplier = scalingFactor * LevelScale[qp % 6] * (1L << (qp / 6));
-            return Scale(coefficient, multiplier, bitDepth + log2Size - 5);
+            return Scale(coefficient, multiplier, (bitDepth + log2Size) - 5);
         }
 
         /// <summary>
@@ -48,7 +48,7 @@ namespace Heic.Net.Hevc
             {
                 throw new ArgumentException("Coefficient buffer is shorter than the transform block.", nameof(coefficients));
             }
-            int shift = bitDepth + log2Size - 5;
+            int shift = (bitDepth + log2Size) - 5;
             long multiplier = LevelScale[qp % 6] * (1L << (qp / 6));
             if (scaling.IsFlat)
             {
@@ -63,7 +63,7 @@ namespace Heic.Net.Hevc
             {
                 for (int column = 0; column < size; column++)
                 {
-                    int index = row * size + column;
+                    int index = (row * size) + column;
                     coefficients[index] = Scale(coefficients[index],
                         multiplier * scaling.Factor(log2Size, matrixId, column, row), shift);
                 }
@@ -72,7 +72,7 @@ namespace Heic.Net.Hevc
 
         private static void ValidateQuantizer(int qp, int log2Size, int bitDepth)
         {
-            if ((bitDepth != 8 && bitDepth != 10) || qp < 0 || qp > 51 + 6 * (bitDepth - 8) || log2Size < 2 || log2Size > 5)
+            if (((bitDepth != 8) && (bitDepth != 10)) || (qp < 0) || (qp > (51 + (6 * (bitDepth - 8)))) || (log2Size < 2) || (log2Size > 5))
             {
                 throw new ArgumentOutOfRangeException(nameof(qp));
             }
@@ -80,11 +80,11 @@ namespace Heic.Net.Hevc
 
         private static int Scale(int coefficient, long multiplier, int shift)
         {
-            if (coefficient < short.MinValue || coefficient > short.MaxValue)
+            if ((coefficient < short.MinValue) || (coefficient > short.MaxValue))
             {
                 throw new ArgumentOutOfRangeException(nameof(coefficient));
             }
-            long scaled = (coefficient * multiplier + (1L << (shift - 1))) >> shift;
+            long scaled = ((coefficient * multiplier) + (1L << (shift - 1))) >> shift;
             return (int)Math.Max(short.MinValue, Math.Min(short.MaxValue, scaled));
         }
 

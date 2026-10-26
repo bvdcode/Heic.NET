@@ -35,9 +35,9 @@ namespace Heic.Net.Tests
                 double luma = (y - (fullRange ? 0 : 16 * unit)) / (double)(fullRange ? maximum : 219 * unit);
                 double blue = (cb - (1 << (depth - 1))) / (double)(fullRange ? maximum : 224 * unit);
                 double red = (cr - (1 << (depth - 1))) / (double)(fullRange ? maximum : 224 * unit);
-                double r = luma + 2 * (1 - kr) * red;
-                double b = luma + 2 * (1 - kb) * blue;
-                double g = (luma - kr * r - kb * b) / (1 - kr - kb);
+                double r = luma + (2 * (1 - kr) * red);
+                double b = luma + (2 * (1 - kb) * blue);
+                double g = (luma - (kr * r) - (kb * b)) / (1 - kr - kb);
                 conversion.Convert(y, cb, cr, rgba);
                 Assert.InRange(Math.Abs(rgba[0] - Reference(r)), 0, 1);
                 Assert.InRange(Math.Abs(rgba[1] - Reference(g)), 0, 1);
@@ -65,6 +65,6 @@ namespace Heic.Net.Tests
             Assert.Throws<UnsupportedHeicFeatureException>(() => new ColorConversion(8, false, 3));
         }
 
-        private static int Reference(double value) => (int)Math.Min(255, Math.Max(0, Math.Floor(value * 255 + 0.5)));
+        private static int Reference(double value) => (int)Math.Min(255, Math.Max(0, Math.Floor((value * 255) + 0.5)));
     }
 }

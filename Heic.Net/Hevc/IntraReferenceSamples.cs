@@ -27,12 +27,12 @@ namespace Heic.Net.Hevc
             top.Slice(1, length).CopyTo(scan.Slice(length + 1));
 
             int first = 0;
-            while (first <= 2 * length && scan[first] == -1)
+            while ((first <= (2 * length)) && (scan[first] == -1))
             {
                 first++;
             }
-            int previous = first > 2 * length ? 1 << (bitDepth - 1) : scan[first];
-            for (int i = 0; i <= 2 * length; i++)
+            int previous = first > (2 * length) ? 1 << (bitDepth - 1) : scan[first];
+            for (int i = 0; i <= (2 * length); i++)
             {
                 if (scan[i] == -1)
                 {
@@ -54,16 +54,16 @@ namespace Heic.Net.Hevc
 
         internal static void Validate(ReadOnlySpan<int> top, ReadOnlySpan<int> left, int size, int bitDepth)
         {
-            if (size != 4 && size != 8 && size != 16 && size != 32)
+            if ((size != 4) && (size != 8) && (size != 16) && (size != 32))
             {
                 throw new ArgumentOutOfRangeException(nameof(size));
             }
 
-            if (bitDepth != 8 && bitDepth != 10)
+            if ((bitDepth != 8) && (bitDepth != 10))
             {
                 throw new ArgumentOutOfRangeException(nameof(bitDepth));
             }
-            if (top.Length < 2 * size + 1 || left.Length < 2 * size + 1)
+            if ((top.Length < ((2 * size) + 1)) || (left.Length < ((2 * size) + 1)))
             {
                 throw new ArgumentException("Intra reference spans must include the corner and twice the block size.");
             }
@@ -72,9 +72,9 @@ namespace Heic.Net.Hevc
             {
                 throw new ArgumentException("The intra reference corner must be shared.");
             }
-            for (int i = 0; i <= 2 * size; i++)
+            for (int i = 0; i <= (2 * size); i++)
             {
-                if (top[i] < -1 || top[i] >= 1 << bitDepth || left[i] < -1 || left[i] >= 1 << bitDepth)
+                if ((top[i] < -1) || (top[i] >= (1 << bitDepth)) || (left[i] < -1) || (left[i] >= (1 << bitDepth)))
                 {
                     throw new ArgumentOutOfRangeException(nameof(top));
                 }

@@ -19,7 +19,7 @@ namespace Heic.Net.Hevc
                 throw new InvalidDataException("Truncated NAL header.");
             }
             int header = (encoded.Span[0] << 8) | encoded.Span[1];
-            if ((header & 0x8000) != 0 || (header & 7) == 0)
+            if (((header & 0x8000) != 0) || ((header & 7) == 0))
             {
                 throw new InvalidDataException("Invalid NAL header.");
             }
@@ -36,9 +36,9 @@ namespace Heic.Net.Hevc
             for (int i = 0; i < encoded.Length; i++)
             {
                 byte value = encoded.Span[i];
-                if (i >= 2 && zeros >= 2 && value == 3)
+                if ((i >= 2) && (zeros >= 2) && (value == 3))
                 {
-                    if (i + 1 == encoded.Length || encoded.Span[i + 1] > 3)
+                    if (((i + 1) == encoded.Length) || (encoded.Span[i + 1] > 3))
                     {
                         throw new InvalidDataException("Invalid emulation-prevention byte.");
                     }
@@ -59,7 +59,7 @@ namespace Heic.Net.Hevc
 
         public ArraySegment<byte>[] Substreams(int rbspOffset, int[] encodedLengths)
         {
-            if (rbspOffset < 0 || rbspOffset >= Bytes.Count)
+            if ((rbspOffset < 0) || (rbspOffset >= Bytes.Count))
             {
                 throw new InvalidDataException("HEVC entropy data offset exceeds the NAL payload.");
             }
@@ -75,7 +75,7 @@ namespace Heic.Net.Hevc
             for (int i = 0; i < encodedLengths.Length; i++)
             {
                 int length = encodedLengths[i];
-                if (length <= 0 || length >= encoded.Length - encodedPosition)
+                if ((length <= 0) || (length >= (encoded.Length - encodedPosition)))
                 {
                     throw new InvalidDataException("HEVC entry point exceeds the NAL payload.");
                 }
@@ -93,7 +93,7 @@ namespace Heic.Net.Hevc
             void Advance()
             {
                 byte value = encoded.Span[encodedPosition++];
-                if (encodedPosition > 2 && zeros >= 2 && value == 3)
+                if ((encodedPosition > 2) && (zeros >= 2) && (value == 3))
                 {
                     zeros = 0;
                     return;
@@ -105,7 +105,7 @@ namespace Heic.Net.Hevc
 
         public static IReadOnlyList<NalPayload> ReadLengthPrefixed(ReadOnlyMemory<byte> data, int lengthSize)
         {
-            if (lengthSize < 1 || lengthSize > 4)
+            if ((lengthSize < 1) || (lengthSize > 4))
             {
                 throw new InvalidDataException("Invalid NAL length field size.");
             }

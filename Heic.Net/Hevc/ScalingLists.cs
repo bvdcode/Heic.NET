@@ -59,8 +59,8 @@ namespace Heic.Net.Hevc
 
         public int Factor(int log2Size, int matrixId, int x, int y)
         {
-            if (log2Size < 2 || log2Size > 5 || matrixId < 0 || matrixId > 5 ||
-                x < 0 || y < 0 || x >= 1 << log2Size || y >= 1 << log2Size)
+            if ((log2Size < 2) || (log2Size > 5) || (matrixId < 0) || (matrixId > 5) ||
+                (x < 0) || (y < 0) || (x >= (1 << log2Size)) || (y >= (1 << log2Size)))
             {
                 throw new ArgumentOutOfRangeException(nameof(log2Size));
             }
@@ -69,15 +69,15 @@ namespace Heic.Net.Hevc
             {
                 return 16;
             }
-            int listSize = log2Size == 5 && matrixId % 3 != 0 ? 4 : log2Size;
-            int index = (listSize - 2) * 6 + matrixId;
-            if (log2Size > 3 && x == 0 && y == 0)
+            int listSize = (log2Size == 5) && ((matrixId % 3) != 0) ? 4 : log2Size;
+            int index = ((listSize - 2) * 6) + matrixId;
+            if ((log2Size > 3) && (x == 0) && (y == 0))
             {
                 return dc[index];
             }
             int shift = Math.Max(0, log2Size - 3);
             int width = log2Size == 2 ? 4 : 8;
-            return matrices[index][(y >> shift) * width + (x >> shift)];
+            return matrices[index][((y >> shift) * width) + (x >> shift)];
         }
 
         public static ScalingLists Read(BitReader reader)
@@ -88,7 +88,7 @@ namespace Heic.Net.Hevc
                 int step = sizeId == 3 ? 3 : 1;
                 for (int matrixId = 0; matrixId < 6; matrixId += step)
                 {
-                    int index = sizeId * 6 + matrixId;
+                    int index = (sizeId * 6) + matrixId;
                     if (!reader.ReadFlag())
                     {
                         uint delta = reader.ReadUev();
@@ -98,7 +98,7 @@ namespace Heic.Net.Hevc
                         }
                         if (delta != 0)
                         {
-                            int previous = index - (int)delta * step;
+                            int previous = index - ((int)delta * step);
                             lists.matrices[index] = lists.matrices[previous];
                             lists.dc[index] = lists.dc[previous];
                         }
@@ -115,7 +115,7 @@ namespace Heic.Net.Hevc
 
         private void SetDefault(int sizeId, int matrixId)
         {
-            int index = sizeId * 6 + matrixId;
+            int index = (sizeId * 6) + matrixId;
             dc[index] = 16;
             int size = sizeId == 0 ? 4 : 8;
             byte[] values = new byte[size * size];
@@ -134,7 +134,7 @@ namespace Heic.Net.Hevc
             if (sizeId > 1)
             {
                 int dcMinus8 = reader.ReadSev();
-                if (dcMinus8 < -7 || dcMinus8 > 247)
+                if ((dcMinus8 < -7) || (dcMinus8 > 247))
                 {
                     throw new InvalidDataException("Invalid scaling matrix DC value.");
                 }
@@ -148,7 +148,7 @@ namespace Heic.Net.Hevc
             for (int i = 0; i < values.Length; i++)
             {
                 int delta = reader.ReadSev();
-                if (delta < -128 || delta > 127)
+                if ((delta < -128) || (delta > 127))
                 {
                     throw new InvalidDataException("Invalid scaling matrix coefficient delta.");
                 }

@@ -42,12 +42,12 @@ namespace Heic.Net.Heif
                 result.Read(property, association.Essential, options);
             }
 
-            if (result.Width == 0 || result.Height == 0)
+            if ((result.Width == 0) || (result.Height == 0))
             {
                 throw new InvalidDataException("Image spatial extents are missing.");
             }
 
-            if (result.AuxiliaryType == "urn:mpeg:hevc:2015:auxid:1" && !result.AuxiliarySubtype.IsEmpty)
+            if ((result.AuxiliaryType == "urn:mpeg:hevc:2015:auxid:1") && !result.AuxiliarySubtype.IsEmpty)
             {
                 DecoderConfiguration configuration = result.Configuration ??
                     throw new InvalidDataException("HEVC auxiliary configuration is missing.");
@@ -65,7 +65,7 @@ namespace Heic.Net.Heif
                 FullBox(reader);
                 uint width = reader.U32();
                 uint height = reader.U32();
-                if (width == 0 || height == 0 || (ulong)width * height > (ulong)options.MaxPixels)
+                if ((width == 0) || (height == 0) || (((ulong)width * height) > (ulong)options.MaxPixels))
                 {
                     throw new InvalidDataException("Image dimensions exceed the pixel limit.");
                 }
@@ -99,12 +99,12 @@ namespace Heic.Net.Heif
 
                 AuxiliaryType = Encoding.UTF8.GetString(bytes.Span.Slice(0, end));
                 AuxiliarySubtype = bytes.Slice(end + 1);
-                if (AuxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha" && !AuxiliarySubtype.IsEmpty)
+                if ((AuxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha") && !AuxiliarySubtype.IsEmpty)
                 {
                     throw new UnsupportedHeicFeatureException("MPEG alpha auxiliary subtype");
                 }
             }
-            else if (box.Type == HeifBox.Code("irot") || box.Type == HeifBox.Code("imir") || box.Type == HeifBox.Code("clap"))
+            else if ((box.Type == HeifBox.Code("irot")) || (box.Type == HeifBox.Code("imir")) || (box.Type == HeifBox.Code("clap")))
             {
                 transforms.Add(box);
                 reader.Skip(reader.Remaining);
@@ -145,7 +145,7 @@ namespace Heic.Net.Heif
 
                 Color = new ColorEncoding(primaries, transfer, matrix, (range & 128) != 0);
             }
-            else if (type == HeifBox.Code("prof") || type == HeifBox.Code("rICC"))
+            else if ((type == HeifBox.Code("prof")) || (type == HeifBox.Code("rICC")))
             {
                 if (!IccProfile.IsEmpty)
                 {
@@ -160,8 +160,8 @@ namespace Heic.Net.Heif
             }
         }
 
-        public static bool IsAlpha(string? auxiliaryType) => auxiliaryType == "urn:mpeg:hevc:2015:auxid:1" ||
-            auxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
+        public static bool IsAlpha(string? auxiliaryType) => (auxiliaryType == "urn:mpeg:hevc:2015:auxid:1") ||
+            (auxiliaryType == "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha");
 
         private static void FullBox(ByteReader reader)
         {

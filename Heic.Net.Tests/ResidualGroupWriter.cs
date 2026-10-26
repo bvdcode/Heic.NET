@@ -19,13 +19,13 @@ namespace Heic.Net.Tests
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    writer.Decision(true, coordinate * 10 + i, prefixInitial[i]);
+                    writer.Decision(true, (coordinate * 10) + i, prefixInitial[i]);
                 }
             }
             for (int n = 14; n >= 0; n--)
             {
                 int context = map[diagonal[n]];
-                writer.Decision(n >= 16 - magnitudes.Length, 100 + context, significantInitial[context]);
+                writer.Decision(n >= (16 - magnitudes.Length), 100 + context, significantInitial[context]);
             }
             int greaterContext = 1;
             int firstGreater = -1;

@@ -29,7 +29,7 @@ namespace Heic.Net.Tests
                         int magnitude = pattern switch
                         {
                             < 16 => boundaries[pattern],
-                            < 32 => i == pattern - 16 ? 3 : 1,
+                            < 32 => i == (pattern - 16) ? 3 : 1,
                             _ => boundaries[(i + pattern) % boundaries.Length]
                         };
                         magnitudes[i] = magnitude;
@@ -37,7 +37,7 @@ namespace Heic.Net.Tests
                     }
                     foreach (bool signHiding in new[] { false, true })
                     {
-                        bool hidden = signHiding && count > 4;
+                        bool hidden = signHiding && (count > 4);
                         int negativeSigns = (pattern & 1) == 0 ? 0xaaaa : 0x5555;
                         byte[] encoded = ResidualGroupWriter.Write(magnitudes, negativeSigns, hidden, qp);
                         IntraCabacReader reader = new IntraCabacReader(new BitReader(encoded), qp);
@@ -49,7 +49,7 @@ namespace Heic.Net.Tests
                             int expected = 0;
                             if (i < count)
                             {
-                                bool negative = hidden && i == count - 1
+                                bool negative = hidden && (i == (count - 1))
                                     ? (sum & 1) != 0
                                     : (negativeSigns & (1 << i)) != 0;
                                 expected = negative ? -magnitudes[i] : magnitudes[i];

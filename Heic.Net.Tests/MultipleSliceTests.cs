@@ -72,7 +72,7 @@ namespace Heic.Net.Tests
             int start = 4;
             for (int i = 4; i <= encoded.Length; i++)
             {
-                if (i == encoded.Length || i + 4 <= encoded.Length && encoded[i] == 0 && encoded[i + 1] == 0 && encoded[i + 2] == 0 && encoded[i + 3] == 1)
+                if ((i == encoded.Length) || (((i + 4) <= encoded.Length) && (encoded[i] == 0) && (encoded[i + 1] == 0) && (encoded[i + 2] == 0) && (encoded[i + 3] == 1)))
                 {
                     units.Add(encoded.AsSpan(start, i - start).ToArray());
                     start = i + 4;

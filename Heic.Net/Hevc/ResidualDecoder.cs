@@ -23,15 +23,15 @@ namespace Heic.Net.Hevc
             int size = 1 << log2Size;
             Span<int> output = coefficients.Slice(0, size * size);
             output.Clear();
-            bool skip = transformSkipEnabled && !bypass && log2Size == 2 && reader.Read(CabacElement.TransformSkip, component == 0 ? 0 : 1);
+            bool skip = transformSkipEnabled && !bypass && (log2Size == 2) && reader.Read(CabacElement.TransformSkip, component == 0 ? 0 : 1);
             int scanIndex = 0;
-            if (log2Size == 2 || log2Size == 3 && (component == 0 || fullResolutionChroma))
+            if ((log2Size == 2) || ((log2Size == 3) && ((component == 0) || fullResolutionChroma)))
             {
-                if (intraMode >= 6 && intraMode <= 14)
+                if ((intraMode >= 6) && (intraMode <= 14))
                 {
                     scanIndex = 2;
                 }
-                else if (intraMode >= 22 && intraMode <= 30)
+                else if ((intraMode >= 22) && (intraMode <= 30))
                 {
                     scanIndex = 1;
                 }
@@ -45,7 +45,7 @@ namespace Heic.Net.Hevc
             {
                 (lastX, lastY) = (lastY, lastX);
             }
-            int lastOffset = lastY * size + lastX;
+            int lastOffset = (lastY * size) + lastX;
             ReadOnlySpan<int> scan = CoefficientScan.Block(log2Size, scanIndex);
             int last = scan.IndexOf(lastOffset);
             if (last < 0)
@@ -60,22 +60,22 @@ namespace Heic.Net.Hevc
             for (int group = last / 16; group >= 0; group--)
             {
                 int firstOffset = scan[group * 16];
-                int gx = firstOffset % size / 4;
+                int gx = (firstOffset % size) / 4;
                 int gy = firstOffset / size / 4;
-                bool coded = group == 0 || group == last / 16 || reader.Read(CabacElement.CodedSubBlock,
+                bool coded = (group == 0) || (group == (last / 16)) || reader.Read(CabacElement.CodedSubBlock,
                     CoefficientContexts.Group(gx, gy, groupWidth, component, codedGroups));
-                codedGroups[gy * groupWidth + gx] = coded ? (byte)1 : (byte)0;
+                codedGroups[(gy * groupWidth) + gx] = coded ? (byte)1 : (byte)0;
                 if (!coded)
                 {
                     continue;
                 }
                 int count = 0;
-                bool inferDc = group != 0 && group != last / 16;
-                int upper = group == last / 16 ? last % 16 : 15;
+                bool inferDc = (group != 0) && (group != (last / 16));
+                int upper = group == (last / 16) ? last % 16 : 15;
                 ReadOnlySpan<byte> contexts = CoefficientContexts.SignificantGroup(gx, gy, log2Size, scanIndex, component, codedGroups);
                 for (int n = upper; n >= 0; n--)
                 {
-                    bool significant = group * 16 + n == last || n == 0 && inferDc ||
+                    bool significant = (((group * 16) + n) == last) || ((n == 0) && inferDc) ||
                         reader.Read(CabacElement.SignificantCoefficient, contexts[n]);
                     if (significant)
                     {
@@ -97,7 +97,7 @@ namespace Heic.Net.Hevc
             int group, int component, bool bypass, ref int previousGreater)
         {
             uint levels = InitialGroupLevels;
-            int contextSet = component == 0 && group != 0 ? 2 : 0;
+            int contextSet = (component == 0) && (group != 0) ? 2 : 0;
             if (previousGreater == 0)
             {
                 contextSet++;
@@ -106,7 +106,7 @@ namespace Heic.Net.Hevc
             int firstGreater = -1;
             for (int i = 0; i < Math.Min(positions.Length, 8); i++)
             {
-                int context = contextSet * 4 + Math.Min(3, greaterContext) + (component == 0 ? 0 : 16);
+                int context = (contextSet * 4) + Math.Min(3, greaterContext) + (component == 0 ? 0 : 16);
                 bool greater = reader.Read(CabacElement.GreaterOne, context);
                 if (greater)
                 {
@@ -124,12 +124,12 @@ namespace Heic.Net.Hevc
             }
 
             previousGreater = greaterContext;
-            if (firstGreater >= 0 && reader.Read(CabacElement.GreaterTwo, contextSet + (component == 0 ? 0 : 4)))
+            if ((firstGreater >= 0) && reader.Read(CabacElement.GreaterTwo, contextSet + (component == 0 ? 0 : 4)))
             {
                 levels += 1u << (2 * firstGreater);
             }
 
-            bool hidden = signDataHiding && !bypass && positions[0] - positions[positions.Length - 1] > 3;
+            bool hidden = signDataHiding && !bypass && ((positions[0] - positions[positions.Length - 1]) > 3);
             int signCount = positions.Length - (hidden ? 1 : 0);
             int signs = reader.Bits(signCount) << (32 - signCount);
             int rice = 0;
@@ -142,7 +142,7 @@ namespace Heic.Net.Hevc
                 int threshold = i < 8 ? (i == firstGreater ? 3 : 2) : 1;
                 if (level == threshold)
                 {
-                    if (previousAbsolute > 3 << rice)
+                    if (previousAbsolute > (3 << rice))
                     {
                         rice = Math.Min(4, rice + 1);
                     }
@@ -153,12 +153,12 @@ namespace Heic.Net.Hevc
                 sum += level;
                 bool negative = signs < 0;
                 signs <<= 1;
-                if (hidden && i == positions.Length - 1 && (sum & 1) != 0)
+                if (hidden && (i == (positions.Length - 1)) && ((sum & 1) != 0))
                 {
                     negative = !negative;
                 }
                 int signed = negative ? -level : level;
-                if (signed < short.MinValue || signed > short.MaxValue)
+                if ((signed < short.MinValue) || (signed > short.MaxValue))
                 {
                     throw new InvalidDataException("Transform coefficient exceeds signed 16-bit precision.");
                 }
@@ -168,10 +168,10 @@ namespace Heic.Net.Hevc
 
         private int LastPrefix(int log2Size, int component, CabacElement element)
         {
-            int offset = component == 0 ? 3 * (log2Size - 2) + ((log2Size - 1) >> 2) : 15;
+            int offset = component == 0 ? (3 * (log2Size - 2)) + ((log2Size - 1) >> 2) : 15;
             int shift = component == 0 ? (log2Size + 1) >> 2 : log2Size - 2;
             int prefix = 0;
-            while (prefix < 2 * log2Size - 1 && reader.Read(element, offset + (prefix >> shift)))
+            while ((prefix < ((2 * log2Size) - 1)) && reader.Read(element, offset + (prefix >> shift)))
             {
                 prefix++;
             }

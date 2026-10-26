@@ -12,7 +12,7 @@ namespace Heic.Net.Hevc
 
         public static ShortTermReferenceSet Read(BitReader reader, ShortTermReferenceSet[] preceding, int index, bool slice)
         {
-            if (index > 0 && reader.ReadFlag())
+            if ((index > 0) && reader.ReadFlag())
             {
                 int distance = slice ? HevcSyntax.Ue(reader, index - 1, "delta_idx_minus1") + 1 : 1;
                 ShortTermReferenceSet source = preceding[index - distance];
@@ -24,7 +24,7 @@ namespace Heic.Net.Hevc
                     bool used = reader.ReadFlag();
                     bool include = used || reader.ReadFlag();
                     long shifted = (i < source.Deltas.Length ? source.Deltas[i] : 0) + delta;
-                    if (include && shifted != 0)
+                    if (include && (shifted != 0))
                     {
                         entries.Add(shifted);
                     }
@@ -35,7 +35,7 @@ namespace Heic.Net.Hevc
                 }
                 entries.Sort((left, right) =>
                 {
-                    if (left < 0 && right < 0)
+                    if ((left < 0) && (right < 0))
                     {
                         return right.CompareTo(left);
                     }

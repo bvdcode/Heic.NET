@@ -16,13 +16,13 @@ namespace Heic.Net.Hevc
     internal class BitReader(ArraySegment<byte> data)
     {
         private int position;
-        public int BitsRemaining => checked(data.Count * 8 - position);
+        public int BitsRemaining => checked((data.Count * 8) - position);
         public bool ByteAligned() => (position & 7) == 0;
         public ulong GetBitPosition() => (ulong)position;
 
         public int Read(int count)
         {
-            if (count < 0 || count > 32)
+            if ((count < 0) || (count > 32))
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
@@ -87,7 +87,7 @@ namespace Heic.Net.Hevc
 
         public void SkipBits(int count)
         {
-            if (count < 0 || count > BitsRemaining)
+            if ((count < 0) || (count > BitsRemaining))
             {
                 throw new InvalidDataException("Bit skip exceeds RBSP.");
             }

@@ -32,10 +32,10 @@ namespace Heic.Net.Tests
                 ReadOnlySpan<int> scan = CoefficientScan.Block(log2Size, scanIndex);
                 for (int component = 0; component < 3; component++)
                 {
-                    for (int group = 0; group < width * width; group++)
+                    for (int group = 0; group < (width * width); group++)
                     {
                         int first = scan[group * 16];
-                        int gx = first % size / 4;
+                        int gx = (first % size) / 4;
                         int gy = first / size / 4;
                         for (int right = 0; right < 2; right++)
                         {
@@ -44,22 +44,22 @@ namespace Heic.Net.Tests
                                 byte[] neighbours = new byte[width * width];
                                 Array.Fill(neighbours, (byte)1);
                                 int pattern = 0;
-                                if (gx + 1 < width)
+                                if ((gx + 1) < width)
                                 {
-                                    neighbours[gy * width + gx + 1] = (byte)right;
+                                    neighbours[(gy * width) + gx + 1] = (byte)right;
                                     pattern += right;
                                 }
-                                if (gy + 1 < width)
+                                if ((gy + 1) < width)
                                 {
-                                    neighbours[(gy + 1) * width + gx] = (byte)below;
+                                    neighbours[((gy + 1) * width) + gx] = (byte)below;
                                     pattern += 2 * below;
                                 }
                                 ReadOnlySpan<byte> actual = CoefficientContexts.SignificantGroup(gx, gy,
                                     log2Size, scanIndex, component, neighbours);
                                 for (int n = 0; n < 16; n++)
                                 {
-                                    int offset = scan[group * 16 + n];
-                                    int local = offset / size % 4 * 4 + offset % 4;
+                                    int offset = scan[(group * 16) + n];
+                                    int local = (((offset / size) % 4) * 4) + (offset % 4);
                                     int expected;
                                     if (log2Size == 2)
                                     {
@@ -75,7 +75,7 @@ namespace Heic.Net.Tests
                                             ? log2Size == 3 ? scanIndex == 0 ? 9 : 15 : 21
                                             : log2Size == 3 ? 9 : 12;
                                         expected = basis + LocalContexts[pattern][local];
-                                        if (component == 0 && group != 0)
+                                        if ((component == 0) && (group != 0))
                                         {
                                             expected += 3;
                                         }

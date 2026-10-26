@@ -41,7 +41,7 @@ namespace Heic.Net.Tests
             for (int i = 0; i < expected.Length; i++)
             {
                 expected[i] = random.Next(4) == 0;
-                if (i % 3 == 0)
+                if ((i % 3) == 0)
                 {
                     writer.Bypass(expected[i]);
                 }
@@ -56,7 +56,7 @@ namespace Heic.Net.Tests
             CabacContext context = CabacContext.Initialize(139, 22);
             for (int i = 0; i < expected.Length; i++)
             {
-                Assert.Equal(expected[i], i % 3 == 0 ? decoder.ReadBypass() : decoder.ReadBin(ref context));
+                Assert.Equal(expected[i], (i % 3) == 0 ? decoder.ReadBypass() : decoder.ReadBin(ref context));
             }
 
             Assert.True(decoder.ReadTermination());
@@ -93,7 +93,7 @@ namespace Heic.Net.Tests
             {
                 for (int i = 0; i < 3; i++)
                 {
-                    writer.Decision(true, coordinate * 10 + i, prefixInitial[i]);
+                    writer.Decision(true, (coordinate * 10) + i, prefixInitial[i]);
                 }
             }
 
@@ -139,7 +139,7 @@ namespace Heic.Net.Tests
                         2 => 0xaaaa,
                         _ => 1 << (pattern - 3)
                     };
-                    bool hidden = signHiding && !bypass && count > 4;
+                    bool hidden = signHiding && !bypass && (count > 4);
                     int signCount = count - (hidden ? 1 : 0);
                     int[] magnitudes = new int[count];
                     Array.Fill(magnitudes, 1);
@@ -154,8 +154,8 @@ namespace Heic.Net.Tests
                         int expected = 0;
                         if (i < count)
                         {
-                            bool negative = i < signCount && (signs & (1 << i)) != 0;
-                            if (hidden && i == count - 1)
+                            bool negative = (i < signCount) && ((signs & (1 << i)) != 0);
+                            if (hidden && (i == (count - 1)))
                             {
                                 negative = (count & 1) != 0;
                             }

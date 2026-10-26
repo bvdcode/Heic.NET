@@ -27,7 +27,7 @@ namespace Heic.Net.Heif
             AlphaChannelInformation? information = null;
             foreach (NalPayload nal in NalPayload.ReadLengthPrefixed(reader.Bytes(reader.Remaining), lengthSize))
             {
-                if (nal.Type != 39 && nal.Type != 40)
+                if ((nal.Type != 39) && (nal.Type != 40))
                 {
                     throw new InvalidDataException("Auxiliary configuration contains a non-SEI NAL unit.");
                 }
@@ -36,7 +36,7 @@ namespace Heic.Net.Heif
                 while (messages.Remaining > 0)
                 {
                     int type = ReadExtended(messages);
-                    if (type == 128 && messages.Remaining == 0)
+                    if ((type == 128) && (messages.Remaining == 0))
                     {
                         break;
                     }
@@ -59,7 +59,7 @@ namespace Heic.Net.Heif
             do
             {
                 part = reader.U8();
-                if (value > int.MaxValue - part)
+                if (value > (int.MaxValue - part))
                 {
                     throw new InvalidDataException("Auxiliary SEI field exceeds the supported range.");
                 }

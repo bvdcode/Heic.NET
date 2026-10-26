@@ -21,9 +21,9 @@ namespace Heic.Net.Tests
                 int[] coefficients = new int[count + 1];
                 int[] expected = new int[count + 1];
                 expected[count] = coefficients[count] = int.MaxValue;
-                int shift = depth + log2Size - 5;
+                int shift = (depth + log2Size) - 5;
                 long rounding = 1L << (shift - 1);
-                for (int qp = 0; qp <= 51 + 6 * (depth - 8); qp++)
+                for (int qp = 0; qp <= (51 + (6 * (depth - 8))); qp++)
                 {
                     long multiplier = 16L * scales[qp % 6] * (1L << (qp / 6));
                     for (int start = short.MinValue; start <= short.MaxValue; start += count)
@@ -32,7 +32,7 @@ namespace Heic.Net.Tests
                         {
                             int coefficient = start + i;
                             coefficients[i] = coefficient;
-                            long result = (coefficient * multiplier + rounding) >> shift;
+                            long result = ((coefficient * multiplier) + rounding) >> shift;
                             expected[i] = (int)Math.Clamp(result, short.MinValue, short.MaxValue);
                         }
                         CoefficientMath.Dequantize(coefficients, ScalingLists.Flat, 0, qp, log2Size, depth);

@@ -38,13 +38,13 @@ namespace Heic.Net.Hevc
         public static void Inverse(ReadOnlySpan<int> coefficients, Span<int> residual, int size,
             int bitDepth, bool intraLuma, TransformWorkspace workspace)
         {
-            if ((size != 4 && size != 8 && size != 16 && size != 32) || (bitDepth != 8 && bitDepth != 10))
+            if (((size != 4) && (size != 8) && (size != 16) && (size != 32)) || ((bitDepth != 8) && (bitDepth != 10)))
             {
                 throw new ArgumentOutOfRangeException(nameof(size));
             }
 
             int count = size * size;
-            if (coefficients.Length < count || residual.Length < count)
+            if ((coefficients.Length < count) || (residual.Length < count))
             {
                 throw new ArgumentException("Transform buffers are shorter than the block.");
             }
@@ -60,15 +60,15 @@ namespace Heic.Net.Hevc
             for (int i = 0; i < count; i++)
             {
                 int value = coefficients[i];
-                if (value < short.MinValue || value > short.MaxValue)
+                if ((value < short.MinValue) || (value > short.MaxValue))
                 {
                     throw new ArgumentOutOfRangeException(nameof(coefficients));
                 }
 
                 if (value != 0)
                 {
-                    activeWidth = Math.Max(activeWidth, i % size + 1);
-                    activeHeight = i / size + 1;
+                    activeWidth = Math.Max(activeWidth, (i % size) + 1);
+                    activeHeight = (i / size) + 1;
                 }
             }
 
@@ -81,13 +81,13 @@ namespace Heic.Net.Hevc
             {
                 for (int frequency = 0; frequency < activeHeight; frequency++)
                 {
-                    column[frequency] = coefficients[frequency * size + x];
+                    column[frequency] = coefficients[(frequency * size) + x];
                 }
 
                 Multiply(column.Slice(0, activeHeight), sums.Slice(0, size), matrix, size);
                 for (int y = 0; y < size; y++)
                 {
-                    intermediate[y * size + x] = Math.Max(short.MinValue, Math.Min(short.MaxValue, (sums[y] + 64) >> 7));
+                    intermediate[(y * size) + x] = Math.Max(short.MinValue, Math.Min(short.MaxValue, (sums[y] + 64) >> 7));
                 }
             }
 
@@ -98,7 +98,7 @@ namespace Heic.Net.Hevc
                 Multiply(intermediate.Slice(y * size, activeWidth), sums.Slice(0, size), matrix, size);
                 for (int x = 0; x < size; x++)
                 {
-                    residual[y * size + x] = (sums[x] + offset) >> shift;
+                    residual[(y * size) + x] = (sums[x] + offset) >> shift;
                 }
             }
         }
@@ -152,7 +152,7 @@ namespace Heic.Net.Hevc
             {
                 for (int position = 0; position < size; position++)
                 {
-                    matrix[frequency * size + position] = Basis(frequency, position, size);
+                    matrix[(frequency * size) + position] = Basis(frequency, position, size);
                 }
             }
 
@@ -165,7 +165,7 @@ namespace Heic.Net.Hevc
             {
                 return 64;
             }
-            int angle = ((2 * position + 1) * frequency * (32 / size)) & 127;
+            int angle = (((2 * position) + 1) * frequency * (32 / size)) & 127;
             if (angle > 64)
             {
                 angle = 128 - angle;

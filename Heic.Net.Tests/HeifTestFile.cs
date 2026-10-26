@@ -36,8 +36,8 @@ namespace Heic.Net.Tests
         public static HeifBox CleanAperture(int width, int height, int left, int top, int croppedWidth, int croppedHeight)
         {
             return new HeifBox(HeifBox.Code("clap"), 0, Join(U32((uint)croppedWidth), U32(1),
-                U32((uint)croppedHeight), U32(1), U32(unchecked((uint)(2 * left - width + croppedWidth))), U32(2),
-                U32(unchecked((uint)(2 * top - height + croppedHeight))), U32(2)));
+                U32((uint)croppedHeight), U32(1), U32(unchecked((uint)(((2 * left) - width) + croppedWidth))), U32(2),
+                U32(unchecked((uint)(((2 * top) - height) + croppedHeight))), U32(2)));
         }
 
         public static byte[] U16(ushort value)

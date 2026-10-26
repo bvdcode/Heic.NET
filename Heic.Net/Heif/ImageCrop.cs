@@ -29,7 +29,7 @@ namespace Heic.Net.Heif
 
         public static ImageCrop ReadPrefix(int width, int height, IReadOnlyList<HeifBox> properties)
         {
-            if (properties.Count != 0 && properties[0].Type == HeifBox.Code("clap"))
+            if ((properties.Count != 0) && (properties[0].Type == HeifBox.Code("clap")))
             {
                 return Read(width, height, properties[0]);
             }
@@ -47,7 +47,7 @@ namespace Heic.Net.Heif
             int croppedHeight = Dimension(reader, height);
             long left = Origin(reader, width, croppedWidth);
             long top = Origin(reader, height, croppedHeight);
-            if (left < 0 || top < 0 || left + croppedWidth > width || top + croppedHeight > height)
+            if ((left < 0) || (top < 0) || ((left + croppedWidth) > width) || ((top + croppedHeight) > height))
             {
                 throw new InvalidDataException("Clean aperture exceeds the image.");
             }
@@ -66,12 +66,12 @@ namespace Heic.Net.Heif
             {
                 throw new InvalidDataException("Clean aperture denominator must be nonzero.");
             }
-            if (numerator % denominator != 0)
+            if ((numerator % denominator) != 0)
             {
                 throw new UnsupportedHeicFeatureException("fractional clean aperture dimensions");
             }
             uint result = numerator / denominator;
-            if (result == 0 || result > extent)
+            if ((result == 0) || (result > extent))
             {
                 throw new InvalidDataException("Clean aperture exceeds the image.");
             }
@@ -86,9 +86,9 @@ namespace Heic.Net.Heif
             {
                 throw new InvalidDataException("Clean aperture denominator must be nonzero.");
             }
-            long numerator = (long)(extent - croppedExtent) * denominator + 2L * offset;
+            long numerator = ((long)(extent - croppedExtent) * denominator) + (2L * offset);
             long divisor = 2L * denominator;
-            if (numerator % divisor != 0)
+            if ((numerator % divisor) != 0)
             {
                 throw new UnsupportedHeicFeatureException("fractional clean aperture offsets");
             }

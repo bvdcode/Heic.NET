@@ -45,7 +45,7 @@ namespace Heic.Net.Heif
                 {
                     ValidateDepths(properties.PixelDepths.Span, picture.Sequence);
                 }
-                if (picture.Sequence.VisibleWidth != expectedWidth || picture.Sequence.VisibleHeight != expectedHeight)
+                if ((picture.Sequence.VisibleWidth != expectedWidth) || (picture.Sequence.VisibleHeight != expectedHeight))
                 {
                     throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
                 }
@@ -71,7 +71,7 @@ namespace Heic.Net.Heif
             }
             else if (item.Type == HeifBox.Code("iden"))
             {
-                if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count != 1)
+                if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || (inputs.Count != 1))
                 {
                     throw new InvalidDataException("Identity image must reference exactly one input.");
                 }
@@ -83,7 +83,7 @@ namespace Heic.Net.Heif
                 throw new UnsupportedHeicFeatureException("image item type " + item.Type.ToString("X8"));
             }
 
-            if (result.Width != expectedWidth || result.Height != expectedHeight)
+            if ((result.Width != expectedWidth) || (result.Height != expectedHeight))
             {
                 throw new InvalidDataException("Decoded image disagrees with its spatial extents.");
             }
@@ -140,7 +140,7 @@ namespace Heic.Net.Heif
 
             using PixelBufferScope alphaBuffers = new PixelBufferScope(true);
             RgbaImage alpha = Decode(alphaId.Value, true, null, ReadOnlyMemory<byte>.Empty, null, path, parallel, alphaBuffers);
-            if (alpha.Width != color.Width || alpha.Height != color.Height)
+            if ((alpha.Width != color.Width) || (alpha.Height != color.Height))
             {
                 throw new InvalidDataException("Alpha image dimensions disagree with the master image.");
             }

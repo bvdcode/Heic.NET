@@ -65,6 +65,5 @@ namespace Heic.Net.Tests
             Assert.Equal(104, picture.Cr.Width);
             Assert.Equal(152, picture.Cr.Height);
         }
-
     }
 }

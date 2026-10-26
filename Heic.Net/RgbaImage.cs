@@ -14,7 +14,7 @@ namespace Heic.Net
 
         internal RgbaImage(int width, int height, ReadOnlyMemory<byte> pixels, ImageColorInformation colorInformation)
         {
-            if (width <= 0 || height <= 0 || pixels.Length != checked(width * height * 4))
+            if ((width <= 0) || (height <= 0) || (pixels.Length != checked(width * height * 4)))
             {
                 throw new ArgumentException("Pixel buffer does not match the image dimensions.", nameof(pixels));
             }

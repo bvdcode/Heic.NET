@@ -21,7 +21,7 @@ namespace Heic.Net.Hevc
                 default:
                     throw new ArgumentOutOfRangeException(nameof(chromaFormat));
             }
-            if (qp >= 30 && qp <= 43)
+            if ((qp >= 30) && (qp <= 43))
             {
                 return ChromaQp[qp - 30];
             }

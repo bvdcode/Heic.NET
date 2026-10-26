@@ -34,7 +34,7 @@ namespace Heic.Net.Heif
                 {
                     throw new UnsupportedHeicFeatureException("item information flags");
                 }
-                if (entryVersion != 2 && entryVersion != 3)
+                if ((entryVersion != 2) && (entryVersion != 3))
                 {
                     throw new UnsupportedHeicFeatureException("item information version");
                 }
@@ -130,7 +130,7 @@ namespace Heic.Net.Heif
                     ByteReader list = new ByteReader(child.Payload);
                     while (list.Remaining > 0)
                     {
-                        if (properties.Count >= limits.MaxItems * 16L)
+                        if (properties.Count >= (limits.MaxItems * 16L))
                         {
                             throw new InvalidDataException("Property limit exceeded.");
                         }
@@ -154,7 +154,7 @@ namespace Heic.Net.Heif
             ByteReader reader = new ByteReader(box.Payload);
             byte version = reader.U8();
             ulong flags = reader.UInt(3);
-            if (version > 1 || flags > 1)
+            if ((version > 1) || (flags > 1))
             {
                 throw new UnsupportedHeicFeatureException("property association version or flags");
             }

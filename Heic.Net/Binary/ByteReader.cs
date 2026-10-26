@@ -24,7 +24,7 @@ namespace Heic.Net.Binary
 
         public ulong UInt(int bytes)
         {
-            if (bytes < 0 || bytes > 8)
+            if ((bytes < 0) || (bytes > 8))
             {
                 throw new InvalidDataException("Invalid integer width.");
             }
@@ -50,7 +50,7 @@ namespace Heic.Net.Binary
 
         private void Require(int count)
         {
-            if (count < 0 || count > Remaining)
+            if ((count < 0) || (count > Remaining))
             {
                 throw new InvalidDataException("Truncated HEIF field.");
             }

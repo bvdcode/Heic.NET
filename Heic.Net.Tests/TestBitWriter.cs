@@ -20,7 +20,7 @@ namespace Heic.Net.Tests
                 {
                     bytes.Add(0);
                 }
-                bytes[bitCount >> 3] |= (byte)(((uint)value >> i & 1) << (7 - (bitCount & 7)));
+                bytes[bitCount >> 3] |= (byte)((((uint)value >> i) & 1) << (7 - (bitCount & 7)));
                 bitCount++;
             }
         }
@@ -35,7 +35,7 @@ namespace Heic.Net.Tests
             Write(unchecked((int)code), leading + 1);
         }
 
-        public void Se(int value) => Ue(checked((uint)(value > 0 ? 2 * value - 1 : -2 * value)));
+        public void Se(int value) => Ue(checked((uint)(value > 0 ? (2 * value) - 1 : -2 * value)));
 
         public void TrailingBits()
         {

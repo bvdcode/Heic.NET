@@ -23,11 +23,11 @@ namespace Heic.Net.Hevc
 
         public SamplePlane(int width, int height, int bitDepth)
         {
-            if (width <= 0 || height <= 0 || width % 4 != 0 || height % 4 != 0)
+            if ((width <= 0) || (height <= 0) || ((width % 4) != 0) || ((height % 4) != 0))
             {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if (bitDepth != 8 && bitDepth != 10)
+            if ((bitDepth != 8) && (bitDepth != 10))
             {
                 throw new ArgumentOutOfRangeException(nameof(bitDepth));
             }
@@ -98,11 +98,11 @@ namespace Heic.Net.Hevc
         public int Neighbour(int x, int y)
         {
             ThrowIfDisposed();
-            if (x < 0 || y < 0 || x >= Width || y >= Height || !available[y / 4 * (Width / 4) + x / 4])
+            if ((x < 0) || (y < 0) || (x >= Width) || (y >= Height) || !available[((y / 4) * (Width / 4)) + (x / 4)])
             {
                 return -1;
             }
-            int index = y * Stride + x;
+            int index = (y * Stride) + x;
             if (bytes.Length != 0)
             {
                 return bytes[index];
@@ -124,9 +124,9 @@ namespace Heic.Net.Hevc
                 default:
                     throw new InvalidOperationException("Unsupported component sample depth.");
             }
-            for (int row = y / 4; row < (y + size) / 4; row++)
+            for (int row = y / 4; row < ((y + size) / 4); row++)
             {
-                available.AsSpan(row * (Width / 4) + x / 4, size / 4).Fill(true);
+                available.AsSpan((row * (Width / 4)) + (x / 4), size / 4).Fill(true);
             }
         }
 
@@ -141,7 +141,7 @@ namespace Heic.Net.Hevc
                 Span<TSample> destination = plane.Row(y + row).Slice(x, size);
                 for (int column = 0; column < size; column++)
                 {
-                    int index = row * size + column;
+                    int index = (row * size) + column;
                     int sample = Math.Max(0, Math.Min(maximum, prediction[index] + residual[index]));
                     destination[column] = default(TFormat).Write(sample);
                 }

@@ -28,7 +28,7 @@ namespace Heic.Net.Tests
                     CabacDecoder decoder = new CabacDecoder(reader);
                     CabacContext context = new CabacContext(state, symbol);
                     bool terminated = false;
-                    for (int step = 0; step < 64 && reader.BitsRemaining >= 8; step++)
+                    for (int step = 0; (step < 64) && (reader.BitsRemaining >= 8); step++)
                     {
                         switch (step % 4)
                         {

@@ -78,7 +78,7 @@ namespace Heic.Net.Tests
                     int height = Math.Min(TileHeight, source.Height - top);
                     for (int y = 0; y < height; y++)
                     {
-                        source.Pixels.Span.Slice((top + y) * source.Stride + left * 4, width * 4)
+                        source.Pixels.Span.Slice(((top + y) * source.Stride) + (left * 4), width * 4)
                             .CopyTo(tilePixels.AsSpan(y * TileWidth * 4, width * 4));
                     }
                     RgbaImage tile = new RgbaImage(TileWidth, TileHeight, tilePixels, source.ColorInformation);
@@ -90,8 +90,8 @@ namespace Heic.Net.Tests
 
         private static RgbaImage Reference(RgbaImage source, int turns, int? axis)
         {
-            int width = turns % 2 == 0 ? source.Width : source.Height;
-            int height = turns % 2 == 0 ? source.Height : source.Width;
+            int width = (turns % 2) == 0 ? source.Width : source.Height;
+            int height = (turns % 2) == 0 ? source.Height : source.Width;
             byte[] pixels = new byte[width * height * 4];
             for (int y = 0; y < source.Height; y++)
             {
@@ -113,8 +113,8 @@ namespace Heic.Net.Tests
                     {
                         tx = width - 1 - tx;
                     }
-                    source.Pixels.Span.Slice((y * source.Width + x) * 4, 4)
-                        .CopyTo(pixels.AsSpan((ty * width + tx) * 4, 4));
+                    source.Pixels.Span.Slice(((y * source.Width) + x) * 4, 4)
+                        .CopyTo(pixels.AsSpan(((ty * width) + tx) * 4, 4));
                 }
             }
             return new RgbaImage(width, height, pixels, source.ColorInformation);

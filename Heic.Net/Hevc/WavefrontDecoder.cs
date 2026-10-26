@@ -21,7 +21,7 @@ namespace Heic.Net.Hevc
         {
             SequenceParameters sequence = slice.Picture.Sequence;
             int ctbSize = 1 << sequence.Log2Ctb;
-            int columns = (sequence.Width + ctbSize - 1) / ctbSize;
+            int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
             int rows = slice.RowSubstreams.Count;
             WavefrontRowProgress[] progress = new WavefrontRowProgress[rows];
             IntraCabacReader?[] readers = new IntraCabacReader?[rows];

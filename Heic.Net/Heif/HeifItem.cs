@@ -75,8 +75,8 @@ namespace Heic.Net.Heif
 
         private void ValidateExtent(int length, ItemExtent extent)
         {
-            if (BaseOffset > (ulong)length || extent.Offset > (ulong)length - BaseOffset ||
-                extent.Length > (ulong)length - BaseOffset - extent.Offset)
+            if ((BaseOffset > (ulong)length) || (extent.Offset > ((ulong)length - BaseOffset)) ||
+                (extent.Length > ((ulong)length - BaseOffset - extent.Offset)))
             {
                 throw new InvalidDataException("Item extent exceeds its data source.");
             }

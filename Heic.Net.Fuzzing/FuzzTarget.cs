@@ -26,8 +26,8 @@ namespace Heic.Net.Fuzzing
                 if (decode)
                 {
                     RgbaImage image = document.DecodePrimary();
-                    if (image.Width <= 0 || image.Height <= 0 ||
-                        image.Pixels.Length != checked(image.Width * image.Height * 4))
+                    if ((image.Width <= 0) || (image.Height <= 0) ||
+                        (image.Pixels.Length != checked(image.Width * image.Height * 4)))
                     {
                         throw new InvalidOperationException("Decoded image dimensions disagree with its pixel buffer.");
                     }

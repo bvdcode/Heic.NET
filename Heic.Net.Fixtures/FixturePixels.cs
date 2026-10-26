@@ -13,7 +13,7 @@ namespace Heic.Net.Fixtures
 
         public FixturePixels Rotate(int turns)
         {
-            if (turns < 1 || turns > 3)
+            if ((turns < 1) || (turns > 3))
             {
                 throw new ArgumentOutOfRangeException(nameof(turns), turns, "A rotation requires one to three quarter turns.");
             }
@@ -40,7 +40,7 @@ namespace Heic.Net.Fixtures
 
         public FixturePixels Mirror(int axis)
         {
-            if (axis != 0 && axis != 1)
+            if ((axis != 0) && (axis != 1))
             {
                 throw new ArgumentOutOfRangeException(nameof(axis), axis, "The mirror axis must be zero or one.");
             }
@@ -80,7 +80,7 @@ namespace Heic.Net.Fixtures
 
         public FixturePixels WithAlpha(FixturePixels alpha)
         {
-            if (alpha.Width != Width || alpha.Height != Height)
+            if ((alpha.Width != Width) || (alpha.Height != Height))
             {
                 throw new ArgumentException("Alpha and colour dimensions must match.", nameof(alpha));
             }

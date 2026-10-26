@@ -24,10 +24,10 @@ namespace Heic.Net.Hevc
                 using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height, partitions);
                 SaoFilter sao = new SaoFilter(slice, partitions);
                 int ctbSize = 1 << sequence.Log2Ctb;
-                int columns = (sequence.Width + ctbSize - 1) / ctbSize;
-                int rows = (sequence.Height + ctbSize - 1) / ctbSize;
+                int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
+                int rows = ((sequence.Height + ctbSize) - 1) / ctbSize;
                 int workers = Math.Min(workerCount, Math.Min(rows, (columns + 1) / 2));
-                if (partitions is null && slice.Picture.EntropyCodingSync && workers > 1)
+                if (partitions is null && slice.Picture.EntropyCodingSync && (workers > 1))
                 {
                     new WavefrontDecoder(slice, picture, blocks, sao).DecodeAsync(workers).GetAwaiter().GetResult();
                 }
@@ -73,19 +73,19 @@ namespace Heic.Net.Hevc
             using ReconstructionWorkspace workspace = new ReconstructionWorkspace();
             BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, partitions);
             int ctbSize = 1 << sequence.Log2Ctb;
-            int columns = (sequence.Width + ctbSize - 1) / ctbSize;
+            int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
             int firstRow = slice.StartCtbAddress / columns;
             for (int address = slice.StartCtbAddress; address < slice.EndCtbAddress; address++)
             {
                 int column = address % columns;
                 int row = address / columns;
-                if (slice.Picture.EntropyCodingSync && column == 0 && address != slice.StartCtbAddress)
+                if (slice.Picture.EntropyCodingSync && (column == 0) && (address != slice.StartCtbAddress))
                 {
                     reader.StartWavefrontRow(new BitReader(slice.RowSubstreams[row - firstRow]), slice.Qp);
                     quantization.StartWavefrontRow();
                 }
                 sao.ReadCtb(column, row, reader);
-                tree.DecodeCtb(column * ctbSize, row * ctbSize, reconstruction, address + 1 == slice.EndCtbAddress);
+                tree.DecodeCtb(column * ctbSize, row * ctbSize, reconstruction, (address + 1) == slice.EndCtbAddress);
             }
         }
     }

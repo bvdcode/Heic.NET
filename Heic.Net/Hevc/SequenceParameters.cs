@@ -67,14 +67,14 @@ namespace Heic.Net.Hevc
             SequenceParameters sps = new SequenceParameters { Profile = HevcSyntax.ProfileTierLevel(reader, subLayers) };
             sps.Id = HevcSyntax.Ue(reader, 15, "sps_seq_parameter_set_id");
             sps.ChromaFormat = HevcSyntax.Ue(reader, 3, "chroma_format_idc");
-            if (sps.ChromaFormat == 3 && reader.ReadFlag())
+            if ((sps.ChromaFormat == 3) && reader.ReadFlag())
             {
                 throw new UnsupportedHeicFeatureException("separate HEVC colour planes");
             }
             sps.ReadDimensions(reader, options);
             sps.BitDepth = HevcSyntax.Ue(reader, 8, "bit_depth_luma_minus8") + 8;
             int chromaDepth = HevcSyntax.Ue(reader, 8, "bit_depth_chroma_minus8") + 8;
-            if (sps.BitDepth != chromaDepth || sps.BitDepth != 8 && sps.BitDepth != 10)
+            if ((sps.BitDepth != chromaDepth) || ((sps.BitDepth != 8) && (sps.BitDepth != 10)))
             {
                 throw new UnsupportedHeicFeatureException("HEVC bit depths other than equal 8/10-bit components");
             }
@@ -115,7 +115,7 @@ namespace Heic.Net.Hevc
         {
             Width = HevcSyntax.Ue(reader, options.MaxPixels, "pic_width_in_luma_samples");
             Height = HevcSyntax.Ue(reader, options.MaxPixels, "pic_height_in_luma_samples");
-            if (Width == 0 || Height == 0 || (long)Width * Height > options.MaxPixels)
+            if ((Width == 0) || (Height == 0) || (((long)Width * Height) > options.MaxPixels))
             {
                 throw new InvalidDataException("HEVC coded dimensions exceed the pixel limit.");
             }
@@ -132,7 +132,7 @@ namespace Heic.Net.Hevc
 
             VisibleWidth = Width - CropLeft - right;
             VisibleHeight = Height - CropTop - bottom;
-            if (VisibleWidth <= 0 || VisibleHeight <= 0)
+            if ((VisibleWidth <= 0) || (VisibleHeight <= 0))
             {
                 throw new InvalidDataException("Invalid HEVC conformance window.");
             }
@@ -143,7 +143,7 @@ namespace Heic.Net.Hevc
             Log2MinCodingBlock = HevcSyntax.Ue(reader, 3, "log2_min_luma_coding_block_size_minus3") + 3;
             Log2Ctb = Log2MinCodingBlock + HevcSyntax.Ue(reader, 6 - Log2MinCodingBlock, "log2_diff_max_min_luma_coding_block_size");
             Log2MinTransform = HevcSyntax.Ue(reader, 3, "log2_min_luma_transform_block_size_minus2") + 2;
-            if (Log2MinTransform >= Log2MinCodingBlock || Log2Ctb < 4)
+            if ((Log2MinTransform >= Log2MinCodingBlock) || (Log2Ctb < 4))
             {
                 throw new InvalidDataException("Invalid HEVC coding or transform block size.");
             }
@@ -153,7 +153,7 @@ namespace Heic.Net.Hevc
             HevcSyntax.Ue(reader, Log2Ctb - Log2MinTransform, "max_transform_hierarchy_depth_inter");
             MaxTransformDepthIntra = HevcSyntax.Ue(reader, Log2Ctb - Log2MinTransform, "max_transform_hierarchy_depth_intra");
             int minimum = 1 << Log2MinCodingBlock;
-            if (Width % minimum != 0 || Height % minimum != 0)
+            if (((Width % minimum) != 0) || ((Height % minimum) != 0))
             {
                 throw new InvalidDataException("Coded dimensions must be multiples of the minimum coding block.");
             }

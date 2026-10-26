@@ -23,7 +23,7 @@ namespace Heic.Net.Tools
 
         private static async Task<int> Main(string[] args)
         {
-            bool checkOnly = args.Length > 0 && args[^1] == "--check";
+            bool checkOnly = (args.Length > 0) && (args[^1] == "--check");
             int directoryArguments = args.Length - (checkOnly ? 1 : 0);
             if (directoryArguments > 1)
             {
@@ -49,7 +49,7 @@ namespace Heic.Net.Tools
             }
 
             Console.WriteLine($"License headers requiring updates: {updated}.");
-            return checkOnly && updated > 0 ? 1 : 0;
+            return checkOnly && (updated > 0) ? 1 : 0;
         }
 
         private static IEnumerable<string> EnumerateSources(string directory)
@@ -80,7 +80,7 @@ namespace Heic.Net.Tools
             string wantedLine2, bool checkOnly)
         {
             List<string> allLines = (await File.ReadAllLinesAsync(filePath, FileEncoding)).ToList();
-            bool hasSpdxHeader = allLines.Count > 0 && allLines[0].TrimStart()
+            bool hasSpdxHeader = (allLines.Count > 0) && allLines[0].TrimStart()
                 .StartsWith("// SPDX-License-Identifier:", StringComparison.Ordinal);
             bool changed = false;
 
@@ -92,7 +92,7 @@ namespace Heic.Net.Tools
                     changed = true;
                 }
 
-                if (allLines.Count < 2 || !allLines[1].TrimStart()
+                if ((allLines.Count < 2) || !allLines[1].TrimStart()
                     .StartsWith("// Copyright (c)", StringComparison.Ordinal))
                 {
                     allLines.Insert(1, wantedLine2);
@@ -104,7 +104,7 @@ namespace Heic.Net.Tools
                     changed = true;
                 }
 
-                if (allLines.Count < 3 || allLines[2].Length != 0)
+                if ((allLines.Count < 3) || (allLines[2].Length != 0))
                 {
                     allLines.Insert(2, string.Empty);
                     changed = true;

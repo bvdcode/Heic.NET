@@ -25,8 +25,8 @@ namespace Heic.Net.Hevc
             Span<int> candidates = stackalloc int[3];
             for (int i = 0; i < count; i++)
             {
-                int px = x + (i & 1) * blockSize;
-                int py = y + (i >> 1) * blockSize;
+                int px = x + ((i & 1) * blockSize);
+                int py = y + ((i >> 1) * blockSize);
                 int left = blocks.Mode(px - 1, py);
                 if (blocks.Partitions is not null && !blocks.Partitions.SameSlice(px - 1, py, px, py))
                 {
@@ -122,15 +122,15 @@ namespace Heic.Net.Hevc
                 else
                 {
                     candidates[0] = left;
-                    candidates[1] = 2 + (left + 29) % 32;
-                    candidates[2] = 2 + (left - 1) % 32;
+                    candidates[1] = 2 + ((left + 29) % 32);
+                    candidates[2] = 2 + ((left - 1) % 32);
                 }
             }
             else
             {
                 candidates[0] = left;
                 candidates[1] = top;
-                candidates[2] = left != 0 && top != 0 ? 0 : left != 1 && top != 1 ? 1 : 26;
+                candidates[2] = (left != 0) && (top != 0) ? 0 : (left != 1) && (top != 1) ? 1 : 26;
             }
         }
     }

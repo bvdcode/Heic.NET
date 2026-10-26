@@ -30,12 +30,12 @@ namespace Heic.Net.Heif
             int columns = reader.U8() + 1;
             uint width = flags == 0 ? reader.U16() : reader.U32();
             uint height = flags == 0 ? reader.U16() : reader.U32();
-            if (width != properties.Width || height != properties.Height || reader.Remaining != 0)
+            if ((width != properties.Width) || (height != properties.Height) || (reader.Remaining != 0))
             {
                 throw new InvalidDataException("Grid header disagrees with image spatial extents.");
             }
 
-            if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || inputs.Count != rows * columns)
+            if (!item.References.TryGetValue(HeifBox.Code("dimg"), out IReadOnlyList<uint>? inputs) || (inputs.Count != (rows * columns)))
             {
                 throw new InvalidDataException("Grid input count disagrees with its rows and columns.");
             }
@@ -50,8 +50,8 @@ namespace Heic.Net.Heif
                 tileWidth = first.Width;
                 tileHeight = first.Height;
                 color = first.ColorInformation;
-                if ((long)tileWidth * columns < width || (long)tileWidth * (columns - 1) >= width ||
-                    (long)tileHeight * rows < height || (long)tileHeight * (rows - 1) >= height)
+                if ((((long)tileWidth * columns) < width) || (((long)tileWidth * (columns - 1)) >= width) ||
+                    (((long)tileHeight * rows) < height) || (((long)tileHeight * (rows - 1)) >= height))
                 {
                     throw new InvalidDataException("Grid tiles do not cover the output rectangle.");
                 }
@@ -92,14 +92,14 @@ namespace Heic.Net.Heif
 
             void CopyTile(int index, RgbaImage tile)
             {
-                if (tile.Width != tileWidth || tile.Height != tileHeight ||
+                if ((tile.Width != tileWidth) || (tile.Height != tileHeight) ||
                     !color.Matches(tile.ColorInformation))
                 {
                     throw new InvalidDataException("Grid tiles have inconsistent dimensions or colour information.");
                 }
 
-                int left = index % columns * tileWidth;
-                int top = index / columns * tileHeight;
+                int left = (index % columns) * tileWidth;
+                int top = (index / columns) * tileHeight;
                 int copyWidth = Math.Min(tileWidth, properties.Width - left);
                 int copyHeight = Math.Min(tileHeight, properties.Height - top);
                 orientation.CopyTile(tile, pixels.Span, left, top, copyWidth, copyHeight);

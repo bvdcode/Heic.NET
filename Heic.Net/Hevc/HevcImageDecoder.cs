@@ -45,7 +45,7 @@ namespace Heic.Net.Hevc
                 IntraSliceHeader first = slices[0];
                 if (partitions is null && first.Picture.EntropyCodingSync)
                 {
-                    int rows = (first.Picture.Sequence.Height - 1) / (1 << first.Picture.Sequence.Log2Ctb) + 1;
+                    int rows = ((first.Picture.Sequence.Height - 1) / (1 << first.Picture.Sequence.Log2Ctb)) + 1;
                     if (first.RowSubstreams.Count != rows)
                     {
                         throw new InvalidDataException("WPP entry points do not cover every picture row.");
@@ -102,9 +102,9 @@ namespace Heic.Net.Hevc
                         {
                             throw new UnsupportedHeicFeatureException("multiple HEVC pictures per image item");
                         }
-                        else if (header.StartCtbAddress <= slices[slices.Count - 1].StartCtbAddress ||
-                            !ReferenceEquals(header.Picture, slices[0].Picture) || unit.Type != pictureType ||
-                            header.PictureOrderCount != slices[0].PictureOrderCount)
+                        else if ((header.StartCtbAddress <= slices[slices.Count - 1].StartCtbAddress) ||
+                            !ReferenceEquals(header.Picture, slices[0].Picture) || (unit.Type != pictureType) ||
+                            (header.PictureOrderCount != slices[0].PictureOrderCount))
                         {
                             throw new InvalidDataException("Inconsistent HEVC slices in one image item.");
                         }

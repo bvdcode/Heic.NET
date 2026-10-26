@@ -29,7 +29,7 @@ namespace Heic.Net.Tests
                     Assert.True(map.Bypass(size - 1, size - 1));
                     Assert.True(map.Boundary(0, 0, true));
                     Assert.True(map.Boundary(0, 0, false));
-                    int count = size * size / 16;
+                    int count = (size * size) / 16;
                     foreach (byte[] buffer in metadata.Buffers)
                     {
                         Assert.All(buffer.AsSpan(count).ToArray(), value => Assert.Equal(167, value));

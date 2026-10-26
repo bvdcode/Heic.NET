@@ -89,8 +89,8 @@ namespace Heic.Net.Tests
             byte[] grid = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "corpus", "grid.heic"));
             int reference = grid.AsSpan().IndexOf(HeifTestFile.Text("dimg"));
             Assert.True(reference >= 0);
-            grid[reference + 8 + tile * 2] = 0;
-            grid[reference + 9 + tile * 2] = 5;
+            grid[reference + 8 + (tile * 2)] = 0;
+            grid[reference + 9 + (tile * 2)] = 5;
             Assert.Throws<InvalidDataException>(() => HeicDocument.Load(grid).DecodePrimary());
         }
 

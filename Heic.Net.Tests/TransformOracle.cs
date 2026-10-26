@@ -62,7 +62,7 @@ namespace Heic.Net.Tests
                     long sum = 0;
                     for (int k = 0; k < size; k++)
                     {
-                        sum += (long)matrix[k * step, row] * input[k * size + column];
+                        sum += (long)matrix[k * step, row] * input[(k * size) + column];
                     }
                     intermediate[row, column] = Math.Clamp((sum + 64) >> 7, short.MinValue, short.MaxValue);
                 }
@@ -76,7 +76,7 @@ namespace Heic.Net.Tests
                     {
                         sum += matrix[k * step, column] * intermediate[row, k];
                     }
-                    result[row * size + column] = (int)Math.Floor((sum + (1L << (19 - depth))) / (double)(1L << (20 - depth)));
+                    result[(row * size) + column] = (int)Math.Floor((sum + (1L << (19 - depth))) / (double)(1L << (20 - depth)));
                 }
             }
             return result;

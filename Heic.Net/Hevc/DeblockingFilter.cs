@@ -74,7 +74,7 @@ namespace Heic.Net.Hevc
             int depth = slice.Picture.Sequence.BitDepth;
             int beta = DeblockingThresholds.Beta(qp + slice.BetaOffset, depth);
             int tc = DeblockingThresholds.Tc(qp + 2 + slice.TcOffset, depth);
-            if (beta == 0 || tc == 0)
+            if ((beta == 0) || (tc == 0))
             {
                 return;
             }
@@ -96,7 +96,7 @@ namespace Heic.Net.Hevc
                     ReadOnlySpan<TSample> row = plane.Row(y + k).Slice(x - 4, 8);
                     for (int i = 0; i < 8; i++)
                     {
-                        samples[k * 8 + i] = default(TFormat).Read(row[i]);
+                        samples[(k * 8) + i] = default(TFormat).Read(row[i]);
                     }
                 }
             }
@@ -104,10 +104,10 @@ namespace Heic.Net.Hevc
             {
                 for (int i = 0; i < 8; i++)
                 {
-                    ReadOnlySpan<TSample> row = plane.Row(y + i - 4).Slice(x, 4);
+                    ReadOnlySpan<TSample> row = plane.Row((y + i) - 4).Slice(x, 4);
                     for (int k = 0; k < 4; k++)
                     {
-                        samples[k * 8 + i] = default(TFormat).Read(row[k]);
+                        samples[(k * 8) + i] = default(TFormat).Read(row[k]);
                     }
                 }
             }
@@ -124,7 +124,7 @@ namespace Heic.Net.Hevc
                     Span<TSample> row = plane.Row(y + k).Slice(x - 3, 6);
                     for (int i = 0; i < 6; i++)
                     {
-                        row[i] = default(TFormat).Write(samples[k * 8 + i + 1]);
+                        row[i] = default(TFormat).Write(samples[(k * 8) + i + 1]);
                     }
                 }
             }
@@ -132,10 +132,10 @@ namespace Heic.Net.Hevc
             {
                 for (int i = 1; i <= 6; i++)
                 {
-                    Span<TSample> row = plane.Row(y + i - 4).Slice(x, 4);
+                    Span<TSample> row = plane.Row((y + i) - 4).Slice(x, 4);
                     for (int k = 0; k < 4; k++)
                     {
-                        row[k] = default(TFormat).Write(samples[k * 8 + i]);
+                        row[k] = default(TFormat).Write(samples[(k * 8) + i]);
                     }
                 }
             }
@@ -161,8 +161,8 @@ namespace Heic.Net.Hevc
                     {
                         continue;
                     }
-                    int px = vertical ? x * scaleX - 1 : x * scaleX;
-                    int py = vertical ? y * scaleY : y * scaleY - 1;
+                    int px = vertical ? (x * scaleX) - 1 : x * scaleX;
+                    int py = vertical ? y * scaleY : (y * scaleY) - 1;
                     IntraSliceHeader current = blocks.Partitions?.SliceAt(x * scaleX, y * scaleY) ?? slice;
                     if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x * scaleX, y * scaleY, px, py)))
                     {

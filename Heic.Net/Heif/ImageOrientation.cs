@@ -69,15 +69,15 @@ namespace Heic.Net.Heif
 
         public void CopyTile(RgbaImage source, Span<byte> destination, int left, int top, int width, int height)
         {
-            int offset = originY * Width + originX;
-            int stepX = yx * Width + xx;
-            int stepY = yy * Width + xy;
+            int offset = (originY * Width) + originX;
+            int stepX = (yx * Width) + xx;
+            int stepY = (yy * Width) + xy;
             if (stepX == 1)
             {
                 for (int y = 0; y < height; y++)
                 {
                     source.Pixels.Span.Slice(y * source.Stride, width * 4).CopyTo(
-                        destination.Slice((offset + left + (top + y) * stepY) * 4, width * 4));
+                        destination.Slice((offset + left + ((top + y) * stepY)) * 4, width * 4));
                 }
                 return;
             }
@@ -92,7 +92,7 @@ namespace Heic.Net.Heif
                     int endX = Math.Min(width, blockX + CopyBlockSize);
                     for (int y = blockY; y < endY; y++)
                     {
-                        int target = offset + (top + y) * stepY + (left + blockX) * stepX;
+                        int target = offset + ((top + y) * stepY) + ((left + blockX) * stepX);
                         int start = y * source.Width;
                         for (int x = blockX; x < endX; x++)
                         {
@@ -107,7 +107,7 @@ namespace Heic.Net.Heif
         private bool Append(HeifBox property)
         {
             bool rotation = property.Type == HeifBox.Code("irot");
-            if (!rotation && property.Type != HeifBox.Code("imir"))
+            if (!rotation && (property.Type != HeifBox.Code("imir")))
             {
                 return false;
             }
@@ -137,7 +137,7 @@ namespace Heic.Net.Heif
 
         private void Append(int turns, int? mirrorAxis)
         {
-            if (turns < 0 || turns > 3)
+            if ((turns < 0) || (turns > 3))
             {
                 throw new ArgumentOutOfRangeException(nameof(turns));
             }

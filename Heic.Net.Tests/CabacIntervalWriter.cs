@@ -29,7 +29,7 @@ namespace Heic.Net.Tests
         {
             if (!contexts.TryGetValue(slot, out (int State, bool Mps) context))
             {
-                int pre = Math.Clamp((int)Math.Floor(((initial / 16) * 5 - 45) * Math.Clamp(qp, 0, 51) / 16.0) + (initial % 16) * 8 - 16, 1, 126);
+                int pre = Math.Clamp(((int)Math.Floor(((((initial / 16) * 5) - 45) * Math.Clamp(qp, 0, 51)) / 16.0) + ((initial % 16) * 8)) - 16, 1, 126);
                 context = pre < 64 ? (63 - pre, false) : (pre - 64, true);
             }
 
@@ -81,7 +81,7 @@ namespace Heic.Net.Tests
 
         public void ExpGolomb(int value, int order)
         {
-            while (value >= 1 << order)
+            while (value >= (1 << order))
             {
                 Bypass(true);
                 value -= 1 << order++;
@@ -117,7 +117,7 @@ namespace Heic.Net.Tests
 
         public byte[] ToArray()
         {
-            byte[] point = (low + width / 2).ToByteArray(isUnsigned: true, isBigEndian: true);
+            byte[] point = (low + (width / 2)).ToByteArray(isUnsigned: true, isBigEndian: true);
             byte[] result = new byte[CodeBits / 8];
             point.CopyTo(result.AsSpan(result.Length - point.Length));
             return result;

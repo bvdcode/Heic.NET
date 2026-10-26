@@ -50,7 +50,7 @@ namespace Heic.Net.Hevc
             int sequenceCount = longTermCount > 0
                 ? HevcSyntax.Ue(reader, longTermCount, "num_long_term_sps") : 0;
             int explicitCount = HevcSyntax.Ue(reader, 32 - sequenceCount, "num_long_term_pics");
-            for (int i = 0; i < sequenceCount + explicitCount; i++)
+            for (int i = 0; i < (sequenceCount + explicitCount); i++)
             {
                 if (i < sequenceCount)
                 {

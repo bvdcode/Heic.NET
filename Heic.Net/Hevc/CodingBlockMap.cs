@@ -71,13 +71,13 @@ namespace Heic.Net.Hevc
         public int Mode(int x, int y)
         {
             ThrowIfDisposed();
-            return Inside(x, y) && modes[Index(x, y)] != byte.MaxValue ? modes[Index(x, y)] : 1;
+            return Inside(x, y) && (modes[Index(x, y)] != byte.MaxValue) ? modes[Index(x, y)] : 1;
         }
 
         public int Depth(int x, int y)
         {
             ThrowIfDisposed();
-            return Inside(x, y) && depths[Index(x, y)] != byte.MaxValue ? depths[Index(x, y)] : -1;
+            return Inside(x, y) && (depths[Index(x, y)] != byte.MaxValue) ? depths[Index(x, y)] : -1;
         }
 
         public int Qp(int x, int y)
@@ -106,10 +106,10 @@ namespace Heic.Net.Hevc
         public void SetCodingUnit(int x, int y, int size, int depth, bool transquantBypass)
         {
             ThrowIfDisposed();
-            for (int row = y / 4; row < (y + size) / 4; row++)
+            for (int row = y / 4; row < ((y + size) / 4); row++)
             {
-                depths.AsSpan(row * Width + x / 4, size / 4).Fill((byte)depth);
-                bypass.AsSpan(row * Width + x / 4, size / 4).Fill(transquantBypass);
+                depths.AsSpan((row * Width) + (x / 4), size / 4).Fill((byte)depth);
+                bypass.AsSpan((row * Width) + (x / 4), size / 4).Fill(transquantBypass);
             }
 
             MarkTransform(x, y, size);
@@ -118,23 +118,23 @@ namespace Heic.Net.Hevc
         public void SetMode(int x, int y, int size, int mode)
         {
             ThrowIfDisposed();
-            for (int row = y / 4; row < (y + size) / 4; row++)
+            for (int row = y / 4; row < ((y + size) / 4); row++)
             {
-                modes.AsSpan(row * Width + x / 4, size / 4).Fill((byte)mode);
+                modes.AsSpan((row * Width) + (x / 4), size / 4).Fill((byte)mode);
             }
         }
 
         public void SetQp(int x, int y, int width, int height, int qp)
         {
             ThrowIfDisposed();
-            if (qp <= UnavailableQp || qp > sbyte.MaxValue)
+            if ((qp <= UnavailableQp) || (qp > sbyte.MaxValue))
             {
                 throw new ArgumentOutOfRangeException(nameof(qp));
             }
 
-            for (int row = y / 4; row < (y + height) / 4; row++)
+            for (int row = y / 4; row < ((y + height) / 4); row++)
             {
-                quantizers.AsSpan(row * Width + x / 4, width / 4).Fill((sbyte)qp);
+                quantizers.AsSpan((row * Width) + (x / 4), width / 4).Fill((sbyte)qp);
             }
         }
 
@@ -177,7 +177,7 @@ namespace Heic.Net.Hevc
             }
         }
 
-        private bool Inside(int x, int y) => x >= 0 && y >= 0 && x < Width * 4 && y < Height * 4;
-        private int Index(int x, int y) => y / 4 * Width + x / 4;
+        private bool Inside(int x, int y) => (x >= 0) && (y >= 0) && (x < (Width * 4)) && (y < (Height * 4));
+        private int Index(int x, int y) => ((y / 4) * Width) + (x / 4);
     }
 }

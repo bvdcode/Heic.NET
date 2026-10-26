@@ -110,7 +110,7 @@ namespace Heic.Net.Hevc
         public int Unary(int maximum)
         {
             int value = 0;
-            while (value < maximum && Bypass())
+            while ((value < maximum) && Bypass())
             {
                 value++;
             }
@@ -134,7 +134,7 @@ namespace Heic.Net.Hevc
 
         public int RemainingLevel(int rice)
         {
-            if (rice < 0 || rice > 4)
+            if ((rice < 0) || (rice > 4))
             {
                 throw new ArgumentOutOfRangeException(nameof(rice));
             }
@@ -149,7 +149,7 @@ namespace Heic.Net.Hevc
         public int QpDelta()
         {
             int magnitude = 0;
-            while (magnitude < 5 && Read(CabacElement.QpDelta, magnitude == 0 ? 0 : 1))
+            while ((magnitude < 5) && Read(CabacElement.QpDelta, magnitude == 0 ? 0 : 1))
             {
                 magnitude++;
             }
@@ -161,7 +161,7 @@ namespace Heic.Net.Hevc
             {
                 throw new InvalidDataException("Luma QP delta exceeds the 8/10-bit range.");
             }
-            return magnitude != 0 && Bypass() ? -magnitude : magnitude;
+            return (magnitude != 0) && Bypass() ? -magnitude : magnitude;
         }
     }
 }

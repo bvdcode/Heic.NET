@@ -27,7 +27,7 @@ namespace Heic.Net.Hevc
             Span<int> left = stackalloc int[65];
             top[0] = Neighbour(plane, x - 1, y - 1, x, y, component);
             left[0] = top[0];
-            for (int i = 0; i < 2 * size; i++)
+            for (int i = 0; i < (2 * size); i++)
             {
                 top[i + 1] = Neighbour(plane, x + i, y - 1, x, y, component);
                 left[i + 1] = Neighbour(plane, x - 1, y + i, x, y, component);

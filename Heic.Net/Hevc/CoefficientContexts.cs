@@ -15,20 +15,20 @@ namespace Heic.Net.Hevc
         {
             int width = 1 << (log2Size - 2);
             int pattern = 0;
-            if (gx + 1 < width)
+            if ((gx + 1) < width)
             {
-                pattern += codedGroups[gy * width + gx + 1];
+                pattern += codedGroups[(gy * width) + gx + 1];
             }
-            if (gy + 1 < width)
+            if ((gy + 1) < width)
             {
-                pattern += 2 * codedGroups[(gy + 1) * width + gx];
+                pattern += 2 * codedGroups[((gy + 1) * width) + gx];
             }
             if (pattern > 3)
             {
                 throw new ArgumentOutOfRangeException(nameof(codedGroups));
             }
-            int map = ((log2Size - 2) * 3 + scanIndex) * 16 + (component == 0 ? 0 : 8) +
-                (gx + gy == 0 ? 0 : 4) + pattern;
+            int map = ((((log2Size - 2) * 3) + scanIndex) * 16) + (component == 0 ? 0 : 8) +
+                ((gx + gy) == 0 ? 0 : 4) + pattern;
             return SignificantMaps.AsSpan(map * 16, 16);
         }
 
@@ -37,9 +37,9 @@ namespace Heic.Net.Hevc
             int context;
             if (log2Size == 2)
             {
-                context = SmallMap[y * 4 + x];
+                context = SmallMap[(y * 4) + x];
             }
-            else if (x + y == 0)
+            else if ((x + y) == 0)
             {
                 context = 0;
             }
@@ -52,7 +52,7 @@ namespace Heic.Net.Hevc
                 switch (pattern)
                 {
                     case 0:
-                        context = px + py == 0 ? 2 : px + py < 3 ? 1 : 0;
+                        context = (px + py) == 0 ? 2 : (px + py) < 3 ? 1 : 0;
                         break;
                     case 1:
                         context = py == 0 ? 2 : py == 1 ? 1 : 0;
@@ -69,7 +69,7 @@ namespace Heic.Net.Hevc
 
                 if (component == 0)
                 {
-                    if (gx + gy > 0)
+                    if ((gx + gy) > 0)
                     {
                         context += 3;
                     }
@@ -101,7 +101,7 @@ namespace Heic.Net.Hevc
                             {
                                 for (int n = 0; n < scan.Length; n++)
                                 {
-                                    int x = scan[n] % 4 + (log2Size > 2 ? origin * 4 : 0);
+                                    int x = (scan[n] % 4) + (log2Size > 2 ? origin * 4 : 0);
                                     maps[index++] = (byte)Significant(x, scan[n] / 4, log2Size, scanIndex, component, pattern);
                                 }
                             }
@@ -115,13 +115,13 @@ namespace Heic.Net.Hevc
         public static int Group(int gx, int gy, int width, int component, ReadOnlySpan<byte> codedGroups)
         {
             int neighbours = 0;
-            if (gx + 1 < width)
+            if ((gx + 1) < width)
             {
-                neighbours += codedGroups[gy * width + gx + 1];
+                neighbours += codedGroups[(gy * width) + gx + 1];
             }
-            if (gy + 1 < width)
+            if ((gy + 1) < width)
             {
-                neighbours += codedGroups[(gy + 1) * width + gx];
+                neighbours += codedGroups[((gy + 1) * width) + gx];
             }
             return (component == 0 ? 0 : 2) + Math.Min(neighbours, 1);
         }

@@ -49,7 +49,7 @@ namespace Heic.Net.Hevc
             {
                 for (int i = 0; i < 4; i++)
                 {
-                    if (offsets[i] != 0 && reader.Bypass())
+                    if ((offsets[i] != 0) && reader.Bypass())
                     {
                         offsets[i] = -offsets[i];
                     }

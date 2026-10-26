@@ -108,11 +108,11 @@ namespace Heic.Net.Heif
             ByteReader reader = new ByteReader(box.Payload);
             uint major = reader.U32();
             reader.U32();
-            bool supported = major == HeifBox.Code("heic") || major == HeifBox.Code("heix");
+            bool supported = (major == HeifBox.Code("heic")) || (major == HeifBox.Code("heix"));
             while (reader.Remaining > 0)
             {
                 uint brand = reader.U32();
-                supported |= brand == HeifBox.Code("heic") || brand == HeifBox.Code("heix");
+                supported |= (brand == HeifBox.Code("heic")) || (brand == HeifBox.Code("heix"));
             }
 
             if (!supported)
@@ -172,7 +172,7 @@ namespace Heic.Net.Heif
         private static byte Version(ByteReader reader, byte maximum)
         {
             byte version = reader.U8();
-            if (version > maximum || reader.UInt(3) != 0)
+            if ((version > maximum) || (reader.UInt(3) != 0))
             {
                 throw new UnsupportedHeicFeatureException("box version or flags");
             }
