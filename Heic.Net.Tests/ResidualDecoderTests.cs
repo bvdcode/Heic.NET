@@ -125,63 +125,75 @@ namespace Heic.Net.Tests
         [InlineData(true, false)]
         [InlineData(false, true)]
         [InlineData(true, true)]
-        public void FullGroupsPreserveEverySignPositionAndFollowingTermination(bool signHiding, bool bypass)
+        public void GroupsPreserveEverySignPositionCountAndFollowingTermination(bool signHiding, bool bypass)
         {
             int[] diagonal = { 0, 4, 1, 8, 5, 2, 12, 9, 6, 3, 13, 10, 7, 14, 11, 15 };
             int[] map = { 0, 1, 4, 5, 2, 3, 4, 5, 6, 6, 8, 8, 7, 7, 8, 8 };
             byte[] prefixInitial = { 110, 110, 124 };
             byte[] significantInitial = { 111, 111, 125, 110, 110, 94, 124, 108, 124 };
             byte[] greaterInitial = { 140, 92, 137, 138 };
-            for (int pattern = 0; pattern < 19; pattern++)
+            for (int count = 1; count <= 16; count++)
             {
-                int signs = pattern switch
+                for (int pattern = 0; pattern < 19; pattern++)
                 {
-                    0 => 0,
-                    1 => 65535,
-                    2 => 0xaaaa,
-                    _ => 1 << (pattern - 3)
-                };
-                CabacIntervalWriter writer = new CabacIntervalWriter(25);
-                for (int coordinate = 0; coordinate < 2; coordinate++)
-                {
-                    for (int i = 0; i < 3; i++)
+                    int signs = pattern switch
                     {
-                        writer.Decision(true, coordinate * 10 + i, prefixInitial[i]);
+                        0 => 0,
+                        1 => 65535,
+                        2 => 0xaaaa,
+                        _ => 1 << (pattern - 3)
+                    };
+                    CabacIntervalWriter writer = new CabacIntervalWriter(25);
+                    for (int coordinate = 0; coordinate < 2; coordinate++)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            writer.Decision(true, coordinate * 10 + i, prefixInitial[i]);
+                        }
                     }
+                    for (int n = 14; n >= 0; n--)
+                    {
+                        int context = map[diagonal[n]];
+                        writer.Decision(n >= 16 - count, 100 + context, significantInitial[context]);
+                    }
+                    for (int i = 0; i < Math.Min(count, 8); i++)
+                    {
+                        int context = Math.Min(i + 1, 3);
+                        writer.Decision(false, 200 + context, greaterInitial[context]);
+                    }
+                    bool hidden = signHiding && !bypass && count > 4;
+                    int signCount = count - (hidden ? 1 : 0);
+                    for (int i = 0; i < signCount; i++)
+                    {
+                        writer.Bypass((signs & (1 << i)) != 0);
+                    }
+                    for (int i = 8; i < count; i++)
+                    {
+                        writer.RemainingLevel(0, 0);
+                    }
+                    writer.Terminate();
+                    IntraCabacReader reader = new IntraCabacReader(new BitReader(writer.ToArray()), 25);
+                    int[] output = new int[17];
+                    Array.Fill(output, 999);
+                    ResidualDecoder decoder = new ResidualDecoder(reader, false, signHiding);
+                    Assert.False(decoder.Read(output, 2, 0, 0, bypass));
+                    for (int i = 0; i < 16; i++)
+                    {
+                        int expected = 0;
+                        if (i < count)
+                        {
+                            bool negative = i < signCount && (signs & (1 << i)) != 0;
+                            if (hidden && i == count - 1)
+                            {
+                                negative = (count & 1) != 0;
+                            }
+                            expected = negative ? -1 : 1;
+                        }
+                        Assert.Equal(expected, output[diagonal[15 - i]]);
+                    }
+                    Assert.Equal(999, output[16]);
+                    Assert.True(reader.Termination());
                 }
-                for (int n = 14; n >= 0; n--)
-                {
-                    int context = map[diagonal[n]];
-                    writer.Decision(true, 100 + context, significantInitial[context]);
-                }
-                for (int i = 0; i < 8; i++)
-                {
-                    int context = Math.Min(i + 1, 3);
-                    writer.Decision(false, 200 + context, greaterInitial[context]);
-                }
-                bool hidden = signHiding && !bypass;
-                int signCount = hidden ? 15 : 16;
-                for (int i = 0; i < signCount; i++)
-                {
-                    writer.Bypass((signs & (1 << i)) != 0);
-                }
-                for (int i = 8; i < 16; i++)
-                {
-                    writer.RemainingLevel(0, 0);
-                }
-                writer.Terminate();
-                IntraCabacReader reader = new IntraCabacReader(new BitReader(writer.ToArray()), 25);
-                int[] output = new int[17];
-                Array.Fill(output, 999);
-                ResidualDecoder decoder = new ResidualDecoder(reader, false, signHiding);
-                Assert.False(decoder.Read(output, 2, 0, 0, bypass));
-                for (int i = 0; i < 16; i++)
-                {
-                    bool negative = i < signCount && (signs & (1 << i)) != 0;
-                    Assert.Equal(negative ? -1 : 1, output[diagonal[15 - i]]);
-                }
-                Assert.Equal(999, output[16]);
-                Assert.True(reader.Termination());
             }
         }
     }
