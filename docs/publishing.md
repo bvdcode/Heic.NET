@@ -80,8 +80,9 @@ The `publish-npm` job uses GitHub Actions OIDC with `id-token: write`.
 The trusted publisher belongs to `heic-net` and authorizes owner `bvdcode`,
 repository `Heic.NET`, workflow `publish-release.yml`, with direct publishing
 enabled and no environment restriction. No npm token is stored in repository
-secrets. The first package publication must complete before the trusted publisher
-can be registered.
+secrets. The same GitVersion release is published to npm, NuGet.org and GitHub
+Packages after the .NET matrix and browser tests pass. New releases require no
+interactive npm sign-in or two-factor confirmation.
 
 The `browser` job publishes `Heic.Net.Browser` with AOT and invariant
 globalization, compiles the TypeScript API and packs an immutable `.tgz` artifact.
