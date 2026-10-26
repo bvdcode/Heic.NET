@@ -167,6 +167,19 @@ namespace Heic.Net.Hevc
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static int ChromaThreshold(IntraSliceHeader slice, CodingBlockMap blocks, int x, int y, int px, int py, int qpOffset)
+        {
+            IntraSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
+            if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x, y, px, py)))
+            {
+                return 0;
+            }
+            int qp = ((blocks.Qp(x, y) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
+            int depth = slice.Picture.Sequence.BitDepth;
+            return DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, current.Picture.Sequence.ChromaFormat) + 2 + current.TcOffset, depth);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ChromaEdge<TSample, TFormat>(SamplePlaneView<TSample> plane, IntraSliceHeader slice,
             CodingBlockMap blocks, bool vertical, int qpOffset, int x, int y, Span<int> samples)
             where TSample : unmanaged
@@ -177,13 +190,7 @@ namespace Heic.Net.Hevc
             int scaleY = slice.Picture.Sequence.SubHeightC;
             int px = vertical ? (x * scaleX) - 1 : x * scaleX;
             int py = vertical ? y * scaleY : (y * scaleY) - 1;
-            IntraSliceHeader current = blocks.Partitions?.SliceAt(x * scaleX, y * scaleY) ?? slice;
-            if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x * scaleX, y * scaleY, px, py)))
-            {
-                return;
-            }
-            int qp = ((blocks.Qp(x * scaleX, y * scaleY) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
-            int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, current.Picture.Sequence.ChromaFormat) + 2 + current.TcOffset, depth);
+            int tc = ChromaThreshold(slice, blocks, x * scaleX, y * scaleY, px, py, qpOffset);
             if (tc == 0)
             {
                 return;

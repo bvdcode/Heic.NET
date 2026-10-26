@@ -27,7 +27,7 @@ printf '%s  %s\n' c2c2a90d94c409a4af339a0d4f244e0442c5a5d249be0f1252ba07871f2859
 chmod +x "$driver"
 
 dotnet tool restore
-rm -rf -- "$output/bin"
+rm -rf -- "${output:?}/bin"
 dotnet publish Heic.Net.Fuzzing -c Release -o "$output/bin" --nologo
 dotnet tool run sharpfuzz -- "$output/bin/Heic.Net.dll"
 

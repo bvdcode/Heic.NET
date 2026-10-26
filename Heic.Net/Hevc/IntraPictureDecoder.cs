@@ -23,29 +23,7 @@ namespace Heic.Net.Hevc
             {
                 using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height, partitions);
                 SaoFilter sao = new SaoFilter(slice, partitions);
-                int ctbSize = 1 << sequence.Log2Ctb;
-                int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
-                int rows = ((sequence.Height + ctbSize) - 1) / ctbSize;
-                int workers = Math.Min(workerCount, Math.Min(rows, (columns + 1) / 2));
-                if (partitions is null && slice.Picture.EntropyCodingSync && (workers > 1))
-                {
-                    new WavefrontDecoder(slice, picture, blocks, sao).DecodeAsync(workers).GetAwaiter().GetResult();
-                }
-                else
-                {
-                    if (partitions is null)
-                    {
-                        DecodeSequential(slice, picture, blocks, sao);
-                    }
-                    else
-                    {
-                        foreach (IntraSliceHeader segment in partitions.Slices)
-                        {
-                            DecodeSequential(segment, picture, blocks, sao);
-                        }
-                    }
-                }
-
+                DecodeBlocks(workerCount, picture, blocks, sao);
                 if (partitions is not null || !slice.DeblockingDisabled)
                 {
                     DeblockingFilter.Apply(picture, slice, blocks);
@@ -59,6 +37,33 @@ namespace Heic.Net.Hevc
                 if (!completed)
                 {
                     picture.Dispose();
+                }
+            }
+        }
+
+        private void DecodeBlocks(int workerCount, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao)
+        {
+            SequenceParameters sequence = slice.Picture.Sequence;
+            int ctbSize = 1 << sequence.Log2Ctb;
+            int columns = ((sequence.Width + ctbSize) - 1) / ctbSize;
+            int rows = ((sequence.Height + ctbSize) - 1) / ctbSize;
+            int workers = Math.Min(workerCount, Math.Min(rows, (columns + 1) / 2));
+            if (partitions is null && slice.Picture.EntropyCodingSync && (workers > 1))
+            {
+                new WavefrontDecoder(slice, picture, blocks, sao).DecodeAsync(workers).GetAwaiter().GetResult();
+            }
+            else
+            {
+                if (partitions is null)
+                {
+                    DecodeSequential(slice, picture, blocks, sao);
+                }
+                else
+                {
+                    foreach (IntraSliceHeader segment in partitions.Slices)
+                    {
+                        DecodeSequential(segment, picture, blocks, sao);
+                    }
                 }
             }
         }

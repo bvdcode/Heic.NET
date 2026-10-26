@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace Heic.Net.Hevc
 {
@@ -41,30 +42,37 @@ namespace Heic.Net.Hevc
                 }
                 else
                 {
-                    mode = reader.Bits(5);
-                    if (candidates[0] > candidates[1])
-                    {
-                        (candidates[0], candidates[1]) = (candidates[1], candidates[0]);
-                    }
-                    if (candidates[0] > candidates[2])
-                    {
-                        (candidates[0], candidates[2]) = (candidates[2], candidates[0]);
-                    }
-                    if (candidates[1] > candidates[2])
-                    {
-                        (candidates[1], candidates[2]) = (candidates[2], candidates[1]);
-                    }
-                    foreach (int candidate in candidates)
-                    {
-                        if (mode >= candidate)
-                        {
-                            mode++;
-                        }
-                    }
+                    mode = ReadRemainingMode(candidates);
                 }
 
                 blocks.SetMode(px, py, blockSize, mode);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private int ReadRemainingMode(Span<int> candidates)
+        {
+            int mode = reader.Bits(5);
+            if (candidates[0] > candidates[1])
+            {
+                (candidates[0], candidates[1]) = (candidates[1], candidates[0]);
+            }
+            if (candidates[0] > candidates[2])
+            {
+                (candidates[0], candidates[2]) = (candidates[2], candidates[0]);
+            }
+            if (candidates[1] > candidates[2])
+            {
+                (candidates[1], candidates[2]) = (candidates[2], candidates[1]);
+            }
+            foreach (int candidate in candidates)
+            {
+                if (mode >= candidate)
+                {
+                    mode++;
+                }
+            }
+            return mode;
         }
 
         public int ReadChroma(int lumaMode, int chromaFormat)

@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Vadim Belov <https://belov.us>
 
 using System;
-using System.Runtime.CompilerServices;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace Heic.Net.Hevc
 {
@@ -74,11 +74,7 @@ namespace Heic.Net.Hevc
         private void TransformTree(int x, int y, int baseX, int baseY, int log2Size, int depth, int index,
             bool intraSplit, ReadOnlySpan<int> chromaModes, int parentCb, int parentCr, bool bypass, int maxDepth, BlockReconstructor reconstruction)
         {
-            bool split = (log2Size > sequence.Log2MaxTransform) || (intraSplit && (depth == 0));
-            if (!split && (log2Size > sequence.Log2MinTransform) && (depth < maxDepth))
-            {
-                split = reader.Read(CabacElement.SplitTransform, 5 - log2Size);
-            }
+            bool split = ReadTransformSplit(log2Size, depth, maxDepth, intraSplit);
 
             int cb = parentCb;
             int cr = parentCr;
@@ -103,6 +99,17 @@ namespace Heic.Net.Hevc
             {
                 ReconstructTransform(x, y, baseX, baseY, log2Size, depth, index, chromaModes, cb, cr, bypass, reconstruction);
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private bool ReadTransformSplit(int log2Size, int depth, int maxDepth, bool intraSplit)
+        {
+            bool split = (log2Size > sequence.Log2MaxTransform) || (intraSplit && (depth == 0));
+            if (!split && (log2Size > sequence.Log2MinTransform) && (depth < maxDepth))
+            {
+                split = reader.Read(CabacElement.SplitTransform, 5 - log2Size);
+            }
+            return split;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

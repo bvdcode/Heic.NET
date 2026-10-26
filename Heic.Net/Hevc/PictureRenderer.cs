@@ -40,20 +40,27 @@ namespace Heic.Net.Hevc
             }
             else
             {
-                switch (sequence.BitDepth)
-                {
-                    case 8:
-                        RenderGray<byte, ByteSampleFormat>(picture.Luma.ByteView, sequence, crop, conversion, pixels.Span, alpha, alphaInformation);
-                        break;
-                    case 10:
-                        RenderGray<ushort, WordSampleFormat>(picture.Luma.WordView, sequence, crop, conversion, pixels.Span, alpha, alphaInformation);
-                        break;
-                    default:
-                        throw new InvalidOperationException("Unsupported component sample depth.");
-                }
+                RenderGrayscale(picture, crop, conversion, pixels.Span, alpha, alphaInformation);
             }
 
             return new RgbaImage(width, height, pixels, new ImageColorInformation(color.Primaries, color.Transfer, iccProfile));
+        }
+
+        private static void RenderGrayscale(DecodedPicture picture, ImageCrop crop, ColorConversion? conversion,
+            Span<byte> pixels, bool alpha, AlphaChannelInformation? alphaInformation)
+        {
+            SequenceParameters sequence = picture.Sequence;
+            switch (sequence.BitDepth)
+            {
+                case 8:
+                    RenderGray<byte, ByteSampleFormat>(picture.Luma.ByteView, sequence, crop, conversion, pixels, alpha, alphaInformation);
+                    break;
+                case 10:
+                    RenderGray<ushort, WordSampleFormat>(picture.Luma.WordView, sequence, crop, conversion, pixels, alpha, alphaInformation);
+                    break;
+                default:
+                    throw new InvalidOperationException("Unsupported component sample depth.");
+            }
         }
 
         private static void RenderGray<TSample, TFormat>(SamplePlaneView<TSample> plane, SequenceParameters sequence,
