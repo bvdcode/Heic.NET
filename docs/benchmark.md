@@ -118,6 +118,45 @@ decode. The included CLI's `warm` mode performs one preceding decode; it uses a
 different warm-up protocol. A long decoding batch's lifetime peak RSS is also a
 different measurement from the single-image peaks in the first-decode table.
 
+### Residual-group comparison
+
+Heic.NET `dfa4fff` packs the base magnitudes and signs of each residual group into
+scalar registers. It was compared with `20b1f67` on the same server and runtime
+in three alternating process pairs per input. Each process performed at least
+64 warm-up decodes and five elapsed seconds, followed by 25 measured decodes.
+Every complete RGBA hash and dimension matched the accepted output.
+
+| Input | `20b1f67`, seconds | `dfa4fff`, seconds | Faster pairs |
+| --- | ---: | ---: | ---: |
+| 12 MP photograph | 0.373052 | 0.351449 | 3 / 3 |
+| Display P3, 10-bit | 0.057783 | 0.049014 | 3 / 3 |
+| iPhone 15 Pro | 0.159143 | 0.147249 | 3 / 3 |
+| 10-bit 4:2:2 | 0.046295 | 0.050713 | 1 / 3 |
+| 8-bit 4:4:4 | 0.051113 | 0.052291 | 2 / 3 |
+| Monochrome | 0.038774 | 0.038675 | 2 / 3 |
+| 8.5 MP, parallel HEVC rows | 0.373810 | 0.347535 | 3 / 3 |
+| 14 MP, parallel HEVC rows | 0.453914 | 0.445163 | 2 / 3 |
+
+These are medians of three process medians from 48 processes, with 4,547 exact
+warm-up and measured outputs. The 4:2:2 sample regresses; the 4:4:4 and monochrome
+results have mixed pair directions. No universal speed improvement is implied.
+
+The separate 200-MP comparison uses eight warm-up decodes and five elapsed seconds,
+then ten measured decodes per process. Across three alternating pairs (six processes,
+108 exact outputs), median time decreased from 3.356313 to 3.246490 seconds;
+CPU time decreased from 12.904516 to 12.597344 seconds. All three wall-time pairs
+were faster, by 2.8–4.9%.
+
+First-decode results use five alternating fresh-process pairs per input and include
+document loading. On the 12-MP photograph, median time increased from 0.876687 to
+1.017730 seconds, with all five pairs slower. The 200-MP first-decode medians were
+4.638511 and 4.297627 seconds, with three of five pairs faster. Peak RAM did not
+materially change. These first-decode and sustained comparisons are separate from
+the cross-decoder series above.
+
+The `dfa4fff` source also passes all 360 tests, all 84 accepted full RGBA hashes and
+dimensions, and the same three expected negative rejections.
+
 ### Corpus coverage
 
 The coverage and pairwise pixel comparison below were measured on 2026-10-25

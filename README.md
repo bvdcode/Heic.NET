@@ -61,19 +61,26 @@ in decimal MB. AMD EPYC, four virtual CPUs, Debian 13 x64, .NET 10.0.13,
 CPU affinity 0–3. These are results for these inputs and this virtual server.
 See the [measurement conditions and ranges](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#cross-decoder-results).
 
-For repeated decoding in a long-running process, the same Heic.NET revision measured:
+For repeated decoding, the residual-group change in `dfa4fff` was compared
+with `20b1f67` in three alternating process pairs:
 
-| Image | Decode time after warm-up, seconds |
-| --- | ---: |
-| 12 MP photograph | 0.374 |
-| iPhone 15 Pro photograph | 0.152 |
-| 8.5 MP photograph with parallel HEVC rows | 0.369 |
-| 14 MP photograph with parallel HEVC rows | 0.435 |
+| Image | `20b1f67`, seconds | `dfa4fff`, seconds |
+| --- | ---: | ---: |
+| 12 MP photograph | 0.373 | 0.351 |
+| iPhone 15 Pro photograph | 0.159 | 0.147 |
+| 8.5 MP photograph with parallel HEVC rows | 0.374 | 0.348 |
+| 14 MP photograph with parallel HEVC rows | 0.454 | 0.445 |
 
 Each result is the median of three process medians, with 25 measured decodes per
 process after at least 64 warm-up decodes and five seconds. Document loading is
-excluded; every decode reconstructs a new owned image. See the
-[repeated-decoding protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#repeated-decoding).
+excluded; every decode reconstructs a new owned image. A separate 200-MP series,
+using eight warm-up decodes and ten measured decodes per process, improved from
+3.356 to 3.246 seconds, with all three pairs faster.
+
+The change favors sustained processing: first-decode 12-MP time increased from
+0.877 to 1.018 seconds in its paired series. The 10-bit 4:2:2 sample's warmed
+decode increased from 0.046 to 0.051 seconds. Peak memory did not materially change.
+See the [paired results and protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md#residual-group-comparison).
 
 Across an 84-file HEVC sample set, the primary-image results were:
 
