@@ -12,7 +12,7 @@ namespace Heic.Net.Hevc
         private readonly SequenceParameters sequence = slice.Picture.Sequence;
         private readonly IntraModeDecoder modes = new IntraModeDecoder(reader, blocks, slice.Picture.Sequence.Log2Ctb);
 
-        public void DecodeCtb(int x, int y, BlockReconstructor reconstruction)
+        public void DecodeCtb(int x, int y, BlockReconstructor reconstruction, bool endsSlice = false)
         {
             int ctbSize = 1 << sequence.Log2Ctb;
             CodingTree(x, y, sequence.Log2Ctb, 0, reconstruction);
@@ -20,7 +20,7 @@ namespace Heic.Net.Hevc
             {
                 reader.StoreWavefrontContexts();
             }
-            bool last = x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
+            bool last = endsSlice || x + ctbSize >= sequence.Width && y + ctbSize >= sequence.Height;
             if (reader.Termination() != last)
             {
                 throw new InvalidDataException("Unexpected HEVC slice termination.");
@@ -37,7 +37,10 @@ namespace Heic.Net.Hevc
             bool split = x + size > sequence.Width || y + size > sequence.Height;
             if (!split && log2Size > sequence.Log2MinCodingBlock)
             {
-                int context = (blocks.Depth(x - 1, y) > depth ? 1 : 0) + (blocks.Depth(x, y - 1) > depth ? 1 : 0);
+                bool left = blocks.Partitions is null || blocks.Partitions.SameSlice(x - 1, y, x, y);
+                bool top = blocks.Partitions is null || blocks.Partitions.SameSlice(x, y - 1, x, y);
+                int context = (left && blocks.Depth(x - 1, y) > depth ? 1 : 0) +
+                    (top && blocks.Depth(x, y - 1) > depth ? 1 : 0);
                 split = reader.Read(CabacElement.SplitCodingUnit, context);
             }
 

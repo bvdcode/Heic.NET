@@ -15,6 +15,10 @@ namespace Heic.Net.Hevc
         public PictureParameters Picture { get; private set; } = null!;
         public BitReader Reader { get; private set; } = null!;
         public IReadOnlyList<ArraySegment<byte>> RowSubstreams { get; private set; } = Array.Empty<ArraySegment<byte>>();
+        public int PictureOrderCount { get; private set; }
+        public int StartCtbAddress { get; private set; }
+        public int EndCtbAddress { get; set; }
+        public bool LoopFilterAcrossSlices { get; private set; }
         public int Qp { get; private set; }
         public int CbQpOffset { get; private set; }
         public int CrQpOffset { get; private set; }
@@ -32,20 +36,41 @@ namespace Heic.Net.Hevc
             }
             BitReader reader = new BitReader(nal.Bytes);
             reader.SkipBits(16);
-            if (!reader.ReadFlag())
-            {
-                throw new UnsupportedHeicFeatureException("multiple HEVC slices per picture");
-            }
+            bool first = reader.ReadFlag();
             reader.ReadFlag();
             int id = HevcSyntax.Ue(reader, 63, "slice_pic_parameter_set_id");
             if (!pictures.TryGetValue(id, out PictureParameters? picture))
             {
                 throw new InvalidDataException("Missing picture parameter set.");
             }
+            int columns = (picture.Sequence.Width - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
+            int rows = (picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
+            int count = checked(columns * rows);
+            int start = 0;
+            if (!first)
+            {
+                if (picture.DependentSlices && reader.ReadFlag())
+                {
+                    throw new UnsupportedHeicFeatureException("dependent HEVC slice segments");
+                }
+                int bits = 0;
+                for (int value = count - 1; value > 0; value >>= 1)
+                {
+                    bits++;
+                }
+                start = reader.Read(bits);
+                if (start <= 0 || start >= count)
+                {
+                    throw new InvalidDataException("Invalid slice segment address.");
+                }
+            }
             IntraSliceHeader slice = new IntraSliceHeader
             {
                 Picture = picture,
                 Reader = reader,
+                StartCtbAddress = start,
+                EndCtbAddress = count,
+                LoopFilterAcrossSlices = picture.LoopFilterAcrossSlices,
                 DeblockingDisabled = picture.DeblockingDisabled,
                 BetaOffset = picture.BetaOffset,
                 TcOffset = picture.TcOffset
@@ -68,7 +93,7 @@ namespace Heic.Net.Hevc
             }
             if (nal.Type != 19 && nal.Type != 20)
             {
-                picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
+                slice.PictureOrderCount = picture.Sequence.ReferencePictures.ReadIntraSlice(reader);
                 if (picture.Sequence.TemporalMvpEnabled)
                 {
                     reader.ReadFlag();
@@ -111,22 +136,17 @@ namespace Heic.Net.Hevc
 
             if (picture.LoopFilterAcrossSlices && (slice.SaoLuma || slice.SaoChroma || !slice.DeblockingDisabled))
             {
-                reader.ReadFlag();
+                slice.LoopFilterAcrossSlices = reader.ReadFlag();
             }
             int[] entryLengths = Array.Empty<int>();
             if (picture.EntropyCodingSync)
             {
-                int rows = (picture.Sequence.Height - 1) / (1 << picture.Sequence.Log2Ctb) + 1;
-                int count = HevcSyntax.Ue(reader, rows - 1, "num_entry_point_offsets");
-                if (count != rows - 1)
-                {
-                    throw new InvalidDataException("WPP entry points do not cover every picture row.");
-                }
-                entryLengths = new int[count];
-                if (count > 0)
+                int entries = HevcSyntax.Ue(reader, rows - 1, "num_entry_point_offsets");
+                entryLengths = new int[entries];
+                if (entries > 0)
                 {
                     int bits = HevcSyntax.Ue(reader, 31, "offset_len_minus1") + 1;
-                    for (int i = 0; i < count; i++)
+                    for (int i = 0; i < entries; i++)
                     {
                         uint offset = unchecked((uint)reader.Read(bits));
                         if (offset >= int.MaxValue)

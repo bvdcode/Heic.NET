@@ -14,7 +14,7 @@ namespace Heic.Net.Hevc
     /// scratch storage. Transform skip uses (d * 2^(5 + log2Size) + half) / 2^(20 - depth).
     /// </remarks>
     internal class BlockReconstructor(DecodedPicture picture, ResidualDecoder residualDecoder,
-        PictureParameters parameters, QuantizationGroup quantization, ReconstructionWorkspace workspace)
+        PictureParameters parameters, QuantizationGroup quantization, ReconstructionWorkspace workspace, PicturePartitions? partitions = null)
     {
         public void Reconstruct(int x, int y, int log2Size, int component, int mode, bool coded, bool bypass)
         {
@@ -25,12 +25,12 @@ namespace Heic.Net.Hevc
             int depth = parameters.Sequence.BitDepth;
             Span<int> top = stackalloc int[65];
             Span<int> left = stackalloc int[65];
-            top[0] = plane.Neighbour(x - 1, y - 1);
+            top[0] = Neighbour(plane, x - 1, y - 1, x, y, component);
             left[0] = top[0];
             for (int i = 0; i < 2 * size; i++)
             {
-                top[i + 1] = plane.Neighbour(x + i, y - 1);
-                left[i + 1] = plane.Neighbour(x - 1, y + i);
+                top[i + 1] = Neighbour(plane, x + i, y - 1, x, y, component);
+                left[i + 1] = Neighbour(plane, x - 1, y + i, x, y, component);
             }
 
             IntraReferenceSamples.Substitute(top, left, size, depth);
@@ -65,6 +65,20 @@ namespace Heic.Net.Hevc
             }
 
             plane.Store(x, y, size, prediction, output);
+        }
+
+        private int Neighbour(SamplePlane plane, int x, int y, int currentX, int currentY, int component)
+        {
+            if (partitions is not null)
+            {
+                int scaleX = component == 0 ? 1 : parameters.Sequence.SubWidthC;
+                int scaleY = component == 0 ? 1 : parameters.Sequence.SubHeightC;
+                if (!partitions.SameSlice(x * scaleX, y * scaleY, currentX * scaleX, currentY * scaleY))
+                {
+                    return -1;
+                }
+            }
+            return plane.Neighbour(x, y);
         }
 
         private SamplePlane Plane(int component)

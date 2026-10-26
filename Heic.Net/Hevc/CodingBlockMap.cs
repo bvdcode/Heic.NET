@@ -26,9 +26,10 @@ namespace Heic.Net.Hevc
         private readonly bool[] bypass = Array.Empty<bool>();
         private bool disposed;
 
-        public CodingBlockMap(int width, int height)
+        public CodingBlockMap(int width, int height, PicturePartitions? partitions = null)
             : this(width, height, ArrayPool<byte>.Shared, ArrayPool<sbyte>.Shared, ArrayPool<bool>.Shared)
         {
+            Partitions = partitions;
         }
 
         internal CodingBlockMap(int width, int height, ArrayPool<byte> metadataPool,
@@ -64,6 +65,7 @@ namespace Heic.Net.Hevc
             }
         }
 
+        public PicturePartitions? Partitions { get; }
         public int Width { get; }
         public int Height { get; }
         public int Mode(int x, int y)

@@ -8,7 +8,7 @@ namespace Heic.Net.Hevc
     /// <summary>
     /// Decodes one independent intra random-access picture using exclusive plane rentals.
     /// </summary>
-    internal class IntraPictureDecoder(IntraSliceHeader slice)
+    internal class IntraPictureDecoder(IntraSliceHeader slice, PicturePartitions? partitions = null)
     {
         public DecodedPicture Decode(int workerCount = 1)
         {
@@ -21,22 +21,32 @@ namespace Heic.Net.Hevc
             bool completed = false;
             try
             {
-                using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height);
-                SaoFilter sao = new SaoFilter(slice);
+                using CodingBlockMap blocks = new CodingBlockMap(sequence.Width, sequence.Height, partitions);
+                SaoFilter sao = new SaoFilter(slice, partitions);
                 int ctbSize = 1 << sequence.Log2Ctb;
                 int columns = (sequence.Width + ctbSize - 1) / ctbSize;
                 int rows = (sequence.Height + ctbSize - 1) / ctbSize;
                 int workers = Math.Min(workerCount, Math.Min(rows, (columns + 1) / 2));
-                if (slice.Picture.EntropyCodingSync && workers > 1)
+                if (partitions is null && slice.Picture.EntropyCodingSync && workers > 1)
                 {
                     new WavefrontDecoder(slice, picture, blocks, sao).DecodeAsync(workers).GetAwaiter().GetResult();
                 }
                 else
                 {
-                    DecodeSequential(picture, blocks, sao);
+                    if (partitions is null)
+                    {
+                        DecodeSequential(slice, picture, blocks, sao);
+                    }
+                    else
+                    {
+                        foreach (IntraSliceHeader segment in partitions.Slices)
+                        {
+                            DecodeSequential(segment, picture, blocks, sao);
+                        }
+                    }
                 }
 
-                if (!slice.DeblockingDisabled)
+                if (partitions is not null || !slice.DeblockingDisabled)
                 {
                     DeblockingFilter.Apply(picture, slice, blocks);
                 }
@@ -53,7 +63,7 @@ namespace Heic.Net.Hevc
             }
         }
 
-        private void DecodeSequential(DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao)
+        private void DecodeSequential(IntraSliceHeader slice, DecodedPicture picture, CodingBlockMap blocks, SaoFilter sao)
         {
             SequenceParameters sequence = slice.Picture.Sequence;
             IntraCabacReader reader = new IntraCabacReader(slice.Reader, slice.Qp);
@@ -61,20 +71,21 @@ namespace Heic.Net.Hevc
             IntraCodingTreeDecoder tree = new IntraCodingTreeDecoder(slice, reader, blocks, quantization);
             ResidualDecoder residual = new ResidualDecoder(reader, slice.Picture.TransformSkip, slice.Picture.SignDataHiding, sequence.ChromaFormat == 3);
             using ReconstructionWorkspace workspace = new ReconstructionWorkspace();
-            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace);
+            BlockReconstructor reconstruction = new BlockReconstructor(picture, residual, slice.Picture, quantization, workspace, partitions);
             int ctbSize = 1 << sequence.Log2Ctb;
-            for (int y = 0; y < sequence.Height; y += ctbSize)
+            int columns = (sequence.Width + ctbSize - 1) / ctbSize;
+            int firstRow = slice.StartCtbAddress / columns;
+            for (int address = slice.StartCtbAddress; address < slice.EndCtbAddress; address++)
             {
-                if (slice.Picture.EntropyCodingSync && y > 0)
+                int column = address % columns;
+                int row = address / columns;
+                if (slice.Picture.EntropyCodingSync && column == 0 && address != slice.StartCtbAddress)
                 {
-                    reader.StartWavefrontRow(new BitReader(slice.RowSubstreams[y / ctbSize]), slice.Qp);
+                    reader.StartWavefrontRow(new BitReader(slice.RowSubstreams[row - firstRow]), slice.Qp);
                     quantization.StartWavefrontRow();
                 }
-                for (int x = 0; x < sequence.Width; x += ctbSize)
-                {
-                    sao.ReadCtb(x / ctbSize, y / ctbSize, reader);
-                    tree.DecodeCtb(x, y, reconstruction);
-                }
+                sao.ReadCtb(column, row, reader);
+                tree.DecodeCtb(column * ctbSize, row * ctbSize, reconstruction, address + 1 == slice.EndCtbAddress);
             }
         }
     }

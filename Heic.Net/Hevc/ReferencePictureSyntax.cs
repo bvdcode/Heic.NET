@@ -26,9 +26,9 @@ namespace Heic.Net.Hevc
             return new ReferencePictureSyntax(log2Poc, sets, longTermPresent, longTermCount);
         }
 
-        public void ReadIntraSlice(BitReader reader)
+        public int ReadIntraSlice(BitReader reader)
         {
-            reader.SkipBits(log2Poc);
+            int poc = reader.Read(log2Poc);
             bool fromSequence = reader.ReadFlag();
             if (fromSequence)
             {
@@ -45,7 +45,7 @@ namespace Heic.Net.Hevc
 
             if (!longTermPresent)
             {
-                return;
+                return poc;
             }
             int sequenceCount = longTermCount > 0
                 ? HevcSyntax.Ue(reader, longTermCount, "num_long_term_sps") : 0;
@@ -66,6 +66,7 @@ namespace Heic.Net.Hevc
                     reader.ReadUev();
                 }
             }
+            return poc;
         }
 
         private static int ReadIndex(BitReader reader, int count)

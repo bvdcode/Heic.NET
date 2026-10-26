@@ -27,6 +27,12 @@ that prefix, and remaining properties retain their association order.
 The first tile establishes geometry before the remaining tiles start. Failures
 wait for all active workers before returning the original exception type.
 
+`PicturePartitions` maps CTBs to independent slices when a picture has several
+slices. Each slice starts fresh CABAC, QP and prediction state. Intra neighbours
+and SAO merges cannot cross those boundaries. Deblocking and SAO edge neighbours
+follow the slice loop-filter flags; filters run after the complete picture is
+reconstructed. Single-slice pictures do not allocate a partition map.
+
 ## Memory ownership
 
 | Owner and lifetime | Storage | Reuse contract |

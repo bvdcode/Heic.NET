@@ -28,6 +28,10 @@ namespace Heic.Net.Hevc
                 int px = x + (i & 1) * blockSize;
                 int py = y + (i >> 1) * blockSize;
                 int left = blocks.Mode(px - 1, py);
+                if (blocks.Partitions is not null && !blocks.Partitions.SameSlice(px - 1, py, px, py))
+                {
+                    left = 1;
+                }
                 int top = (py & ((1 << log2Ctb) - 1)) == 0 ? 1 : blocks.Mode(px, py - 1);
                 Candidates(left, top, candidates);
                 int mode;

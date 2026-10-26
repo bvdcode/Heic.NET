@@ -6,7 +6,7 @@
 | Image items | `hvc1`, `grid`, `iden`, `iovl`; ordered overlay layers with signed offsets and straight-alpha composition; right/bottom grid cropping; recursive derivation with depth and cycle checks |
 | Geometry | All quarter-turn rotations; both mirror axes; exact integral `clap` rectangles, in association order |
 | Alpha | Monochrome auxiliary alpha, including alpha grids and matching transformations; HEVC and MPEG alpha type identifiers; HEVC auxiliary SEI ranges, increment and clipping |
-| HEVC pictures | Single layer; one independent I-slice IDR, CRA or BLA picture, NAL types 16–21, per coded image item; WPP row substreams |
+| HEVC pictures | Single layer; one IDR, CRA or BLA picture, NAL types 16–21, per coded image item; multiple independent I-slices; WPP row substreams |
 | Samples | 8 or 10 bits, equal component depths; monochrome, 4:2:0, 4:2:2 or 4:4:4 |
 | Reconstruction | CABAC, all 35 intra modes, grouped residual coding, sign hiding, QP deltas, scaling lists, DCT 4/8/16/32, intra luma DST4, transform skip and transquant bypass |
 | Filtering | Intra deblocking and SAO band/edge offsets, including CTB merges |
@@ -14,7 +14,7 @@
 | Colour metadata | Retained primaries, transfer code and ICC bytes; gamut conversion, ICC application and HDR tone mapping are absent |
 
 Unsupported tools throw `UnsupportedHeicFeatureException` with a `Feature` value.
-Examples include inter prediction, multiple slices, HEVC tiles,
+Examples include inter prediction, dependent slice segments, HEVC tiles,
 multilayer coding, PCM, field sequences,
 separate colour planes, other sample depths, active range-extension tools,
 fractional clean apertures, external/protected items and premultiplied alpha.
@@ -52,3 +52,8 @@ verify visible dimensions and auxiliary alpha against libheif.
 CRA and all three BLA NAL types have complete 8/10-bit image references decoded
 with FFmpeg. Their POC and short/long-term reference syntax is consumed without
 requiring other decoded pictures; only I-slice reconstruction is supported.
+
+Two- and three-slice CRA/BLA pictures have complete 8/10-bit references with WPP.
+Prediction and entropy contexts stop at independent slice boundaries; deblocking
+and SAO follow each slice’s filter flags. Missing, duplicated and reordered slices
+are rejected. Dependent slice segments remain unsupported.

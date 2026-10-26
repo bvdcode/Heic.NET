@@ -13,7 +13,7 @@ from create_fixtures import HeifWriter, coded, native_pattern
 
 
 def generate(
-    ffmpeg: Path, root: Path, depth: int
+    ffmpeg: Path, root: Path, depth: int, slices: int = 1
 ) -> list[dict[str, str | int | list[str]]]:
     """Encode an open GOP and wrap one CRA and its BLA header variants."""
     pixel_format = {8: "yuv420p", 10: "yuv420p10le"}[depth]
@@ -36,7 +36,8 @@ def generate(
                 "-c:v",
                 "libx265",
                 "-x265-params",
-                "keyint=2:min-keyint=2:scenecut=0:open-gop=1:bframes=0:pools=1:frame-threads=1:repeat-headers=1",
+                "keyint=2:min-keyint=2:scenecut=0:open-gop=1:bframes=0:pools=1:frame-threads=1:repeat-headers=1"
+                + (f":slices={slices}:ctu=16:wpp=1" if slices > 1 else ""),
                 "-y",
                 str(stream),
             ],
@@ -50,13 +51,14 @@ def generate(
         ]
 
     parameters: dict[int, bytes] = {}
-    cra = b""
+    cra: list[bytes] = []
     for unit in units:
         kind = unit[0] >> 1
         if kind in (32, 33, 34):
             parameters[kind] = unit
         if kind == 21:
-            cra = unit
+            cra.append(unit)
+        elif cra:
             break
     if not cra:
         raise ValueError("The encoded stream contains no CRA picture.")
@@ -68,12 +70,16 @@ def generate(
         ("bla-w-radl", 17),
         ("bla-n-lp", 18),
     ):
-        stem = f"{name}-{depth}bit"
-        slice_data = bytes([(cra[0] & 1) | (kind << 1)]) + cra[1:]
+        prefix = f"slices{slices}-" if slices > 1 else ""
+        stem = f"{prefix}{name}-{depth}bit"
+        slice_data = b"".join(
+            b"\x00\x00\x00\x01" + bytes([(unit[0] & 1) | (kind << 1)]) + unit[1:]
+            for unit in cra
+        )
         encoded = b"".join(
             b"\x00\x00\x00\x01" + parameters[key] for key in (32, 33, 34)
         )
-        encoded += b"\x00\x00\x00\x01" + slice_data
+        encoded += slice_data
         elementary = root / f"{stem}.hevc"
         elementary.write_bytes(encoded)
         pattern = native_pattern(elementary, depth, False, ffmpeg)
@@ -90,7 +96,7 @@ def generate(
                 .hexdigest()
                 .upper(),
                 "maxPixels": 16 * 1024 * 1024,
-                "features": [name, f"{depth}bit"],
+                "features": [name, f"{depth}bit", f"{slices}-slices"],
             }
         )
     return manifest
@@ -102,9 +108,12 @@ def main() -> None:
     parser.add_argument("--ffmpeg", type=Path, required=True)
     arguments = parser.parse_args()
     root = Path(__file__).resolve().parent
-    generated = generate(arguments.ffmpeg, root, 8) + generate(
-        arguments.ffmpeg, root, 10
-    )
+    generated = [
+        entry
+        for slices in (1, 2, 3)
+        for depth in (8, 10)
+        for entry in generate(arguments.ffmpeg, root, depth, slices)
+    ]
     names = {entry["file"] for entry in generated}
     path = root / "manifest.json"
     existing = [

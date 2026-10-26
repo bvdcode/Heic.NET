@@ -22,6 +22,8 @@ namespace Heic.Net.Hevc
         {
             Dictionary<int, SequenceParameters> sequences = new Dictionary<int, SequenceParameters>();
             Dictionary<int, PictureParameters> pictures = new Dictionary<int, PictureParameters>();
+            List<IntraSliceHeader> slices = new List<IntraSliceHeader>();
+            int? pictureType = null;
             DecodedPicture? result = null;
             bool completed = false;
             try
@@ -35,11 +37,21 @@ namespace Heic.Net.Hevc
                     Read(unit);
                 }
 
-                if (result is null)
+                if (slices.Count == 0)
                 {
                     throw new InvalidDataException("HEVC image contains no intra random-access picture.");
                 }
-
+                PicturePartitions? partitions = slices.Count > 1 ? new PicturePartitions(slices) : null;
+                IntraSliceHeader first = slices[0];
+                if (partitions is null && first.Picture.EntropyCodingSync)
+                {
+                    int rows = (first.Picture.Sequence.Height - 1) / (1 << first.Picture.Sequence.Log2Ctb) + 1;
+                    if (first.RowSubstreams.Count != rows)
+                    {
+                        throw new InvalidDataException("WPP entry points do not cover every picture row.");
+                    }
+                }
+                result = new IntraPictureDecoder(first, partitions).Decode(workerCount);
                 completed = true;
                 return result;
             }
@@ -77,11 +89,26 @@ namespace Heic.Net.Hevc
                     case 21:
                     case 19:
                     case 20:
-                        if (result is not null)
+                        IntraSliceHeader header = IntraSliceHeader.Read(unit, pictures);
+                        if (slices.Count == 0)
                         {
-                            throw new UnsupportedHeicFeatureException("multiple HEVC pictures or slices per image item");
+                            if (header.StartCtbAddress != 0)
+                            {
+                                throw new InvalidDataException("The first HEVC slice does not start the picture.");
+                            }
+                            pictureType = unit.Type;
                         }
-                        result = new IntraPictureDecoder(IntraSliceHeader.Read(unit, pictures)).Decode(workerCount);
+                        else if (header.StartCtbAddress == 0)
+                        {
+                            throw new UnsupportedHeicFeatureException("multiple HEVC pictures per image item");
+                        }
+                        else if (header.StartCtbAddress <= slices[slices.Count - 1].StartCtbAddress ||
+                            !ReferenceEquals(header.Picture, slices[0].Picture) || unit.Type != pictureType ||
+                            header.PictureOrderCount != slices[0].PictureOrderCount)
+                        {
+                            throw new InvalidDataException("Inconsistent HEVC slices in one image item.");
+                        }
+                        slices.Add(header);
                         break;
                     case 35:
                     case 36:

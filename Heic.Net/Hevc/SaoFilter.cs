@@ -22,15 +22,29 @@ namespace Heic.Net.Hevc
         private readonly int columns;
         private readonly int components;
         private readonly bool enabled;
+        private readonly bool lumaEnabled;
+        private readonly bool chromaEnabled;
+        private readonly PicturePartitions? partitions;
 
-        public SaoFilter(IntraSliceHeader slice)
+        public SaoFilter(IntraSliceHeader slice, PicturePartitions? partitions = null)
         {
             this.slice = slice;
+            this.partitions = partitions;
             int ctb = 1 << slice.Picture.Sequence.Log2Ctb;
             columns = (slice.Picture.Sequence.Width + ctb - 1) / ctb;
             int rows = (slice.Picture.Sequence.Height + ctb - 1) / ctb;
             components = slice.Picture.Sequence.ChromaFormat == 0 ? 1 : 3;
-            enabled = slice.SaoLuma || slice.SaoChroma;
+            lumaEnabled = slice.SaoLuma;
+            chromaEnabled = slice.SaoChroma;
+            if (partitions is not null)
+            {
+                foreach (IntraSliceHeader segment in partitions.Slices)
+                {
+                    lumaEnabled |= segment.SaoLuma;
+                    chromaEnabled |= segment.SaoChroma;
+                }
+            }
+            enabled = lumaEnabled || chromaEnabled;
             parameters = enabled ? new SaoParameters[checked(columns * rows * components)] : Array.Empty<SaoParameters>();
         }
 
@@ -40,13 +54,19 @@ namespace Heic.Net.Hevc
             {
                 return;
             }
+            int ctb = 1 << slice.Picture.Sequence.Log2Ctb;
+            IntraSliceHeader currentSlice = partitions?.SliceAt(x * ctb, y * ctb) ?? slice;
+            if (!currentSlice.SaoLuma && !currentSlice.SaoChroma)
+            {
+                return;
+            }
             int current = (y * columns + x) * components;
             int previous = -1;
-            if (x > 0 && reader.Read(CabacElement.SaoMerge))
+            if (x > 0 && (partitions is null || partitions.SameSlice((x - 1) * ctb, y * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
                 previous = current - components;
             }
-            else if (y > 0 && reader.Read(CabacElement.SaoMerge))
+            else if (y > 0 && (partitions is null || partitions.SameSlice(x * ctb, (y - 1) * ctb, x * ctb, y * ctb)) && reader.Read(CabacElement.SaoMerge))
             {
                 previous = current - columns * components;
             }
@@ -58,7 +78,7 @@ namespace Heic.Net.Hevc
 
             for (int component = 0; component < components; component++)
             {
-                if (component == 0 ? slice.SaoLuma : slice.SaoChroma)
+                if (component == 0 ? currentSlice.SaoLuma : currentSlice.SaoChroma)
                 {
                     parameters[current + component] = SaoParameters.Read(reader, component, slice.Picture.Sequence.BitDepth,
                         component == 2 ? parameters[current + 1] : default);
@@ -72,15 +92,15 @@ namespace Heic.Net.Hevc
             {
                 return;
             }
-            if (slice.SaoLuma)
+            if (lumaEnabled)
             {
                 ApplyPlane(picture.Luma, blocks, 0);
             }
-            if (slice.SaoChroma && picture.Cb is not null)
+            if (chromaEnabled && picture.Cb is not null)
             {
                 ApplyPlane(picture.Cb, blocks, 1);
             }
-            if (slice.SaoChroma && picture.Cr is not null)
+            if (chromaEnabled && picture.Cr is not null)
             {
                 ApplyPlane(picture.Cr, blocks, 2);
             }
@@ -154,7 +174,10 @@ namespace Heic.Net.Hevc
                             int lastX = Math.Min(end, plane.Width - Math.Abs(dx));
                             for (int x = firstX; x < lastX; x++)
                             {
-                                if (!blocks.Bypass(x * scaleX, y * scaleY))
+                                if (!blocks.Bypass(x * scaleX, y * scaleY) &&
+                                    (partitions is null ||
+                                        (partitions.CanFilter(x * scaleX, y * scaleY, (x + dx) * scaleX, (y + dy) * scaleY) &&
+                                         partitions.CanFilter(x * scaleX, y * scaleY, (x - dx) * scaleX, (y - dy) * scaleY))))
                                 {
                                     output[x] = default(TFormat).Write(SaoKernel.Edge(default(TFormat).Read(current[x]),
                                         default(TFormat).Read(first[x + dx]), default(TFormat).Read(second[x - dx]), depth, parameter));

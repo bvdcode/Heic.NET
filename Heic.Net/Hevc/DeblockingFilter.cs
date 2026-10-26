@@ -52,7 +52,13 @@ namespace Heic.Net.Hevc
                     int y = vertical ? along : across;
                     if (blocks.Boundary(x, y, vertical))
                     {
-                        LumaEdge<TSample, TFormat>(plane, slice, blocks, x, y, vertical);
+                        IntraSliceHeader current = blocks.Partitions?.SliceAt(x, y) ?? slice;
+                        int px = vertical ? x - 1 : x;
+                        int py = vertical ? y : y - 1;
+                        if (!current.DeblockingDisabled && (blocks.Partitions is null || blocks.Partitions.CanFilter(x, y, px, py)))
+                        {
+                            LumaEdge<TSample, TFormat>(plane, current, blocks, x, y, vertical);
+                        }
                     }
                 }
             }
@@ -157,8 +163,13 @@ namespace Heic.Net.Hevc
                     }
                     int px = vertical ? x * scaleX - 1 : x * scaleX;
                     int py = vertical ? y * scaleY : y * scaleY - 1;
+                    IntraSliceHeader current = blocks.Partitions?.SliceAt(x * scaleX, y * scaleY) ?? slice;
+                    if (current.DeblockingDisabled || (blocks.Partitions is not null && !blocks.Partitions.CanFilter(x * scaleX, y * scaleY, px, py)))
+                    {
+                        continue;
+                    }
                     int qp = ((blocks.Qp(x * scaleX, y * scaleY) + blocks.Qp(px, py) + 1) >> 1) + qpOffset;
-                    int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, slice.Picture.Sequence.ChromaFormat) + 2 + slice.TcOffset, depth);
+                    int tc = DeblockingThresholds.Tc(QuantizationMath.Chroma(qp, current.Picture.Sequence.ChromaFormat) + 2 + current.TcOffset, depth);
                     if (tc == 0)
                     {
                         continue;

@@ -1,6 +1,6 @@
 # Test images
 
-`manifest.json` lists 20 complete HEIC files with expected visible dimensions,
+`manifest.json` lists 44 complete HEIC files with expected visible dimensions,
 SHA-256 of the original input, SHA-256 of every returned RGBA byte, the explicit
 pixel limit and covered features. `CorpusTests` reads the manifest directly.
 
@@ -101,3 +101,8 @@ extracts its first CRA picture and creates all three BLA NAL-header variants.
 Both 8-bit and 10-bit streams are decoded independently with FFmpeg before their
 HEIF containers and expected RGBA hashes are recorded. The existing IDR fixtures
 remain separate.
+
+The `slices2-` and `slices3-` variants encode two or three independent slices with
+16-pixel CTUs and WPP. All slice NAL units belonging to the CRA picture are kept,
+and each BLA variant changes every slice header. FFmpeg supplies a complete
+reference for each elementary stream before the HEIF wrapper is written.
