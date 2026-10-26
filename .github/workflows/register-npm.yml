@@ -17,7 +17,7 @@ jobs:
   register:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Check source build
         env:
@@ -38,15 +38,13 @@ jobs:
           path: artifacts/npm
           github-token: ${{ github.token }}
           run-id: ${{ inputs.artifact_run }}
-      - name: Submit first package for approval
+      - name: Sign in and submit first package for approval
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
           EXPECTED_OWNER: ${{ github.repository_owner }}
         run: |
+          npm login --auth-type=web --browser=false
           test "$(npm whoami)" = "$EXPECTED_OWNER"
           npm stage publish artifacts/npm/*.tgz --access public --provenance
       - name: Revoke initial npm session
         if: always()
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_BOOTSTRAP_TOKEN }}
         run: npm logout
