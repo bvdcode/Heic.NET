@@ -111,5 +111,37 @@ namespace Heic.Net.Tests
             workspace.Dispose();
             Assert.Throws<ObjectDisposedException>(() => workspace.Intermediate.Length);
         }
+
+        [Theory]
+        [InlineData(8)]
+        [InlineData(10)]
+        public void ReusedScratchPreservesShrinkingAndEmptyCoefficientExtents(int depth)
+        {
+            const int Guard = 123456789;
+            using TransformWorkspace workspace = new TransformWorkspace();
+            int[] result = new int[32 * 32 + 8];
+            foreach (int size in new[] { 32, 16, 8, 4, 8, 16, 32 })
+            {
+                int count = size * size;
+                int[] coefficients = new int[count];
+                foreach (int extent in new[] { size, size / 2, 1, 0 })
+                {
+                    Array.Clear(coefficients);
+                    for (int y = 0; y < extent; y++)
+                    {
+                        for (int x = 0; x < extent; x++)
+                        {
+                            coefficients[y * size + x] = ((x + y) & 1) == 0 ? short.MaxValue : short.MinValue;
+                        }
+                    }
+                    Array.Fill(result, Guard);
+                    workspace.Intermediate.Fill(Guard);
+                    IntegerTransform.Inverse(coefficients, result.AsSpan(4, count), size, depth, false, workspace);
+                    Assert.Equal(TransformOracle.Apply(coefficients, size, depth, false), result.AsSpan(4, count).ToArray());
+                    Assert.All(result.AsSpan(0, 4).ToArray(), value => Assert.Equal(Guard, value));
+                    Assert.All(result.AsSpan(count + 4).ToArray(), value => Assert.Equal(Guard, value));
+                }
+            }
+        }
     }
 }
