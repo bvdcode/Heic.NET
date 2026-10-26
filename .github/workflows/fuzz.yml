@@ -1,0 +1,49 @@
+name: Fuzz decoder
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Heic.Net/**'
+      - 'Heic.Net.Fuzzing/**'
+      - 'corpus/**'
+      - 'scripts/fuzz.sh'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/fuzz.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [parse, decode]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - name: Run instrumented target
+        shell: bash
+        run: |
+          mkdir -p artifacts/fuzz
+          scripts/fuzz.sh '${{ matrix.target }}' 60 2>&1 | tee 'artifacts/fuzz/${{ matrix.target }}.log'
+      - name: Save corpus, findings and run log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-${{ matrix.target }}
+          path: |
+            artifacts/fuzz/${{ matrix.target }}.log
+            artifacts/fuzz/${{ matrix.target }}/corpus/
+            artifacts/fuzz/${{ matrix.target }}/findings/
+          if-no-files-found: error

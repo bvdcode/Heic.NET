@@ -2,4 +2,5 @@
   <Project Path="Heic.Net/Heic.Net.csproj" />
   <Project Path="Heic.Net.Tests/Heic.Net.Tests.csproj" />
   <Project Path="Heic.Net.Benchmarks/Heic.Net.Benchmarks.csproj" />
+  <Project Path="Heic.Net.Fuzzing/Heic.Net.Fuzzing.csproj" />
 </Solution>

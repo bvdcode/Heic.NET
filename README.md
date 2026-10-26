@@ -116,7 +116,7 @@ dotnet run --project Heic.Net.Benchmarks -c Release -- --input corpus/20260201_1
 ```
 
 See the [decoder map](https://github.com/bvdcode/Heic.NET/blob/main/docs/decoder.md), [support boundary](https://github.com/bvdcode/Heic.NET/blob/main/docs/support.md),
-[measurement protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md) and [test images](https://github.com/bvdcode/Heic.NET/blob/main/corpus/README.md).
+[measurement protocol](https://github.com/bvdcode/Heic.NET/blob/main/docs/benchmark.md), [fuzzing](https://github.com/bvdcode/Heic.NET/blob/main/docs/fuzzing.md) and [test images](https://github.com/bvdcode/Heic.NET/blob/main/corpus/README.md).
 
 Packages are versioned with GitVersion and published automatically from `main` after
 Linux, Windows and macOS checks pass. See [publishing](https://github.com/bvdcode/Heic.NET/blob/main/docs/publishing.md).

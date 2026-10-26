@@ -4,7 +4,16 @@
   "tools": {
     "gitversion.tool": {
       "version": "6.8.2",
-      "commands": ["dotnet-gitversion"],
+      "commands": [
+        "dotnet-gitversion"
+      ],
+      "rollForward": false
+    },
+    "sharpfuzz.commandline": {
+      "version": "2.3.0",
+      "commands": [
+        "sharpfuzz"
+      ],
       "rollForward": false
     }
   }
