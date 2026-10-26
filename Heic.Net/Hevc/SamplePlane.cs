@@ -135,13 +135,15 @@ namespace Heic.Net.Hevc
             where TSample : unmanaged
             where TFormat : struct, ISampleFormat<TSample>
         {
+            int maximum = (1 << BitDepth) - 1;
             for (int row = 0; row < size; row++)
             {
                 Span<TSample> destination = plane.Row(y + row).Slice(x, size);
                 for (int column = 0; column < size; column++)
                 {
                     int index = row * size + column;
-                    destination[column] = default(TFormat).Write(CoefficientMath.ClipSample(prediction[index] + residual[index], BitDepth));
+                    int sample = Math.Max(0, Math.Min(maximum, prediction[index] + residual[index]));
+                    destination[column] = default(TFormat).Write(sample);
                 }
             }
         }
