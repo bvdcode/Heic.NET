@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use Heic.NET in your work, please cite it using these metadata."
+type: software
+title: Heic.NET
+authors:
+  - given-names: Vadim
+    family-names: Belov
+    alias: bvdcode
+    website: https://belov.us
+abstract: >-
+  A managed HEIC still-image decoder for .NET Standard 2.1, also available
+  for browsers through WebAssembly, with no native runtime dependencies.
+repository-code: https://github.com/bvdcode/Heic.NET
+license: MIT
+keywords:
+  - HEIC
+  - HEIF
+  - HEVC
+  - .NET
+  - WebAssembly
+  - image decoding

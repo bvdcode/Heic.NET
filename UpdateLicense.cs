@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Vadim Belov <https://belov.us>
+// Copyright (c) 2026 Vadim Belov (bvdcode) <https://belov.us>
 
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace Heic.Net.Tools
     internal class UpdateLicense
     {
         private const int StartYear = 2026;
-        private const string Author = "Vadim Belov <https://belov.us>";
+        private const string Author = "Vadim Belov (bvdcode) <https://belov.us>";
         private const string Spdx = "MIT";
         private static readonly Encoding FileEncoding = new UTF8Encoding(false);
         private static readonly HashSet<string> ExcludedDirectories = new(StringComparer.OrdinalIgnoreCase)

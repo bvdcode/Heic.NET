@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// Copyright (c) 2026 Vadim Belov <https://belov.us>
+// Copyright (c) 2026 Vadim Belov (bvdcode) <https://belov.us>
 
 using System;
 using Heic.Net.Hevc;

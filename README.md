@@ -146,3 +146,9 @@ See the [decoder map](https://github.com/bvdcode/Heic.NET/blob/main/docs/decoder
 
 Packages are versioned with GitVersion and published automatically from `main` after
 Linux, Windows and macOS checks and browser pixel tests pass. See [publishing](https://github.com/bvdcode/Heic.NET/blob/main/docs/publishing.md).
+
+## Citation
+
+Heic.NET is created by **[Vadim Belov (bvdcode)](https://belov.us)**. To cite the software, use
+[CITATION.cff](https://github.com/bvdcode/Heic.NET/blob/main/CITATION.cff) or GitHub's
+**Cite this repository** action, and include the version or commit you used.
