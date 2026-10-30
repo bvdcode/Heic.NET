@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      version: ${{ steps.gitversion.outputs.semVer }}
+      version: ${{ steps.gitversion.outputs.MajorMinorPatch }}
     steps:
       - uses: actions/checkout@v7
         with:
